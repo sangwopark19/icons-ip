@@ -37,15 +37,6 @@ begin
   return new;
 end; $$;
 
--- 역할 검사(RLS에서 재귀를 피하려 SECURITY DEFINER로 RLS 우회)
-create or replace function public.is_staff()
-returns boolean language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and role in ('staff', 'admin')
-  );
-$$;
-
 -- ---------------------------------------------------------------------------
 -- 신원 · 사용자
 -- ---------------------------------------------------------------------------
@@ -66,6 +57,15 @@ create trigger trg_profiles_updated before update on public.profiles
 
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- 역할 검사(RLS에서 재귀를 피하려 SECURITY DEFINER로 RLS 우회)
+create or replace function public.is_staff()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role in ('staff', 'admin')
+  );
+$$;
 
 -- 커뮤니티에서 작성자의 안전 컬럼만 공개로 노출(이메일/생년월일 비노출)
 create view public.public_profiles with (security_invoker = false) as
@@ -267,10 +267,13 @@ alter table public.reports    enable row level security;
 alter table public.blocks     enable row level security;
 alter table public.audit_log  enable row level security;
 
--- profiles: 본인 읽기/수정 + staff 읽기
+-- profiles: 본인 읽기/수정 + staff 읽기. role은 self-service 업데이트에서 제외.
 create policy profiles_self_read   on public.profiles for select using (auth.uid() = id);
 create policy profiles_staff_read  on public.profiles for select using (public.is_staff());
 create policy profiles_self_update on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
+
+revoke update on public.profiles from public, anon, authenticated;
+grant update (nickname, birth_date, avatar_path, consents, onboarded_at) on public.profiles to authenticated;
 
 grant select on public.public_profiles to anon, authenticated;
 
@@ -296,7 +299,8 @@ create policy posts_read on public.posts for select
   using (status = 'visible' or auth.uid() = user_id or public.is_staff());
 create policy posts_insert on public.posts for insert with check (auth.uid() = user_id);
 create policy posts_update on public.posts for update
-  using (auth.uid() = user_id or public.is_staff()) with check (true);
+  using (auth.uid() = user_id or public.is_staff())
+  with check (auth.uid() = user_id or public.is_staff());
 create policy posts_delete on public.posts for delete
   using (auth.uid() = user_id or public.is_staff());
 

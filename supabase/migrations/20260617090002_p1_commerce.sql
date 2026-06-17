@@ -130,15 +130,18 @@ create or replace function public.confirm_order_payment(
 )
 returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_user uuid; v_total bigint; v_status order_status;
+declare v_user uuid; v_total bigint; v_status order_status; v_expires_at timestamptz;
 begin
   -- 멱등: 이미 처리된 키면 무시
   if exists (select 1 from payments where idempotency_key = p_idempotency_key and status = 'paid') then
     return;
   end if;
 
-  select user_id, total, status into v_user, v_total, v_status from orders where id = p_order_id for update;
+  select user_id, total, status, expires_at into v_user, v_total, v_status, v_expires_at
+    from orders where id = p_order_id for update;
   if v_user is null then raise exception 'order not found'; end if;
+  if v_status <> 'pending' then raise exception 'order not payable'; end if;
+  if v_expires_at is not null and now() >= v_expires_at then raise exception 'order expired'; end if;
   if p_amount <> v_total then raise exception 'amount mismatch'; end if;
 
   insert into payments (user_id, purpose, ref_id, amount, status, payment_key, idempotency_key, raw)

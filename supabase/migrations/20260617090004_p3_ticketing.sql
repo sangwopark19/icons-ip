@@ -124,7 +124,7 @@ begin
 
   if v_status = 'pending' then
     update ticket_orders set status = 'paid', expires_at = null where id = p_ticket_order_id;
-    update tickets set qr_token = encode(gen_random_bytes(16), 'hex')
+    update tickets set qr_token = encode(extensions.gen_random_bytes(16), 'hex')
       where ticket_order_id = p_ticket_order_id and qr_token is null;
   end if;
 end; $$;
@@ -142,7 +142,7 @@ begin
   update tickets set status = 'used' where id = v_id;
   insert into check_ins (ticket_id, by_staff) values (v_id, auth.uid())
     on conflict (ticket_id) do nothing;
-  return 'used';
+  return 'used'::ticket_status;
 end; $$;
 
 -- 예매 취소/환불: 재고 복원 + 티켓 무효 + refunds

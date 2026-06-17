@@ -52,6 +52,38 @@ create table public.pool_odds (
   primary key (pool_id, rarity)
 );
 
+create or replace function public.assert_pool_odds_total()
+returns trigger language plpgsql set search_path = public, pg_temp as $$
+declare
+  v_pool_ids uuid[];
+  v_pool     uuid;
+  v_total    numeric;
+begin
+  if tg_op = 'INSERT' then
+    v_pool_ids := array[new.pool_id];
+  elsif tg_op = 'DELETE' then
+    v_pool_ids := array[old.pool_id];
+  else
+    v_pool_ids := array[old.pool_id, new.pool_id];
+  end if;
+
+  for v_pool in select distinct pool_id from unnest(v_pool_ids) as changed(pool_id) loop
+    if v_pool is null then continue; end if;
+    if not exists (select 1 from public.card_pools where id = v_pool) then continue; end if;
+
+    select coalesce(sum(probability), 0) into v_total
+      from public.pool_odds where pool_id = v_pool;
+    if v_total <> 1 then raise exception 'pool odds must sum to 1'; end if;
+  end loop;
+
+  return null;
+end; $$;
+
+create constraint trigger pool_odds_total_chk
+  after insert or update or delete on public.pool_odds
+  deferrable initially deferred
+  for each row execute function public.assert_pool_odds_total();
+
 -- P0 cards에 풀 연결
 alter table public.cards add column pool_id uuid references public.card_pools (id);
 create index cards_pool_idx on public.cards (pool_id);
@@ -100,13 +132,17 @@ create table public.user_cards (
 create or replace function public.roll_rarity(p_pool_id uuid)
 returns rarity
 language plpgsql volatile security definer set search_path = public, pg_temp as $$
-declare v_r numeric := random(); v_acc numeric := 0; rec record;
+declare v_r numeric := random(); v_acc numeric := 0; v_total numeric; rec record;
 begin
+  select coalesce(sum(probability), 0) into v_total
+    from pool_odds where pool_id = p_pool_id;
+  if v_total <> 1 then raise exception 'pool odds must sum to 1'; end if;
+
   for rec in select rarity, probability from pool_odds where pool_id = p_pool_id order by rarity loop
     v_acc := v_acc + rec.probability;
-    if v_r <= v_acc then return rec.rarity; end if;
+    if v_r < v_acc then return rec.rarity; end if;
   end loop;
-  return (select rarity from pool_odds where pool_id = p_pool_id order by probability desc limit 1);
+  raise exception 'failed to roll rarity';
 end; $$;
 
 -- 충전 시작: pending 결제 행 생성(클라이언트가 토스로 결제). 멱등 키 사용.
@@ -159,7 +195,6 @@ declare
   v_rarity rarity;
   v_card   text;
   v_new    boolean;
-  i        integer;
 begin
   if v_user is null then raise exception 'auth required'; end if;
   if p_count not in (1, 10) then raise exception 'invalid count'; end if;
@@ -199,9 +234,11 @@ begin
       order by random() limit 1;
     if v_card is null then raise exception 'pool has no card of rarity %', v_rarity; end if;
 
-    v_new := not exists (select 1 from user_cards where user_id = v_user and card_id = v_card);
-    insert into user_cards (user_id, card_id, qty) values (v_user, v_card, 1)
-      on conflict (user_id, card_id) do update set qty = user_cards.qty + 1;
+    v_new := not exists (
+      select 1 from user_cards uc where uc.user_id = v_user and uc.card_id = v_card
+    );
+    insert into user_cards as uc (user_id, card_id, qty) values (v_user, v_card, 1)
+      on conflict on constraint user_cards_pkey do update set qty = uc.qty + 1;
     insert into pull_results (pull_id, card_id, rarity) values (v_pull, v_card, v_rarity);
 
     card_id := v_card; rarity := v_rarity; is_new := v_new;
@@ -246,3 +283,4 @@ grant execute on function public.charge_wallet_init(bigint, text) to authenticat
 revoke all on function public.confirm_wallet_charge(text, text, bigint, jsonb) from public;
 grant execute on function public.confirm_wallet_charge(text, text, bigint, jsonb) to service_role;
 revoke all on function public.roll_rarity(uuid) from public;  -- 내부 전용
+revoke all on function public.assert_pool_odds_total() from public;
