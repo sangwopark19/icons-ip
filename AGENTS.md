@@ -71,7 +71,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - 여러 파일을 바꾸는 작업은 수정 전에 범위와 순서를 짧게 공유한다.
 - 사용자가 명시적으로 요청하지 않으면 branch 생성, staging, commit, push, PR 생성을 하지 않는다.
 - branch를 만들 때 사용자가 별도 prefix를 지정하지 않으면 `ps/` prefix를 사용한다.
-- branch 이름은 `ps/<type>/<short-kebab-summary>` 형식을 따른다. `<type>`은 commit type과 맞추고, `<short-kebab-summary>`는 한국어 요약을 짧게 쓴다. 예: `ps/docs/에이전트-작업-규칙`, `ps/feat/아이콘즈-프로토타입`, `ps/feat/슈파베이스-초안-스키마`, `ps/fix/가챠-천장-카운터`.
+- branch 이름은 반드시 영어로 작성한다. 한글, 공백, non-ASCII 문자를 사용하지 않는다.
+- branch 이름은 `ps/<type>/<short-kebab-summary>` 형식을 따른다. `<type>`은 commit type과 맞추고, `<short-kebab-summary>`는 소문자 영어 kebab-case로 짧게 쓴다. 예: `ps/docs/agent-rules`, `ps/feat/icons-prototype`, `ps/feat/supabase-draft-schema`, `ps/fix/gacha-pity-counter`.
 - staging 전에는 `git status --short`로 변경 범위를 확인한다.
 - repo에 unrelated/untracked 파일이 있을 수 있으므로 `git add .` 같은 broad staging을 피하고, 의도한 파일만 명시적으로 stage한다.
 - commit은 하나의 논리적 변경 단위로 만들고, Conventional Commits 형식을 따른다: `<type>(<scope>): <summary>`.
