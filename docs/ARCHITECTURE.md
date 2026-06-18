@@ -1,6 +1,6 @@
 # ICONS — 아키텍처
 
-> 상태: Draft · 최종 수정 2026-06-17 · 짝 문서: [`PRD.md`](./PRD.md)
+> 상태: Draft · 최종 수정 2026-06-18 · 짝 문서: [`PRD.md`](./PRD.md)
 > 이 문서는 **어떻게 만들 것인가**를 정의한다. 현재 코드베이스(프로토타입)에서 출발해 목표 아키텍처와 이전 경로를 기술한다.
 >
 > ⚠️ 이 프로젝트의 Next.js 16은 학습 데이터와 API/관례가 다를 수 있다(`AGENTS.md`). 실제 코드 작성 전 `node_modules/next/dist/docs/`를 확인한다. 본 문서가 코드 디테일과 어긋나면 코드를 따른다.
@@ -29,6 +29,8 @@
 | 라우팅 맵 | 프로토타입 route-id ↔ 경로 | `lib/routes.ts` |
 | 데이터 | **mock** (IP·굿즈·카드·이벤트·포스트·교환·마켓) | `lib/data.ts` |
 | 인증 | Supabase SSR **스캐폴딩**(세션 갱신, 리다이렉트 없음, env 없으면 no-op) | `lib/supabase/{client,server,middleware}.ts`, 루트 `proxy.ts` |
+| CI/CD | GitHub Actions `CI/CD Pipeline`: PR/merge queue 검증, `main` push production 배포 | `.github/workflows/pipeline.yml` |
+| Production 배포 | Supabase linked migration push 후 Vercel prebuilt production deploy | GitHub Secrets + `.github/workflows/pipeline.yml` |
 
 **요청 프록시 주의**: 루트 `proxy.ts`가 `export function proxy()` + `config.matcher`로 동작한다(Next 16에서 미들웨어가 이 형태). `lib/supabase/middleware.ts`의 `updateSession`을 호출하며 **로그인 리다이렉트는 하지 않는다**(공개 브라우징 정책).
 
@@ -255,11 +257,9 @@ docs/
 
 ---
 
-## 16. 미해결 결정 / ADR 후보
+## 16. 미해결 결정
 
-- **디지털 유료 가챠 채택 + 규제 스탠스** — 되돌리기 어렵고(엔진·지갑·법무) 트레이드오프 명확 → **ADR 권장**(`docs/adr/0001-paid-digital-gacha.md`).
+- **디지털 유료 가챠 채택 + 규제 스탠스** — 채택 완료. 결정 배경과 결과는 `docs/adr/0001-paid-digital-gacha.md`에 기록되어 있다.
 - 단일 PG(토스페이먼츠) vs 멀티 PG 추상화 시점.
 - 천장/중복카드 환원 등 가챠 세부 규칙.
 - 한국어 검색 품질이 임계 넘는 시점의 외부 검색엔진 도입.
-
-> 요청 시 위 ADR과 도메인 용어집(`CONTEXT.md`)을 추가로 작성한다.
