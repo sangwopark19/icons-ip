@@ -46,6 +46,25 @@ npm run build  # production build
 npm run start  # build 결과 실행
 ```
 
+## CI/CD
+
+GitHub Actions는 `main` 대상 PR과 merge queue에서 `validate` job을 실행한다. `main`에 merge된 뒤에는 같은 검증을 통과한 경우에만 Supabase production migration을 먼저 적용하고, 그 다음 Vercel production 배포를 실행한다.
+
+배포 workflow에는 다음 GitHub Secrets가 필요하다.
+
+```bash
+SUPABASE_ACCESS_TOKEN
+SUPABASE_PROJECT_ID
+SUPABASE_DB_PASSWORD
+VERCEL_TOKEN
+VERCEL_ORG_ID
+VERCEL_PROJECT_ID
+```
+
+- PR에서는 `npm run lint`, `npm run build`, local Supabase migration reset/lint만 실행한다.
+- production 배포는 `main` push에서만 실행한다.
+- `.vercel/` 연결 파일은 commit하지 않고, workflow가 `VERCEL_ORG_ID`와 `VERCEL_PROJECT_ID`로 production 환경을 가져온다.
+
 ## 프로젝트 지도
 
 - `app/`: Next.js App Router 라우트.

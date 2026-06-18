@@ -247,10 +247,10 @@ create table public.audit_log (
 -- ---------------------------------------------------------------------------
 -- 검색 인덱스 (pg_trgm)
 -- ---------------------------------------------------------------------------
-create index ips_title_trgm   on public.ips   using gin (title gin_trgm_ops);
-create index goods_name_trgm  on public.goods using gin (name gin_trgm_ops);
-create index cards_name_trgm  on public.cards using gin (name gin_trgm_ops);
-create index posts_text_trgm  on public.posts using gin (text gin_trgm_ops);
+create index ips_title_trgm   on public.ips   using gin (title extensions.gin_trgm_ops);
+create index goods_name_trgm  on public.goods using gin (name extensions.gin_trgm_ops);
+create index cards_name_trgm  on public.cards using gin (name extensions.gin_trgm_ops);
+create index posts_text_trgm  on public.posts using gin (text extensions.gin_trgm_ops);
 
 -- ---------------------------------------------------------------------------
 -- 참조 데이터: 5개 버티컬 (mock 아님)
