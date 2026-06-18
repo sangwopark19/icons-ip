@@ -16,6 +16,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `gh issue view/list`, `gh pr view`, remote 상태 확인 같은 읽기 작업은 필요 시 수행할 수 있다.
 - issue 생성/수정, PR 생성, push, 배포, Supabase remote 적용, 외부 서비스 설정 변경은 사용자가 명시적으로 요청했거나 직전에 확인한 경우에만 수행한다.
 - `main` push 또는 `main`으로 merge되는 PR은 GitHub Actions를 통해 Supabase remote migration과 Vercel production deploy를 유발할 수 있으므로 production write로 취급한다.
+- Vercel Git 자동 배포는 `vercel.json`의 `git.deploymentEnabled: false`로 비활성화되어 있다. Production 배포는 GitHub Actions의 Vercel CLI 경로만 사용한다.
 
 ## 공통 참조 규칙
 
@@ -72,6 +73,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - 여러 파일을 바꾸는 작업은 수정 전에 범위와 순서를 짧게 공유한다.
 - 사용자가 명시적으로 요청하지 않으면 branch 생성, staging, commit, push, PR 생성을 하지 않는다.
 - `main`에 push하거나 PR을 merge하는 작업은 production 배포 경로를 시작할 수 있으므로, 단순 Git 정리로 취급하지 말고 사용자 요청/확인 범위 안에서만 수행한다.
+- GitHub Actions 앱 빌드는 Node 26을 사용하지만, Vercel project/runtime Node.js Version은 공식 production Functions 지원 범위인 24.x로 유지한다.
 - branch를 만들 때 사용자가 별도 prefix를 지정하지 않으면 `ps/` prefix를 사용한다.
 - branch 이름은 반드시 영어로 작성한다. 한글, 공백, non-ASCII 문자를 사용하지 않는다.
 - branch 이름은 `ps/<type>/<short-kebab-summary>` 형식을 따른다. `<type>`은 commit type과 맞추고, `<short-kebab-summary>`는 소문자 영어 kebab-case로 짧게 쓴다. 예: `ps/docs/agent-rules`, `ps/feat/icons-prototype`, `ps/feat/supabase-draft-schema`, `ps/fix/gacha-pity-counter`.
