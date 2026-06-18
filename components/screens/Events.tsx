@@ -26,8 +26,8 @@ export function Events() {
         {/* featured */}
         {list[0] && (
           <div className="card lift" style={{ marginTop: 28, padding: 0, overflow: 'hidden', textAlign: 'left', width: '100%', cursor: 'pointer', position: 'relative' }}>
-            <div style={{ position: 'relative', minHeight: 300, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr' }}>
-              <div style={{ padding: '40px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="event-featured-layout" style={{ position: 'relative', minHeight: 300, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr' }}>
+              <div className="event-featured-copy" style={{ padding: '40px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div className="row" style={{ gap: 8 }}>
                   <span className="tag" style={{ color: '#0A0813', background: list[0].accent, border: 'none', fontWeight: 700 }}>{list[0].mode}</span>
                   <span className="tag" style={{ color: '#fff' }}>{list[0].status}</span>
@@ -43,7 +43,7 @@ export function Events() {
                   <button className="btn btn-ghost">기념 카드 보기</button>
                 </div>
               </div>
-              <div style={{ position: 'relative', background: list[0].img }}>
+              <div className="event-featured-art" style={{ position: 'relative', background: list[0].img }}>
                 <div className="sheen" />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--surface), transparent 40%)' }} />
               </div>

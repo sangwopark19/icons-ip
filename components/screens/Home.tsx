@@ -68,7 +68,7 @@ function Hero() {
         </div>
       </div>
       {/* mobile card strip */}
-      <div className="only-mob" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 24px 40px', scrollbarWidth: 'none' }}>
+      <div className="only-mob mobile-contained-strip" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 24px 40px', scrollbarWidth: 'none' }}>
         {DATA.CARDS.slice(0, 4).map((c) => (
           <div key={c.id} style={{ flex: '0 0 auto' }}>
             <Collectible card={c} ip={DATA.ipById(c.ip)} size="sm" />
@@ -167,7 +167,7 @@ export function Home() {
       {/* collectible cards highlight */}
       <section className="section" style={{ overflow: 'hidden' }}>
         <div className="wrap">
-          <div className="grid" style={{ gridTemplateColumns: 'minmax(280px, 0.9fr) 1.1fr', alignItems: 'center', gap: 48 }}>
+          <div className="grid mobile-stack" style={{ gridTemplateColumns: 'minmax(280px, 0.9fr) 1.1fr', alignItems: 'center', gap: 48 }}>
             <div>
               <div className="eyebrow" style={{ marginBottom: 16 }}>Collectible Cards</div>
               <h2 className="h-xl">참여할수록 모이는<br /><span className="holo-text">홀로그램 카드</span></h2>
@@ -184,7 +184,7 @@ export function Home() {
                 <Link className="btn btn-ghost" href={hrefFor('exchange')}>카드 교환 마켓</Link>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+            <div className="mobile-card-fan" style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
               {[DATA.CARDS[0], DATA.CARDS[2], DATA.CARDS[8]].map((c, i) => (
                 <div key={c.id} style={{ marginTop: i === 1 ? -28 : i === 2 ? 18 : 0 }}>
                   <Link href={hrefFor('binder')}>
@@ -214,8 +214,8 @@ export function Home() {
       {/* community */}
       <section className="section">
         <div className="wrap">
-          <div className="grid" style={{ gridTemplateColumns: '0.85fr 1.15fr', gap: 44, alignItems: 'start' }}>
-            <div style={{ position: 'sticky', top: 96 }}>
+          <div className="grid mobile-stack" style={{ gridTemplateColumns: '0.85fr 1.15fr', gap: 44, alignItems: 'start' }}>
+            <div className="mobile-unstick" style={{ position: 'sticky', top: 96 }}>
               <div className="eyebrow" style={{ marginBottom: 16 }}>Community</div>
               <h2 className="h-xl">같은 취향의<br /><span className="holo-text">팬들과 함께</span></h2>
               <p className="muted" style={{ marginTop: 16, maxWidth: 380 }}>

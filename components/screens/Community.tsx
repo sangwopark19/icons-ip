@@ -46,7 +46,7 @@ export function Community() {
 
   return (
     <div className="screen">
-      <div className="wrap" style={{ paddingTop: 40, paddingBottom: 80, display: 'grid', gridTemplateColumns: '230px 1fr 280px', gap: 28, alignItems: 'start' }}>
+      <div className="wrap community-layout" style={{ paddingTop: 40, paddingBottom: 80, display: 'grid', gridTemplateColumns: '230px 1fr 280px', gap: 28, alignItems: 'start' }}>
         {/* left: channels */}
         <aside className="hide-mob" style={{ position: 'sticky', top: 90 }}>
           <div className="faint mono" style={{ fontSize: 11, letterSpacing: '.1em', marginBottom: 12 }}>IP 커뮤니티</div>
