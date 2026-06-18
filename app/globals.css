@@ -271,6 +271,9 @@
   @keyframes rise { from { transform: translateY(18px); } to { transform: none; } }
   .rise { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .foil { transition: none; }
+}
 @keyframes holoShift { 0%,100%{ background-position: 0% 50%; } 50%{ background-position: 100% 50%; } }
 @keyframes shake { 0%,100%{ transform: rotate(-2deg); } 50%{ transform: rotate(2deg); } }
 
