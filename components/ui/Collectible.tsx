@@ -8,7 +8,7 @@ import { RarityBadge } from './RarityBadge';
 
 export interface CollectibleProps {
   card: Card;
-  ip?: Pick<Ip, 'title'> | null;
+  ip?: Pick<Ip, 'title' | 'glyph'> | null;
   size?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
 }
@@ -191,6 +191,31 @@ export function Collectible({ card, ip, size = 'md', onClick }: CollectibleProps
         <div style={faceStyle}>
           <div className="sheen" />
           <div ref={foilRef} className="foil" style={{ opacity: 0 }} />
+          {ip?.glyph && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                inset: '16% 10% 24%',
+                display: 'grid',
+                placeItems: 'center',
+                zIndex: 2,
+                pointerEvents: 'none',
+                color: 'rgba(255,255,255,.92)',
+                fontFamily: 'var(--ff-display)',
+                fontSize: size === 'lg' ? 42 : size === 'sm' ? 24 : 30,
+                fontWeight: 700,
+                lineHeight: 0.92,
+                textAlign: 'center',
+                whiteSpace: 'pre-line',
+                opacity: card.owned ? 0.24 : 0.42,
+                mixBlendMode: 'screen',
+                textShadow: '0 4px 24px rgba(0,0,0,.42)',
+              }}
+            >
+              {ip.glyph}
+            </div>
+          )}
           {/* top */}
           <div style={{ position: 'absolute', top: 10, left: 10, right: 10, display: 'flex', justifyContent: 'space-between', zIndex: 4 }}>
             <RarityBadge r={card.rarity} />
