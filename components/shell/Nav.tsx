@@ -35,10 +35,10 @@ export function Nav() {
           ))}
         </div>
         <div className="nav-right">
-          <button className="icon-btn" onClick={() => go('search')} title="검색">
+          <button className="icon-btn" onClick={() => go('search')} title="검색" aria-label="검색">
             <Icon name="search" />
           </button>
-          <button className="icon-btn" onClick={() => go('shop')} title="장바구니">
+          <button className="icon-btn" onClick={() => go('shop')} title="장바구니" aria-label="장바구니">
             <Icon name="bag" />
             {count > 0 && <span className="badge">{count}</span>}
           </button>

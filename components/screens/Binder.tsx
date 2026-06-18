@@ -162,7 +162,7 @@ export function Binder() {
     <div className="screen">
       <div className="wrap" style={{ paddingTop: 48, paddingBottom: 80 }}>
         {/* header / collection progress */}
-        <div className="card" style={{ padding: '28px 30px', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 30, alignItems: 'center', borderRadius: 'var(--r-lg)' }}>
+        <div className="card mobile-stack" style={{ padding: '28px 30px', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 30, alignItems: 'center', borderRadius: 'var(--r-lg)' }}>
           <div>
             <div className="eyebrow" style={{ marginBottom: 14 }}>My Binder</div>
             <h1 className="h-lg">수집 바인더</h1>

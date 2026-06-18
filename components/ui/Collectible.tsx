@@ -39,7 +39,7 @@ export function Collectible({ card, ip, size = 'md', onClick }: CollectibleProps
     if (foil) foil.style.opacity = '0';
   };
 
-  const w = size === 'lg' ? 'min(300px, 78vw)' : size === 'sm' ? 132 : 184;
+  const w = size === 'lg' ? 'min(300px, 78vw)' : size === 'sm' ? 132 : 'min(184px, 100%)';
 
   return (
     <div
