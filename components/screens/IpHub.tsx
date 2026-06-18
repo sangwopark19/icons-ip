@@ -8,7 +8,7 @@ import { useGo, type Go } from '@/components/shell/useGo';
 function IpCard({ ip, go }: { ip: Ip; go: Go }) {
   return (
     <button className="card lift" onClick={() => go('ip', ip.id)} style={{ padding: 0, overflow: 'hidden', textAlign: 'left', cursor: 'pointer' }}>
-      <Poster bg={ip.bg} glyph={ip.glyph} ratio="4 / 3" radius={0}>
+      <Poster bg={ip.bg} glyph={ip.glyph} showGlyph={false} ratio="4 / 3" radius={0}>
         <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 4 }}>
           <span className="tag" style={{ borderColor: ip.v.color, color: '#fff', background: 'rgba(0,0,0,.35)' }}>{ip.v.label}</span>
         </div>

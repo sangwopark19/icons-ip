@@ -17,7 +17,7 @@ function ShopCard({ g, addCart }: { g: Good; addCart: () => void }) {
   const sold = g.stock === 'soldout';
   return (
     <div className="card lift" style={{ padding: 0, overflow: 'hidden' }}>
-      <Poster bg={g.img} glyph={ip?.glyph} ratio="1 / 1" radius={0}>
+      <Poster bg={g.img} glyph={ip?.glyph} showGlyph={false} ratio="1 / 1" radius={0}>
         <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 4, display: 'flex', gap: 6 }}>
           {g.badge && <span className="tag" style={{ color: '#0A0813', background: 'var(--lime)', border: 'none', fontWeight: 700 }}>{g.badge}</span>}
           {stockLabel && (

@@ -9,7 +9,7 @@ export function GoodsCard({ g, href = '/shop' }: { g: Good; href?: string }) {
   const stockLabel = STOCK_LABEL[g.stock];
   return (
     <Link className="card lift" href={href} style={{ display: 'block', padding: 0, overflow: 'hidden', textAlign: 'left', cursor: 'pointer' }}>
-      <Poster bg={g.img} glyph={ip?.glyph} ratio="1 / 1" radius={0}>
+      <Poster bg={g.img} glyph={ip?.glyph} showGlyph={false} ratio="1 / 1" radius={0}>
         <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 4, display: 'flex', gap: 6 }}>
           {g.badge && <span className="tag" style={{ color: '#0A0813', background: 'var(--lime)', border: 'none', fontWeight: 700 }}>{g.badge}</span>}
           {stockLabel && (
