@@ -85,12 +85,12 @@ export function IpDetail({ id }: { id: string }) {
 
         {tab === '굿즈' && (
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-            {goods.map((g) => <GoodsCard key={g.id} g={g} go={go} />)}
+            {goods.map((g) => <GoodsCard key={g.id} g={g} />)}
           </div>
         )}
         {tab === '카드' && (
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', justifyItems: 'center' }}>
-            {cards.map((c) => <Collectible key={c.id} card={c} onClick={() => go('binder')} />)}
+            {cards.map((c) => <Collectible key={c.id} card={c} ip={ip} onClick={() => go('binder')} />)}
           </div>
         )}
         {tab === '팝업' && (
@@ -100,7 +100,7 @@ export function IpDetail({ id }: { id: string }) {
         )}
         {tab === '커뮤니티' && (
           <div className="col" style={{ gap: 14 }}>
-            {DATA.POSTS.slice(0, 3).map((p) => <FeedPreview key={p.id} p={p} go={go} />)}
+            {DATA.POSTS.slice(0, 3).map((p) => <FeedPreview key={p.id} p={p} />)}
           </div>
         )}
       </div>

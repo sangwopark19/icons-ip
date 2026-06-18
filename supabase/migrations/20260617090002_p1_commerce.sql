@@ -26,7 +26,7 @@ create table public.cart_items (
 -- 주문
 -- ---------------------------------------------------------------------------
 create table public.orders (
-  id         uuid primary key default gen_random_uuid(),
+  id         uuid primary key default extensions.gen_random_uuid(),
   user_id    uuid not null references public.profiles (id) on delete restrict,
   status     order_status not null default 'pending',
   total      bigint not null check (total >= 0),  -- KRW
@@ -40,7 +40,7 @@ create trigger trg_orders_updated before update on public.orders
 create index orders_user_idx on public.orders (user_id, created_at desc);
 
 create table public.order_items (
-  id         uuid primary key default gen_random_uuid(),
+  id         uuid primary key default extensions.gen_random_uuid(),
   order_id   uuid not null references public.orders (id) on delete cascade,
   good_id    text not null references public.goods (id),
   qty        integer not null check (qty > 0),
@@ -52,7 +52,7 @@ create index order_items_order_idx on public.order_items (order_id);
 -- 결제 (P1~P3 공용) · 환불
 -- ---------------------------------------------------------------------------
 create table public.payments (
-  id              uuid primary key default gen_random_uuid(),
+  id              uuid primary key default extensions.gen_random_uuid(),
   user_id         uuid not null references public.profiles (id),
   purpose         payment_purpose not null,
   ref_id          uuid,                       -- order_id / ticket_order_id / null(wallet)
@@ -69,7 +69,7 @@ create trigger trg_payments_updated before update on public.payments
 create index payments_ref_idx on public.payments (purpose, ref_id);
 
 create table public.refunds (
-  id         uuid primary key default gen_random_uuid(),
+  id         uuid primary key default extensions.gen_random_uuid(),
   payment_id uuid not null references public.payments (id),
   amount     bigint not null check (amount >= 0),
   reason     text,
@@ -87,7 +87,7 @@ create or replace function public.place_order(p_address jsonb)
 returns uuid
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare
-  v_user  uuid := auth.uid();
+  v_user  uuid := (select auth.uid());
   v_order uuid;
   v_total bigint := 0;
   r record;
@@ -131,10 +131,17 @@ create or replace function public.confirm_order_payment(
 returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_user uuid; v_total bigint; v_status order_status; v_expires_at timestamptz;
+        v_existing record;
 begin
-  -- 멱등: 이미 처리된 키면 무시
-  if exists (select 1 from payments where idempotency_key = p_idempotency_key and status = 'paid') then
-    return;
+  -- 멱등: 같은 목적/대상으로 이미 처리된 키만 무시한다.
+  select id, purpose, ref_id, amount, status into v_existing
+    from payments where idempotency_key = p_idempotency_key for update;
+  if v_existing.id is not null then
+    if v_existing.purpose <> 'order' or v_existing.ref_id is distinct from p_order_id then
+      raise exception 'idempotency conflict';
+    end if;
+    if v_existing.status in ('paid', 'refunded') then return; end if;
+    if v_existing.status <> 'pending' then raise exception 'payment not payable'; end if;
   end if;
 
   select user_id, total, status, expires_at into v_user, v_total, v_status, v_expires_at
@@ -143,6 +150,7 @@ begin
   if v_status <> 'pending' then raise exception 'order not payable'; end if;
   if v_expires_at is not null and now() >= v_expires_at then raise exception 'order expired'; end if;
   if p_amount <> v_total then raise exception 'amount mismatch'; end if;
+  if v_existing.id is not null and v_existing.amount <> p_amount then raise exception 'amount mismatch'; end if;
 
   insert into payments (user_id, purpose, ref_id, amount, status, payment_key, idempotency_key, raw)
   values (v_user, 'order', p_order_id, p_amount, 'paid', p_payment_key, p_idempotency_key, p_raw)
@@ -157,12 +165,13 @@ end; $$;
 create or replace function public.cancel_order(p_order_id uuid, p_reason text)
 returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_user uuid; v_status order_status; v_pay uuid; v_amt bigint; r record;
+declare v_user uuid; v_status order_status; v_pay uuid; v_amt bigint; v_staff boolean := is_staff(); r record;
 begin
   select user_id, status into v_user, v_status from orders where id = p_order_id for update;
   if v_user is null then raise exception 'order not found'; end if;
-  if auth.uid() <> v_user and not is_staff() then raise exception 'forbidden'; end if;
+  if (select auth.uid()) <> v_user and not v_staff then raise exception 'forbidden'; end if;
   if v_status = 'canceled' then return; end if;
+  if not v_staff and v_status not in ('pending', 'paid') then raise exception 'order not cancelable'; end if;
 
   for r in select good_id, qty from order_items where order_id = p_order_id loop
     update goods set stock_qty = stock_qty + r.qty where id = r.good_id;
@@ -188,19 +197,22 @@ alter table public.payments    enable row level security;
 alter table public.refunds     enable row level security;
 
 create policy cart_self on public.cart_items for all
-  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 create policy orders_self_read on public.orders for select
-  using (auth.uid() = user_id or public.is_staff());
+  using ((select auth.uid()) = user_id or (select public.is_staff()));
 -- 주문 생성/수정은 RPC(SECURITY DEFINER)로만. 직접 insert/update 정책 없음.
 
 create policy order_items_read on public.order_items for select
   using (exists (select 1 from orders o where o.id = order_id
-                 and (o.user_id = auth.uid() or public.is_staff())));
+                 and (o.user_id = (select auth.uid()) or (select public.is_staff()))));
 
 create policy payments_self_read on public.payments for select
-  using (auth.uid() = user_id or public.is_staff());
-create policy refunds_staff_read on public.refunds for select using (public.is_staff());
+  using ((select auth.uid()) = user_id or (select public.is_staff()));
+create policy refunds_staff_read on public.refunds for select using ((select public.is_staff()));
+
+grant select, insert, update, delete on public.cart_items to authenticated;
+grant select on public.orders, public.order_items, public.payments, public.refunds to authenticated;
 
 -- 사용자 시작 RPC는 authenticated에만, 웹훅 확정 RPC는 service_role에만
 revoke all on function public.place_order(jsonb) from public;

@@ -1,6 +1,11 @@
 /* ICONS — mock data (ported from the design prototype's data.js) */
 
-export type RarityKey = 'N' | 'R' | 'SR' | 'SSR' | 'HOLO';
+import { RARITY_META } from './rarity';
+
+export type { Rarity, RarityKey } from './rarity';
+
+import type { RarityKey } from './rarity';
+
 export type Stock = 'low' | 'ok' | 'soldout';
 
 export interface Vertical {
@@ -31,11 +36,6 @@ export interface Good {
   badge: string | null;
   stock: Stock;
   img: string;
-}
-export interface Rarity {
-  label: string;
-  color: string;
-  foil: boolean;
 }
 export interface Card {
   id: string;
@@ -145,13 +145,7 @@ const GOODS: Good[] = [
   { id: 'g12', name: '청명 자수 패치 키링', ip: 'cheong', type: '키링', price: 11000, badge: '신상', stock: 'ok', img: grad('#1d2f6e', '#5B7BFF', '#FF4D9D') },
 ];
 
-const RARITY: Record<RarityKey, Rarity> = {
-  N: { label: 'N', color: '#7E7AA0', foil: false },
-  R: { label: 'R', color: '#2DE2FF', foil: false },
-  SR: { label: 'SR', color: '#8B5CFF', foil: false },
-  SSR: { label: 'SSR', color: '#FF4D9D', foil: true },
-  HOLO: { label: 'HOLO', color: '#C6FF3D', foil: true },
-};
+const RARITY = RARITY_META;
 
 const CARDS: Card[] = [
   { id: 'c1', ip: 'hwasan', name: '청명 · 매화 일섬', no: '001/120', rarity: 'HOLO', owned: true, bg: grad('#3a1d6e', '#8B5CFF', '#FF4D9D') },

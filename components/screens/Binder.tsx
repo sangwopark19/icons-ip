@@ -21,7 +21,7 @@ function CardDetail({ card, onClose, go }: { card: Card; onClose: () => void; go
     <Modal onClose={onClose}>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 28, alignItems: 'center' }} className="cd-grid">
         <div style={{ justifySelf: 'center' }}>
-          <Collectible card={{ ...card, owned: true }} size="lg" />
+          <Collectible card={{ ...card, owned: true }} ip={ip} size="lg" />
         </div>
         <div>
           <div className="row" style={{ gap: 8 }}>
@@ -62,6 +62,7 @@ function CardDetail({ card, onClose, go }: { card: Card; onClose: () => void; go
 function PackOpen({ onClose }: { onClose: () => void }) {
   const [stage, setStage] = useState<'ready' | 'opening' | 'reveal'>('ready');
   const pulled = DATA.CARDS[8]; // HOLO
+  const pulledIp = DATA.ipById(pulled.ip)!;
   const open = () => {
     setStage('opening');
     setTimeout(() => setStage('reveal'), 1300);
@@ -119,10 +120,10 @@ function PackOpen({ onClose }: { onClose: () => void }) {
           <div className="rise">
             <p className="mono" style={{ color: 'var(--lime)', fontWeight: 700, letterSpacing: '.1em', marginBottom: 18 }}>✦ HOLO 카드 획득! ✦</p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Collectible card={{ ...pulled, owned: true }} size="lg" />
+              <Collectible card={{ ...pulled, owned: true }} ip={pulledIp} size="lg" />
             </div>
             <div style={{ fontWeight: 700, fontSize: 18, marginTop: 18 }}>{pulled.name}</div>
-            <div className="mono muted" style={{ fontSize: 13, marginTop: 4 }}>{DATA.ipById(pulled.ip)!.title} · No.{pulled.no}</div>
+            <div className="mono muted" style={{ fontSize: 13, marginTop: 4 }}>{pulledIp.title} · No.{pulled.no}</div>
             <div className="row" style={{ gap: 10, justifyContent: 'center', marginTop: 22 }}>
               <button className="btn btn-primary" onClick={onClose}>바인더에 보관</button>
               <button className="btn btn-ghost" onClick={() => setStage('ready')}>한 번 더</button>
@@ -214,7 +215,7 @@ export function Binder() {
 
         {/* binder grid */}
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', marginTop: 24, justifyItems: 'center', rowGap: 26 }}>
-          {cards.map((c) => <Collectible key={c.id} card={c} onClick={() => setDetail(c)} />)}
+          {cards.map((c) => <Collectible key={c.id} card={c} ip={DATA.ipById(c.ip)} onClick={() => setDetail(c)} />)}
         </div>
         {!cards.length && <Empty icon="card" text="조건에 맞는 카드가 없어요" />}
 

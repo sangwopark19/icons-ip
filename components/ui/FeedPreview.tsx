@@ -1,12 +1,10 @@
-'use client';
-
+import Link from 'next/link';
 import type { Post } from '@/lib/data';
 import { Icon } from './Icon';
-import type { Go } from '@/components/shell/useGo';
 
-export function FeedPreview({ p, go }: { p: Post; go: Go }) {
+export function FeedPreview({ p, href = '/community' }: { p: Post; href?: string }) {
   return (
-    <button className="card" onClick={() => go('community')} style={{ padding: 18, textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 14 }}>
+    <Link className="card" href={href} style={{ padding: 18, textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 14 }}>
       <div
         style={{
           width: 42,
@@ -37,6 +35,6 @@ export function FeedPreview({ p, go }: { p: Post; go: Go }) {
           <span className="tag" style={{ marginLeft: 'auto', color: 'var(--violet-2)', borderColor: 'var(--line-2)' }}>#{p.tag}</span>
         </div>
       </div>
-    </button>
+    </Link>
   );
 }

@@ -18,7 +18,7 @@ create trigger trg_wallets_updated before update on public.wallets
   for each row execute function public.set_updated_at();
 
 create table public.wallet_ledger (
-  id         uuid primary key default gen_random_uuid(),
+  id         uuid primary key default extensions.gen_random_uuid(),
   user_id    uuid not null references public.profiles (id) on delete cascade,
   delta      bigint not null,                 -- +충전 / -뽑기 / +환불
   reason     wallet_reason not null,
@@ -31,7 +31,7 @@ create index wallet_ledger_user_idx on public.wallet_ledger (user_id, created_at
 -- 카드풀 · 확률 공시 · 천장
 -- ---------------------------------------------------------------------------
 create table public.card_pools (
-  id              uuid primary key default gen_random_uuid(),
+  id              uuid primary key default extensions.gen_random_uuid(),
   ip_id           text not null references public.ips (id),
   name            text not null,
   cost_per_pull   bigint not null check (cost_per_pull > 0),  -- 충전금
@@ -100,7 +100,7 @@ create table public.gacha_pity (
 -- 뽑기 이력 · 바인더(보유)
 -- ---------------------------------------------------------------------------
 create table public.pulls (
-  id          uuid primary key default gen_random_uuid(),
+  id          uuid primary key default extensions.gen_random_uuid(),
   user_id     uuid not null references public.profiles (id) on delete cascade,
   pool_id     uuid not null references public.card_pools (id),
   cost        bigint not null,
@@ -110,7 +110,7 @@ create table public.pulls (
 create index pulls_user_idx on public.pulls (user_id, created_at desc);
 
 create table public.pull_results (
-  id      uuid primary key default gen_random_uuid(),
+  id      uuid primary key default extensions.gen_random_uuid(),
   pull_id uuid not null references public.pulls (id) on delete cascade,
   card_id text not null references public.cards (id),
   rarity  rarity not null
@@ -149,13 +149,26 @@ end; $$;
 create or replace function public.charge_wallet_init(p_amount bigint, p_idempotency_key text)
 returns uuid
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_user uuid := auth.uid(); v_pay uuid;
+declare v_user uuid := (select auth.uid()); v_pay uuid;
 begin
   if v_user is null then raise exception 'auth required'; end if;
   if p_amount <= 0 then raise exception 'invalid amount'; end if;
+
   insert into payments (user_id, purpose, ref_id, amount, status, idempotency_key)
   values (v_user, 'wallet', null, p_amount, 'pending', p_idempotency_key)
+  on conflict (idempotency_key) do nothing
   returning id into v_pay;
+  if v_pay is not null then return v_pay; end if;
+
+  select id into v_pay
+    from payments
+    where idempotency_key = p_idempotency_key
+      and user_id = v_user
+      and purpose = 'wallet'
+      and ref_id is null
+      and amount = p_amount;
+  if v_pay is null then raise exception 'idempotency conflict'; end if;
+
   return v_pay;
 end; $$;
 
@@ -165,13 +178,16 @@ create or replace function public.confirm_wallet_charge(
 )
 returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_user uuid; v_status payment_status; v_pay uuid;
+declare v_user uuid; v_status payment_status; v_pay uuid; v_amount bigint; v_purpose payment_purpose; v_ref uuid;
 begin
-  select id, user_id, status into v_pay, v_user, v_status
+  select id, user_id, status, amount, purpose, ref_id
+    into v_pay, v_user, v_status, v_amount, v_purpose, v_ref
     from payments where idempotency_key = p_idempotency_key for update;
   if v_pay is null then raise exception 'payment not found'; end if;
-  if v_status = 'paid' then return; end if;            -- 멱등
-  if p_amount <> (select amount from payments where id = v_pay) then raise exception 'amount mismatch'; end if;
+  if v_purpose <> 'wallet' or v_ref is not null then raise exception 'idempotency conflict'; end if;
+  if v_status in ('paid', 'refunded') then return; end if;            -- 멱등
+  if v_status <> 'pending' then raise exception 'payment not payable'; end if;
+  if p_amount <> v_amount then raise exception 'amount mismatch'; end if;
 
   update payments set status = 'paid', payment_key = p_payment_key, raw = p_raw where id = v_pay;
 
@@ -185,7 +201,7 @@ create or replace function public.pull_gacha(p_pool_id uuid, p_count integer)
 returns table (card_id text, rarity rarity, is_new boolean)
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare
-  v_user   uuid := auth.uid();
+  v_user   uuid := (select auth.uid());
   v_cost   bigint;
   v_thr    integer;
   v_total  bigint;
@@ -260,21 +276,30 @@ alter table public.pulls         enable row level security;
 alter table public.pull_results  enable row level security;
 alter table public.user_cards    enable row level security;
 
-create policy wallet_self_read on public.wallets for select using (auth.uid() = user_id);
-create policy ledger_self_read on public.wallet_ledger for select using (auth.uid() = user_id);
+create policy wallet_self_read on public.wallets for select using ((select auth.uid()) = user_id);
+create policy ledger_self_read on public.wallet_ledger for select using ((select auth.uid()) = user_id);
 
 -- 카드풀/확률은 공개 읽기(확률 공시 의무), staff 쓰기
 create policy pools_read  on public.card_pools for select using (true);
-create policy pools_write on public.card_pools for all using (public.is_staff()) with check (public.is_staff());
+create policy pools_insert on public.card_pools for insert with check ((select public.is_staff()));
+create policy pools_update on public.card_pools for update using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy pools_delete on public.card_pools for delete using ((select public.is_staff()));
 create policy odds_read   on public.pool_odds for select using (true);
-create policy odds_write  on public.pool_odds for all using (public.is_staff()) with check (public.is_staff());
+create policy odds_insert on public.pool_odds for insert with check ((select public.is_staff()));
+create policy odds_update on public.pool_odds for update using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy odds_delete on public.pool_odds for delete using ((select public.is_staff()));
 
-create policy pity_self    on public.gacha_pity for select using (auth.uid() = user_id);
-create policy pulls_self    on public.pulls for select using (auth.uid() = user_id);
+create policy pity_self    on public.gacha_pity for select using ((select auth.uid()) = user_id);
+create policy pulls_self    on public.pulls for select using ((select auth.uid()) = user_id);
 create policy pull_res_self on public.pull_results for select
-  using (exists (select 1 from pulls p where p.id = pull_id and p.user_id = auth.uid()));
-create policy user_cards_self on public.user_cards for select using (auth.uid() = user_id);
+  using (exists (select 1 from pulls p where p.id = pull_id and p.user_id = (select auth.uid())));
+create policy user_cards_self on public.user_cards for select using ((select auth.uid()) = user_id);
 -- 지갑/뽑기 쓰기는 전부 RPC로만(직접 쓰기 정책 없음)
+
+grant select on public.card_pools, public.pool_odds to anon, authenticated;
+grant insert, update, delete on public.card_pools, public.pool_odds to authenticated;
+grant select on public.wallets, public.wallet_ledger, public.gacha_pity, public.pulls,
+  public.pull_results, public.user_cards to authenticated;
 
 revoke all on function public.pull_gacha(uuid, integer) from public;
 grant execute on function public.pull_gacha(uuid, integer) to authenticated;

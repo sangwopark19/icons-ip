@@ -11,7 +11,7 @@ create type ticket_status       as enum ('valid', 'used', 'refunded');
 -- 회차/종류 · 예매 · 티켓 · 검표
 -- ---------------------------------------------------------------------------
 create table public.ticket_types (
-  id          uuid primary key default gen_random_uuid(),
+  id          uuid primary key default extensions.gen_random_uuid(),
   event_id    text not null references public.events (id) on delete cascade,
   name        text not null,                       -- 회차/종류명
   price       integer not null check (price >= 0),  -- KRW
@@ -28,7 +28,7 @@ create trigger trg_ticket_types_updated before update on public.ticket_types
 create index ticket_types_event_idx on public.ticket_types (event_id);
 
 create table public.ticket_orders (
-  id         uuid primary key default gen_random_uuid(),
+  id         uuid primary key default extensions.gen_random_uuid(),
   user_id    uuid not null references public.profiles (id) on delete restrict,
   event_id   text not null references public.events (id),
   status     ticket_order_status not null default 'pending',
@@ -42,7 +42,7 @@ create trigger trg_ticket_orders_updated before update on public.ticket_orders
 create index ticket_orders_user_idx on public.ticket_orders (user_id, created_at desc);
 
 create table public.tickets (
-  id              uuid primary key default gen_random_uuid(),
+  id              uuid primary key default extensions.gen_random_uuid(),
   ticket_order_id uuid not null references public.ticket_orders (id) on delete cascade,
   ticket_type_id  uuid not null references public.ticket_types (id),
   qr_token        text unique,                      -- 결제 확정 시 발급
@@ -66,7 +66,7 @@ create or replace function public.reserve_tickets(p_ticket_type_id uuid, p_qty i
 returns uuid
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare
-  v_user  uuid := auth.uid();
+  v_user  uuid := (select auth.uid());
   v_cap   integer; v_sold integer; v_price integer; v_limit integer; v_open timestamptz;
   v_event text; v_order uuid; v_already integer;
 begin
@@ -107,16 +107,26 @@ create or replace function public.confirm_ticket_payment(
 )
 returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_user uuid; v_total bigint; v_status ticket_order_status;
+declare v_user uuid; v_total bigint; v_status ticket_order_status; v_expires_at timestamptz;
+        v_existing record;
 begin
-  if exists (select 1 from payments where idempotency_key = p_idempotency_key and status = 'paid') then
-    return;  -- 멱등
+  select id, purpose, ref_id, amount, status into v_existing
+    from payments where idempotency_key = p_idempotency_key for update;
+  if v_existing.id is not null then
+    if v_existing.purpose <> 'ticket' or v_existing.ref_id is distinct from p_ticket_order_id then
+      raise exception 'idempotency conflict';
+    end if;
+    if v_existing.status in ('paid', 'refunded') then return; end if;
+    if v_existing.status <> 'pending' then raise exception 'payment not payable'; end if;
   end if;
 
-  select user_id, total, status into v_user, v_total, v_status
+  select user_id, total, status, expires_at into v_user, v_total, v_status, v_expires_at
     from ticket_orders where id = p_ticket_order_id for update;
   if v_user is null then raise exception 'ticket order not found'; end if;
+  if v_status <> 'pending' then raise exception 'ticket order not payable'; end if;
+  if v_expires_at is not null and now() >= v_expires_at then raise exception 'ticket order expired'; end if;
   if p_amount <> v_total then raise exception 'amount mismatch'; end if;
+  if v_existing.id is not null and v_existing.amount <> p_amount then raise exception 'amount mismatch'; end if;
 
   insert into payments (user_id, purpose, ref_id, amount, status, payment_key, idempotency_key, raw)
   values (v_user, 'ticket', p_ticket_order_id, p_amount, 'paid', p_payment_key, p_idempotency_key, p_raw)
@@ -140,7 +150,7 @@ begin
   if v_id is null then raise exception 'invalid ticket'; end if;
   if v_status <> 'valid' then return v_status; end if;   -- 이미 사용/환불
   update tickets set status = 'used' where id = v_id;
-  insert into check_ins (ticket_id, by_staff) values (v_id, auth.uid())
+  insert into check_ins (ticket_id, by_staff) values (v_id, (select auth.uid()))
     on conflict (ticket_id) do nothing;
   return 'used'::ticket_status;
 end; $$;
@@ -153,7 +163,7 @@ declare v_user uuid; v_status ticket_order_status; v_pay uuid; v_amt bigint; r r
 begin
   select user_id, status into v_user, v_status from ticket_orders where id = p_ticket_order_id for update;
   if v_user is null then raise exception 'ticket order not found'; end if;
-  if auth.uid() <> v_user and not is_staff() then raise exception 'forbidden'; end if;
+  if (select auth.uid()) <> v_user and not is_staff() then raise exception 'forbidden'; end if;
   if v_status = 'canceled' then return; end if;
 
   -- 미사용 티켓만 환불 가능
@@ -188,17 +198,23 @@ alter table public.tickets       enable row level security;
 alter table public.check_ins     enable row level security;
 
 create policy ticket_types_read  on public.ticket_types for select using (true);
-create policy ticket_types_write on public.ticket_types for all
-  using (public.is_staff()) with check (public.is_staff());
+create policy ticket_types_insert on public.ticket_types for insert with check ((select public.is_staff()));
+create policy ticket_types_update on public.ticket_types for update
+  using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy ticket_types_delete on public.ticket_types for delete using ((select public.is_staff()));
 
 create policy ticket_orders_self on public.ticket_orders for select
-  using (auth.uid() = user_id or public.is_staff());
+  using ((select auth.uid()) = user_id or (select public.is_staff()));
 
 create policy tickets_self on public.tickets for select
   using (exists (select 1 from ticket_orders o where o.id = ticket_order_id
-                 and (o.user_id = auth.uid() or public.is_staff())));
+                 and (o.user_id = (select auth.uid()) or (select public.is_staff()))));
 
-create policy check_ins_staff on public.check_ins for select using (public.is_staff());
+create policy check_ins_staff on public.check_ins for select using ((select public.is_staff()));
+
+grant select on public.ticket_types to anon, authenticated;
+grant insert, update, delete on public.ticket_types to authenticated;
+grant select on public.ticket_orders, public.tickets, public.check_ins to authenticated;
 
 revoke all on function public.reserve_tickets(uuid, integer) from public;
 grant execute on function public.reserve_tickets(uuid, integer) to authenticated;

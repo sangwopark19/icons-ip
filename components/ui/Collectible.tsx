@@ -1,20 +1,21 @@
 'use client';
 
 import { useRef, type MouseEvent } from 'react';
-import { DATA, type Card } from '@/lib/data';
+import type { Card, Ip } from '@/lib/data';
+import { RARITY_META } from '@/lib/rarity';
 import { Icon } from './Icon';
 import { RarityBadge } from './RarityBadge';
 
 export interface CollectibleProps {
   card: Card;
+  ip?: Pick<Ip, 'title' | 'glyph'> | null;
   size?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
 }
 
-export function Collectible({ card, size = 'md', onClick }: CollectibleProps) {
+export function Collectible({ card, ip, size = 'md', onClick }: CollectibleProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const info = DATA.RARITY[card.rarity];
-  const ip = DATA.ipById(card.ip);
+  const info = RARITY_META[card.rarity];
 
   const onMove = (e: MouseEvent<HTMLDivElement>) => {
     const el = ref.current;
@@ -46,7 +47,7 @@ export function Collectible({ card, size = 'md', onClick }: CollectibleProps) {
       onMouseMove={onMove}
       onMouseLeave={reset}
       onClick={onClick}
-      style={{ width: w, transition: 'transform .25s ease', cursor: 'pointer', transformStyle: 'preserve-3d' }}
+      style={{ width: w, transition: 'transform .25s ease', cursor: onClick ? 'pointer' : 'inherit', transformStyle: 'preserve-3d' }}
     >
       <div
         style={{

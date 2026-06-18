@@ -1,7 +1,7 @@
-import { DATA, type RarityKey } from '@/lib/data';
+import { RARITY_META, type RarityKey } from '@/lib/rarity';
 
 export function RarityBadge({ r }: { r: RarityKey }) {
-  const info = DATA.RARITY[r];
+  const info = RARITY_META[r];
   return (
     <span
       className="mono"

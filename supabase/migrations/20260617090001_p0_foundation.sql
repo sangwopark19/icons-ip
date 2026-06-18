@@ -5,8 +5,9 @@
 -- 적용: supabase db push (또는 supabase migration up)
 -- ============================================================================
 
-create extension if not exists pgcrypto;   -- gen_random_uuid()
-create extension if not exists pg_trgm;     -- 검색(ILIKE/유사도)
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;   -- gen_random_uuid()
+create extension if not exists pg_trgm with schema extensions;    -- 검색(ILIKE/유사도)
 
 -- ---------------------------------------------------------------------------
 -- 공통 enum
@@ -21,7 +22,7 @@ create type report_target  as enum ('post', 'comment', 'user');
 -- 공통 트리거 함수
 -- ---------------------------------------------------------------------------
 create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public, pg_temp as $$
 begin
   new.updated_at = now();
   return new;
@@ -63,13 +64,33 @@ create or replace function public.is_staff()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.profiles
-    where id = auth.uid() and role in ('staff', 'admin')
+    where id = (select auth.uid()) and role in ('staff', 'admin')
   );
 $$;
 
--- 커뮤니티에서 작성자의 안전 컬럼만 공개로 노출(이메일/생년월일 비노출)
-create view public.public_profiles with (security_invoker = false) as
-  select id, nickname, avatar_path from public.profiles;
+-- 커뮤니티에서 작성자의 안전 컬럼만 공개로 노출(이메일/생년월일 비노출).
+-- security_definer view는 RLS를 우회하므로 공개 안전 테이블로 동기화한다.
+create table public.public_profiles (
+  id          uuid primary key references public.profiles (id) on delete cascade,
+  nickname    text,
+  avatar_path text,
+  updated_at  timestamptz not null default now()
+);
+
+create or replace function public.sync_public_profile()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.public_profiles (id, nickname, avatar_path, updated_at)
+  values (new.id, new.nickname, new.avatar_path, now())
+  on conflict (id) do update set
+    nickname = excluded.nickname,
+    avatar_path = excluded.avatar_path,
+    updated_at = excluded.updated_at;
+  return new;
+end; $$;
+
+create trigger trg_profiles_public_sync after insert or update of nickname, avatar_path on public.profiles
+  for each row execute function public.sync_public_profile();
 
 -- ---------------------------------------------------------------------------
 -- 카탈로그 (공개 읽기 / staff 쓰기)
@@ -163,7 +184,7 @@ create table public.ip_follows (
 -- 커뮤니티
 -- ---------------------------------------------------------------------------
 create table public.posts (
-  id         uuid primary key default gen_random_uuid(),
+  id         uuid primary key default extensions.gen_random_uuid(),
   user_id    uuid not null references public.profiles (id) on delete cascade,
   ip_id      text references public.ips (id),
   text       text not null,
@@ -179,7 +200,7 @@ create index posts_created_idx on public.posts (created_at desc);
 create index posts_ip_idx on public.posts (ip_id);
 
 create table public.comments (
-  id         uuid primary key default gen_random_uuid(),
+  id         uuid primary key default extensions.gen_random_uuid(),
   post_id    uuid not null references public.posts (id) on delete cascade,
   user_id    uuid not null references public.profiles (id) on delete cascade,
   text       text not null,
@@ -195,7 +216,7 @@ create table public.likes (
 );
 
 create table public.reports (
-  id          uuid primary key default gen_random_uuid(),
+  id          uuid primary key default extensions.gen_random_uuid(),
   target_type report_target not null,
   target_id   text not null,
   reporter_id uuid not null references public.profiles (id) on delete cascade,
@@ -215,7 +236,7 @@ create table public.blocks (
 -- 운영 감사 로그 (RPC/서비스 롤만 기록)
 -- ---------------------------------------------------------------------------
 create table public.audit_log (
-  id         uuid primary key default gen_random_uuid(),
+  id         uuid primary key default extensions.gen_random_uuid(),
   actor_id   uuid references public.profiles (id),
   action     text not null,
   target     text,
@@ -254,6 +275,7 @@ on conflict (id) do nothing;
 -- RLS
 -- ============================================================================
 alter table public.profiles   enable row level security;
+alter table public.public_profiles enable row level security;
 alter table public.ips        enable row level security;
 alter table public.verticals  enable row level security;
 alter table public.goods      enable row level security;
@@ -268,68 +290,98 @@ alter table public.blocks     enable row level security;
 alter table public.audit_log  enable row level security;
 
 -- profiles: 본인 읽기/수정 + staff 읽기. role은 self-service 업데이트에서 제외.
-create policy profiles_self_read   on public.profiles for select using (auth.uid() = id);
-create policy profiles_staff_read  on public.profiles for select using (public.is_staff());
-create policy profiles_self_update on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
+create policy profiles_read on public.profiles for select
+  using ((select auth.uid()) = id or (select public.is_staff()));
+create policy profiles_self_update on public.profiles for update using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 
 revoke update on public.profiles from public, anon, authenticated;
 grant update (nickname, birth_date, avatar_path, consents, onboarded_at) on public.profiles to authenticated;
 
-grant select on public.public_profiles to anon, authenticated;
+create policy public_profiles_read on public.public_profiles for select using (true);
 
 -- 카탈로그: 공개 읽기 / staff 전체 쓰기
 create policy verticals_read  on public.verticals for select using (true);
-create policy verticals_write on public.verticals for all using (public.is_staff()) with check (public.is_staff());
+create policy verticals_insert on public.verticals for insert with check ((select public.is_staff()));
+create policy verticals_update on public.verticals for update using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy verticals_delete on public.verticals for delete using ((select public.is_staff()));
 create policy ips_read   on public.ips   for select using (true);
-create policy ips_write  on public.ips   for all using (public.is_staff()) with check (public.is_staff());
+create policy ips_insert on public.ips   for insert with check ((select public.is_staff()));
+create policy ips_update on public.ips   for update using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy ips_delete on public.ips   for delete using ((select public.is_staff()));
 create policy goods_read on public.goods for select using (true);
-create policy goods_write on public.goods for all using (public.is_staff()) with check (public.is_staff());
+create policy goods_insert on public.goods for insert with check ((select public.is_staff()));
+create policy goods_update on public.goods for update using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy goods_delete on public.goods for delete using ((select public.is_staff()));
 create policy events_read on public.events for select using (true);
-create policy events_write on public.events for all using (public.is_staff()) with check (public.is_staff());
+create policy events_insert on public.events for insert with check ((select public.is_staff()));
+create policy events_update on public.events for update using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy events_delete on public.events for delete using ((select public.is_staff()));
 create policy cards_read  on public.cards for select using (true);
-create policy cards_write on public.cards for all using (public.is_staff()) with check (public.is_staff());
+create policy cards_insert on public.cards for insert with check ((select public.is_staff()));
+create policy cards_update on public.cards for update using ((select public.is_staff())) with check ((select public.is_staff()));
+create policy cards_delete on public.cards for delete using ((select public.is_staff()));
 
 -- IP 팔로우: 공개 읽기(팔로워 수), 본인만 쓰기
 create policy follows_read on public.ip_follows for select using (true);
-create policy follows_write on public.ip_follows for all
-  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy follows_insert on public.ip_follows for insert
+  with check ((select auth.uid()) = user_id);
+create policy follows_delete on public.ip_follows for delete
+  using ((select auth.uid()) = user_id);
 
 -- 커뮤니티
 create policy posts_read on public.posts for select
-  using (status = 'visible' or auth.uid() = user_id or public.is_staff());
-create policy posts_insert on public.posts for insert with check (auth.uid() = user_id);
+  using (status = 'visible' or (select auth.uid()) = user_id or (select public.is_staff()));
+create policy posts_insert on public.posts for insert with check ((select auth.uid()) = user_id);
 create policy posts_update on public.posts for update
-  using (auth.uid() = user_id or public.is_staff())
-  with check (auth.uid() = user_id or public.is_staff());
+  using ((select auth.uid()) = user_id or (select public.is_staff()))
+  with check ((select auth.uid()) = user_id or (select public.is_staff()));
 create policy posts_delete on public.posts for delete
-  using (auth.uid() = user_id or public.is_staff());
+  using ((select auth.uid()) = user_id or (select public.is_staff()));
 
 create policy comments_read   on public.comments for select using (true);
-create policy comments_insert on public.comments for insert with check (auth.uid() = user_id);
+create policy comments_insert on public.comments for insert with check ((select auth.uid()) = user_id);
 create policy comments_delete on public.comments for delete
-  using (auth.uid() = user_id or public.is_staff());
+  using ((select auth.uid()) = user_id or (select public.is_staff()));
 
 create policy likes_read  on public.likes for select using (true);
-create policy likes_write on public.likes for all
-  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy likes_insert on public.likes for insert
+  with check ((select auth.uid()) = user_id);
+create policy likes_delete on public.likes for delete
+  using ((select auth.uid()) = user_id);
 
-create policy reports_insert on public.reports for insert with check (auth.uid() = reporter_id);
+create policy reports_insert on public.reports for insert with check ((select auth.uid()) = reporter_id);
 create policy reports_read   on public.reports for select
-  using (auth.uid() = reporter_id or public.is_staff());
+  using ((select auth.uid()) = reporter_id or (select public.is_staff()));
 create policy reports_update on public.reports for update
-  using (public.is_staff()) with check (public.is_staff());
+  using ((select public.is_staff())) with check ((select public.is_staff()));
 
 create policy blocks_self on public.blocks for all
-  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 -- audit_log: staff 읽기만(쓰기는 RPC/서비스 롤 = RLS 우회)
-create policy audit_staff_read on public.audit_log for select using (public.is_staff());
+create policy audit_staff_read on public.audit_log for select using ((select public.is_staff()));
+
+-- Data API grants: Supabase 신규 프로젝트는 SQL로 만든 public 테이블을 자동 노출하지 않는다.
+grant usage on schema public to anon, authenticated;
+
+grant select on public.public_profiles to anon, authenticated;
+grant select on public.verticals, public.ips, public.goods, public.events, public.cards,
+  public.ip_follows, public.posts, public.comments, public.likes to anon, authenticated;
+
+grant select on public.profiles, public.reports, public.blocks, public.audit_log to authenticated;
+grant insert, update, delete on public.verticals, public.ips, public.goods, public.events, public.cards to authenticated;
+grant insert, update, delete on public.ip_follows, public.posts, public.comments, public.likes,
+  public.reports, public.blocks to authenticated;
+
+revoke all on function public.set_updated_at() from public;
+revoke all on function public.handle_new_user() from public;
+revoke all on function public.sync_public_profile() from public;
 
 -- 스토리지 RLS: user-uploads는 본인 폴더(<uid>/...)만
 create policy user_uploads_read   on storage.objects for select
-  using (bucket_id = 'user-uploads' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'user-uploads' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy user_uploads_write  on storage.objects for insert
-  with check (bucket_id = 'user-uploads' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (bucket_id = 'user-uploads' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy user_uploads_delete on storage.objects for delete
-  using (bucket_id = 'user-uploads' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'user-uploads' and (storage.foldername(name))[1] = (select auth.uid())::text);
 -- public-media는 공개 버킷이라 읽기 공개, 쓰기는 staff(대시보드/서비스 롤)로 운영
