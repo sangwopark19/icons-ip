@@ -335,6 +335,10 @@
     gap: 12px !important;
   }
   .mobile-card-fan > * { margin-top: 0 !important; }
+  .mobile-unstick {
+    position: static !important;
+    top: auto !important;
+  }
 
   .event-featured-layout {
     grid-template-columns: 1fr !important;

@@ -215,7 +215,7 @@ export function Home() {
       <section className="section">
         <div className="wrap">
           <div className="grid mobile-stack" style={{ gridTemplateColumns: '0.85fr 1.15fr', gap: 44, alignItems: 'start' }}>
-            <div style={{ position: 'sticky', top: 96 }}>
+            <div className="mobile-unstick" style={{ position: 'sticky', top: 96 }}>
               <div className="eyebrow" style={{ marginBottom: 16 }}>Community</div>
               <h2 className="h-xl">같은 취향의<br /><span className="holo-text">팬들과 함께</span></h2>
               <p className="muted" style={{ marginTop: 16, maxWidth: 380 }}>
