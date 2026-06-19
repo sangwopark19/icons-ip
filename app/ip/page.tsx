@@ -1,5 +1,7 @@
 import { IpHub } from '@/components/screens/IpHub';
+import { getCatalogSnapshot } from '@/lib/catalog';
 
-export default function Page() {
-  return <IpHub />;
+export default async function Page() {
+  const catalog = await getCatalogSnapshot();
+  return <IpHub catalog={catalog} />;
 }

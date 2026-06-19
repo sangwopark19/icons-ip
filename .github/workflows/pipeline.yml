@@ -55,7 +55,7 @@ jobs:
         run: supabase db start
 
       - name: Apply local migrations
-        run: supabase db reset --local --no-seed
+        run: supabase db reset --local
 
       - name: Lint local database
         run: supabase db lint --local --fail-on error

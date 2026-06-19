@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { CatalogSnapshot } from '@/lib/catalog';
 import { DATA, type Ip } from '@/lib/data';
 import { hrefFor } from '@/lib/routes';
 import { Icon } from '@/components/ui/Icon';
@@ -7,8 +8,21 @@ import { Collectible } from '@/components/ui/Collectible';
 import { SectionHead } from '@/components/ui/SectionHead';
 import { GoodsCard } from '@/components/ui/GoodsCard';
 import { FeedPreview } from '@/components/ui/FeedPreview';
+import { Empty } from '@/components/ui/Empty';
 
-function Hero() {
+interface HeroStats {
+  fans: string;
+  ips: number;
+  goods: string;
+  events: string | number;
+}
+
+const compactNumber = (n: number) =>
+  new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+
+const plainNumber = (n: number) => new Intl.NumberFormat('ko-KR').format(n);
+
+function Hero({ stats }: { stats: HeroStats }) {
   return (
     <header style={{ position: 'relative', paddingTop: 'calc(var(--nav-h) + 40px)', overflow: 'hidden' }}>
       {/* floating cards backdrop */}
@@ -43,7 +57,7 @@ function Hero() {
           }}
         >
           <span className="dot" style={{ width: 7, height: 7, borderRadius: 99, background: 'var(--mint)', boxShadow: '0 0 10px var(--mint)' }} />
-          서브컬처 팬덤 플랫폼 · 89개 라이선스 IP 입점
+          서브컬처 팬덤 플랫폼 · {stats.ips}개 라이선스 IP 입점
         </div>
         <h1 className="h-xxl rise" style={{ animationDelay: '.05s' }}>
           <span className="holo-text">ICONS</span>
@@ -59,7 +73,7 @@ function Hero() {
           <Link className="btn btn-ghost" href={hrefFor('shop')}>굿즈샵 둘러보기</Link>
         </div>
         <div className="rise" style={{ animationDelay: '.3s', display: 'flex', gap: 'clamp(20px,5vw,56px)', justifyContent: 'center', marginTop: 52, flexWrap: 'wrap' }}>
-          {([[DATA.STATS.fans, '활동 팬'], [DATA.STATS.ips, '라이선스 IP'], [DATA.STATS.goods, '공식 굿즈'], [DATA.STATS.events, '팝업 이벤트']] as const).map(([n, l]) => (
+          {([[stats.fans, '활동 팬'], [stats.ips, '라이선스 IP'], [stats.goods, '공식 굿즈'], [stats.events, '팝업 이벤트']] as const).map(([n, l]) => (
             <div key={l} className="col" style={{ alignItems: 'center' }}>
               <span className="h-lg holo-text" style={{ fontFamily: 'var(--ff-display)' }}>{n}</span>
               <span className="faint mono" style={{ fontSize: 12, marginTop: 4, letterSpacing: '.06em' }}>{l}</span>
@@ -126,11 +140,19 @@ function EventStrip() {
   );
 }
 
-export function Home() {
-  const featured = DATA.IPS.filter((i) => i.featured).slice(0, 4);
+export function Home({ catalog }: { catalog: CatalogSnapshot }) {
+  const featuredIps = catalog.ips.filter((i) => i.featured);
+  const displayIps = (featuredIps.length > 0 ? featuredIps : catalog.ips).slice(0, 4);
+  const stats = {
+    fans: compactNumber(catalog.ips.reduce((sum, ip) => sum + ip.fans, 0)),
+    ips: catalog.ips.length,
+    goods: plainNumber(catalog.ips.reduce((sum, ip) => sum + ip.goods, 0)),
+    events: DATA.STATS.events,
+  };
+
   return (
     <div>
-      <Hero />
+      <Hero stats={stats} />
 
       {/* fan verticals */}
       <section className="section">
@@ -142,9 +164,17 @@ export function Home() {
             action="IP 허브 전체보기"
             href={hrefFor('iphub')}
           />
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-            {featured.map((ip) => <VerticalCard key={ip.id} ip={ip} />)}
-          </div>
+          {displayIps.length > 0 ? (
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+              {displayIps.map((ip) => <VerticalCard key={ip.id} ip={ip} />)}
+            </div>
+          ) : (
+            <Empty
+              icon="ip"
+              text="등록된 IP가 아직 없습니다"
+              sub="Supabase 카탈로그 seed 또는 admin 등록 후 홈에 공개됩니다."
+            />
+          )}
         </div>
       </section>
 

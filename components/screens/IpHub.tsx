@@ -1,9 +1,17 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { DATA, type Ip } from '@/lib/data';
+import type { Ip, Vertical } from '@/lib/data';
 import { Poster } from '@/components/ui/Poster';
+import { Empty } from '@/components/ui/Empty';
 import { useGo, type Go } from '@/components/shell/useGo';
+
+interface IpHubProps {
+  catalog: {
+    verticals: Vertical[];
+    ips: Ip[];
+  };
+}
 
 function IpCard({ ip, go }: { ip: Ip; go: Go }) {
   return (
@@ -33,11 +41,16 @@ function IpCard({ ip, go }: { ip: Ip; go: Go }) {
   );
 }
 
-export function IpHub() {
+export function IpHub({ catalog }: IpHubProps) {
   const go = useGo();
   const [v, setV] = useState('all');
-  const verts = [{ key: 'all', label: '전체', color: undefined as string | undefined }, ...Object.values(DATA.V)];
-  const list = v === 'all' ? DATA.IPS : DATA.IPS.filter((i) => i.v.key === v);
+  const verts = [{ key: 'all', label: '전체', color: undefined as string | undefined }, ...catalog.verticals];
+  const list = v === 'all' ? catalog.ips : catalog.ips.filter((i) => i.v.key === v);
+  const emptyText = v === 'all' ? '등록된 IP가 아직 없습니다' : '해당 버티컬의 IP가 아직 없습니다';
+  const emptySub = v === 'all'
+    ? 'Supabase 카탈로그 seed 또는 admin 등록 후 IP 허브에 공개됩니다.'
+    : '다른 버티컬을 선택하거나 IP 카탈로그 등록 후 다시 확인하세요.';
+
   return (
     <div className="screen">
       <div className="wrap" style={{ paddingTop: 48 }}>
@@ -57,9 +70,13 @@ export function IpHub() {
             );
           })}
         </div>
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', marginTop: 24, paddingBottom: 80 }}>
-          {list.map((ip) => <IpCard key={ip.id} ip={ip} go={go} />)}
-        </div>
+        {list.length > 0 ? (
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', marginTop: 24, paddingBottom: 80 }}>
+            {list.map((ip) => <IpCard key={ip.id} ip={ip} go={go} />)}
+          </div>
+        ) : (
+          <Empty icon="ip" text={emptyText} sub={emptySub} />
+        )}
       </div>
     </div>
   );
