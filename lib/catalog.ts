@@ -32,6 +32,9 @@ interface IpRow {
   cards_count: number;
 }
 
+const PUBLIC_MEDIA_BUCKET = 'public-media';
+const PUBLIC_MEDIA_PREFIX = `${PUBLIC_MEDIA_BUCKET}/`;
+
 const mockSnapshot = (): CatalogSnapshot => ({
   source: 'mock',
   verticals: Object.values(DATA.V),
@@ -46,14 +49,21 @@ const fallbackVertical = (key: string): Vertical => ({
 
 const imageBg = (path: string) => `url("${path}") center / cover no-repeat`;
 
-function toIp(row: IpRow, verticalsByKey: Map<string, Vertical>): Ip {
+function normalizePublicMediaPath(path: string) {
+  const normalizedPath = path.replace(/^\/+/, '');
+  return normalizedPath.startsWith(PUBLIC_MEDIA_PREFIX)
+    ? normalizedPath.slice(PUBLIC_MEDIA_PREFIX.length)
+    : normalizedPath;
+}
+
+function toIp(row: IpRow, verticalsByKey: Map<string, Vertical>, imageUrlForPath: (path: string) => string): Ip {
   return {
     id: row.id,
     title: row.title,
     sub: row.sub ?? '',
     v: verticalsByKey.get(row.vertical_key) ?? fallbackVertical(row.vertical_key),
     glyph: row.glyph ?? row.title,
-    bg: row.bg ?? (row.image_path ? imageBg(row.image_path) : DATA.IPS[0]?.bg ?? ''),
+    bg: row.bg ?? (row.image_path ? imageBg(imageUrlForPath(row.image_path)) : DATA.IPS[0]?.bg ?? ''),
     fans: row.fans_count ?? 0,
     goods: row.goods_count ?? 0,
     cards: row.cards_count ?? 0,
@@ -87,10 +97,21 @@ export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
 
   const verticals = (verticalsResult.data ?? []) as VerticalRow[];
   const verticalsByKey = new Map(verticals.map((vertical) => [vertical.key, vertical]));
+  const imageUrlForPath = (path: string) => {
+    const { data } = supabase.storage
+      .from(PUBLIC_MEDIA_BUCKET)
+      .getPublicUrl(normalizePublicMediaPath(path));
+    return data.publicUrl;
+  };
 
   return {
     source: 'supabase',
     verticals,
-    ips: ((ipsResult.data ?? []) as IpRow[]).map((row) => toIp(row, verticalsByKey)),
+    ips: ((ipsResult.data ?? []) as IpRow[]).map((row) => toIp(row, verticalsByKey, imageUrlForPath)),
   };
+}
+
+export async function getCatalogIp(id: string): Promise<Ip | null> {
+  const catalog = await getCatalogSnapshot();
+  return catalog.ips.find((ip) => ip.id === id) ?? null;
 }
