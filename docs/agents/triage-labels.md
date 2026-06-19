@@ -12,4 +12,8 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
+In this repo, `ready-for-agent` means the issue is specified enough for an agent once dependencies are clear. It does not by itself mean the issue should be started immediately. Startability is tracked by the GitHub Project `Dependency` field; start with `Dependency = Unblocked`.
+
+Use `ready-for-human` when implementation depends on human/provider setup, credentials, policy confirmation, or another non-agent action.
+
 Edit the right-hand column to match whatever vocabulary you actually use.
