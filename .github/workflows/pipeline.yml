@@ -93,8 +93,8 @@ jobs:
       - name: Link Supabase project
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
 
-      - name: Push Supabase migrations
-        run: supabase db push --linked
+      - name: Push Supabase migrations and seed
+        run: supabase db push --linked --include-seed
 
   deploy-vercel-preview:
     name: deploy-vercel-preview
