@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { DATA, type Good, type Stock } from '@/lib/data';
+import type { CatalogSnapshot } from '@/lib/catalog';
+import type { Good, Ip, Stock } from '@/lib/data';
 import { Icon } from '@/components/ui/Icon';
 import { Poster } from '@/components/ui/Poster';
 import { Empty } from '@/components/ui/Empty';
@@ -9,9 +10,9 @@ import { useGo, type Go } from '@/components/shell/useGo';
 import { useCart } from '@/components/shell/CartProvider';
 
 const STOCK_LABEL: Record<Stock, string | null> = { low: '품절임박', soldout: '품절', ok: null };
+const krw = (n: number) => '₩' + n.toLocaleString('ko-KR');
 
-function ShopCard({ g, addCart }: { g: Good; addCart: () => void }) {
-  const ip = DATA.ipById(g.ip);
+function ShopCard({ g, ip, addCart }: { g: Good; ip?: Ip; addCart: () => void }) {
   const [added, setAdded] = useState(false);
   const stockLabel = STOCK_LABEL[g.stock];
   const sold = g.stock === 'soldout';
@@ -29,7 +30,7 @@ function ShopCard({ g, addCart }: { g: Good; addCart: () => void }) {
         <div className="mono" style={{ fontSize: 11, color: 'var(--faint)' }}>{ip?.title} · {g.type}</div>
         <div style={{ fontWeight: 600, fontSize: 14, marginTop: 5, lineHeight: 1.3, minHeight: 36 }}>{g.name}</div>
         <div className="between" style={{ marginTop: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 16, fontFamily: 'var(--ff-display)' }}>{DATA.krw(g.price)}</span>
+          <span style={{ fontWeight: 700, fontSize: 16, fontFamily: 'var(--ff-display)' }}>{krw(g.price)}</span>
           <button
             className="icon-btn"
             disabled={sold}
@@ -55,14 +56,16 @@ function ShopCard({ g, addCart }: { g: Good; addCart: () => void }) {
   );
 }
 
-export function Shop() {
+export function Shop({ catalog }: { catalog: Pick<CatalogSnapshot, 'ips' | 'goods'> }) {
   const go: Go = useGo();
   const { add } = useCart();
   const [ipF, setIpF] = useState('all');
   const [typeF, setTypeF] = useState('전체');
   const [sort, setSort] = useState('추천순');
+  const ipsById = new Map(catalog.ips.map((ip) => [ip.id, ip]));
+  const goodsTypes = Array.from(new Set(catalog.goods.map((g) => g.type)));
 
-  let list = DATA.GOODS.filter((g) => (ipF === 'all' || g.ip === ipF) && (typeF === '전체' || g.type === typeF));
+  let list = catalog.goods.filter((g) => (ipF === 'all' || g.ip === ipF) && (typeF === '전체' || g.type === typeF));
   if (sort === '낮은 가격순') list = [...list].sort((a, b) => a.price - b.price);
   if (sort === '높은 가격순') list = [...list].sort((a, b) => b.price - a.price);
 
@@ -81,7 +84,7 @@ export function Shop() {
         {/* IP filter */}
         <div className="wrapgap" style={{ marginTop: 28 }}>
           <button className={'chip' + (ipF === 'all' ? ' on' : '')} onClick={() => setIpF('all')}>전체 IP</button>
-          {DATA.IPS.map((ip) => (
+          {catalog.ips.map((ip) => (
             <button
               key={ip.id}
               className={'chip' + (ipF === ip.id ? ' on accent' : '')}
@@ -96,7 +99,7 @@ export function Shop() {
         <div className="between" style={{ marginTop: 14, flexWrap: 'wrap', gap: 14 }}>
           <div className="wrapgap">
             <button className={'chip btn-sm' + (typeF === '전체' ? ' on' : '')} onClick={() => setTypeF('전체')}>전체 유형</button>
-            {DATA.GOODS_TYPES.map((t) => (
+            {goodsTypes.map((t) => (
               <button key={t} className={'chip btn-sm' + (typeF === t ? ' on' : '')} onClick={() => setTypeF(t)}>{t}</button>
             ))}
           </div>
@@ -109,9 +112,9 @@ export function Shop() {
         <div className="faint mono" style={{ fontSize: 12, marginTop: 18 }}>총 {list.length}개 상품</div>
 
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', marginTop: 16 }}>
-          {list.map((g) => <ShopCard key={g.id} g={g} addCart={add} />)}
+          {list.map((g) => <ShopCard key={g.id} g={g} ip={ipsById.get(g.ip)} addCart={add} />)}
         </div>
-        {!list.length && <Empty icon="bag" text="조건에 맞는 굿즈가 없어요" sub="필터를 바꿔보세요" />}
+        {!list.length && <Empty icon="bag" text={catalog.goods.length ? '조건에 맞는 굿즈가 없어요' : '등록된 굿즈가 아직 없습니다'} sub={catalog.goods.length ? '필터를 바꿔보세요' : 'Supabase 카탈로그 seed 또는 admin 등록 후 굿즈샵에 공개됩니다.'} />}
       </div>
     </div>
   );

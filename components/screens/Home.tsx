@@ -116,10 +116,14 @@ function VerticalCard({ ip }: { ip: Ip }) {
   );
 }
 
-function EventStrip() {
+function EventStrip({ events }: { events: CatalogSnapshot['events'] }) {
+  if (!events.length) {
+    return <Empty icon="event" text="등록된 이벤트가 아직 없습니다" sub="Supabase 카탈로그 seed 또는 admin 등록 후 홈에 공개됩니다." />;
+  }
+
   return (
     <div style={{ display: 'flex', gap: 18, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
-      {DATA.EVENTS.map((e) => (
+      {events.map((e) => (
         <Link key={e.id} className="card lift" href={hrefFor('events')} style={{ flex: '0 0 320px', padding: 0, overflow: 'hidden', textAlign: 'left', cursor: 'pointer' }}>
           <Poster bg={e.img} ratio="16 / 9" radius={0}>
             <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 4, display: 'flex', gap: 6 }}>
@@ -143,11 +147,13 @@ function EventStrip() {
 export function Home({ catalog }: { catalog: CatalogSnapshot }) {
   const featuredIps = catalog.ips.filter((i) => i.featured);
   const displayIps = (featuredIps.length > 0 ? featuredIps : catalog.ips).slice(0, 4);
+  const ipsById = new Map(catalog.ips.map((ip) => [ip.id, ip]));
+  const displayCards = catalog.cards.length ? catalog.cards : DATA.CARDS;
   const stats = {
     fans: compactNumber(catalog.ips.reduce((sum, ip) => sum + ip.fans, 0)),
     ips: catalog.ips.length,
     goods: plainNumber(catalog.ips.reduce((sum, ip) => sum + ip.goods, 0)),
-    events: DATA.STATS.events,
+    events: catalog.events.length,
   };
 
   return (
@@ -189,8 +195,9 @@ export function Home({ catalog }: { catalog: CatalogSnapshot }) {
             href={hrefFor('shop')}
           />
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-            {DATA.GOODS.slice(0, 8).map((g) => <GoodsCard key={g.id} g={g} />)}
+            {catalog.goods.slice(0, 8).map((g) => <GoodsCard key={g.id} g={g} ip={ipsById.get(g.ip)} />)}
           </div>
+          {!catalog.goods.length && <Empty icon="bag" text="등록된 굿즈가 아직 없습니다" sub="Supabase 카탈로그 seed 또는 admin 등록 후 홈에 공개됩니다." />}
         </div>
       </section>
 
@@ -215,10 +222,10 @@ export function Home({ catalog }: { catalog: CatalogSnapshot }) {
               </div>
             </div>
             <div className="mobile-card-fan" style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-              {[DATA.CARDS[0], DATA.CARDS[2], DATA.CARDS[8]].map((c, i) => (
+              {displayCards.slice(0, 3).map((c, i) => (
                 <div key={c.id} style={{ marginTop: i === 1 ? -28 : i === 2 ? 18 : 0 }}>
                   <Link href={hrefFor('binder')}>
-                    <Collectible card={{ ...c, owned: true }} ip={DATA.ipById(c.ip)} />
+                    <Collectible card={{ ...c, owned: true }} ip={ipsById.get(c.ip) ?? DATA.ipById(c.ip)} />
                   </Link>
                 </div>
               ))}
@@ -237,7 +244,7 @@ export function Home({ catalog }: { catalog: CatalogSnapshot }) {
             action="모든 이벤트"
             href={hrefFor('events')}
           />
-          <EventStrip />
+          <EventStrip events={catalog.events} />
         </div>
       </section>
 

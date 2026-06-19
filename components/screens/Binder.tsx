@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { DATA, type Card } from '@/lib/data';
+import type { CatalogSnapshot } from '@/lib/catalog';
+import type { Card, Ip } from '@/lib/data';
+import { RARITY_META } from '@/lib/rarity';
 import { Icon } from '@/components/ui/Icon';
 import { Collectible } from '@/components/ui/Collectible';
 import { RarityBadge } from '@/components/ui/RarityBadge';
@@ -9,9 +11,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Empty } from '@/components/ui/Empty';
 import { useGo, type Go } from '@/components/shell/useGo';
 
-function CardDetail({ card, onClose, go }: { card: Card; onClose: () => void; go: Go }) {
-  const info = DATA.RARITY[card.rarity];
-  const ip = DATA.ipById(card.ip)!;
+function CardDetail({ card, ip, onClose, go }: { card: Card; ip?: Ip; onClose: () => void; go: Go }) {
+  const info = RARITY_META[card.rarity];
   const stats: [string, string][] = [
     ['시세', '₩' + (info.foil ? '48,000' : '12,000')],
     ['보유 팬', (120 - +card.no.slice(0, 3)).toString()],
@@ -26,10 +27,10 @@ function CardDetail({ card, onClose, go }: { card: Card; onClose: () => void; go
         <div>
           <div className="row" style={{ gap: 8 }}>
             <RarityBadge r={card.rarity} />
-            <span className="tag" style={{ borderColor: ip.v.color, color: '#fff' }}>{ip.v.label}</span>
+            {ip && <span className="tag" style={{ borderColor: ip.v.color, color: '#fff' }}>{ip.v.label}</span>}
           </div>
           <h2 className="h-lg" style={{ marginTop: 14 }}>{card.name}</h2>
-          <div className="mono muted" style={{ marginTop: 6 }}>{ip.title} · No.{card.no}</div>
+          <div className="mono muted" style={{ marginTop: 6 }}>{ip?.title ?? 'IP 미지정'} · No.{card.no}</div>
           <p className="muted" style={{ marginTop: 14, fontSize: 14 }}>
             {card.owned
               ? '보유 중인 카드입니다. 교환 마켓에 등록하거나 컬렉션에 전시할 수 있어요.'
@@ -59,10 +60,8 @@ function CardDetail({ card, onClose, go }: { card: Card; onClose: () => void; go
   );
 }
 
-function PackOpen({ onClose }: { onClose: () => void }) {
+function PackOpen({ card, ip, onClose }: { card: Card; ip?: Ip; onClose: () => void }) {
   const [stage, setStage] = useState<'ready' | 'opening' | 'reveal'>('ready');
-  const pulled = DATA.CARDS[8]; // HOLO
-  const pulledIp = DATA.ipById(pulled.ip)!;
   const open = () => {
     setStage('opening');
     setTimeout(() => setStage('reveal'), 1300);
@@ -120,10 +119,10 @@ function PackOpen({ onClose }: { onClose: () => void }) {
           <div className="rise">
             <p className="mono" style={{ color: 'var(--lime)', fontWeight: 700, letterSpacing: '.1em', marginBottom: 18 }}>✦ HOLO 카드 획득! ✦</p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Collectible card={{ ...pulled, owned: true }} ip={pulledIp} size="lg" />
+              <Collectible card={{ ...card, owned: true }} ip={ip} size="lg" />
             </div>
-            <div style={{ fontWeight: 700, fontSize: 18, marginTop: 18 }}>{pulled.name}</div>
-            <div className="mono muted" style={{ fontSize: 13, marginTop: 4 }}>{pulledIp.title} · No.{pulled.no}</div>
+            <div style={{ fontWeight: 700, fontSize: 18, marginTop: 18 }}>{card.name}</div>
+            <div className="mono muted" style={{ fontSize: 13, marginTop: 4 }}>{ip?.title ?? 'IP 미지정'} · No.{card.no}</div>
             <div className="row" style={{ gap: 10, justifyContent: 'center', marginTop: 22 }}>
               <button className="btn btn-primary" onClick={onClose}>바인더에 보관</button>
               <button className="btn btn-ghost" onClick={() => setStage('ready')}>한 번 더</button>
@@ -135,21 +134,23 @@ function PackOpen({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function Binder() {
+export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'ips' | 'cards'> }) {
   const go = useGo();
   const [filter, setFilter] = useState<'all' | 'owned' | 'wish'>('all');
   const [rarF, setRarF] = useState('all');
   const [detail, setDetail] = useState<Card | null>(null);
   const [packOpen, setPackOpen] = useState(false);
+  const ipsById = new Map(catalog.ips.map((ip) => [ip.id, ip]));
+  const featuredCard = catalog.cards.find((c) => c.rarity === 'HOLO') ?? catalog.cards[0];
 
-  let cards = DATA.CARDS;
+  let cards = catalog.cards;
   if (filter === 'owned') cards = cards.filter((c) => c.owned);
   if (filter === 'wish') cards = cards.filter((c) => !c.owned);
   if (rarF !== 'all') cards = cards.filter((c) => c.rarity === rarF);
 
-  const owned = DATA.CARDS.filter((c) => c.owned).length;
-  const total = DATA.CARDS.length;
-  const pct = Math.round((owned / total) * 100);
+  const owned = catalog.cards.filter((c) => c.owned).length;
+  const total = catalog.cards.length;
+  const pct = total ? Math.round((owned / total) * 100) : 0;
 
   const stats: [string | number, string][] = [
     [owned, '보유 카드'],
@@ -184,10 +185,12 @@ export function Binder() {
             <div style={{ height: 12, borderRadius: 99, background: 'var(--surface-2)', overflow: 'hidden', border: '1px solid var(--line)' }}>
               <div style={{ height: '100%', width: pct + '%', background: 'var(--holo)', backgroundSize: '200%', animation: 'holoShift 6s ease infinite' }} />
             </div>
-            <button className="btn btn-holo" style={{ marginTop: 8 }} onClick={() => setPackOpen(true)}>
+            <button className="btn btn-holo" disabled={!featuredCard} style={{ marginTop: 8 }} onClick={() => setPackOpen(true)}>
               <Icon name="spark" size={17} fill /> 데일리 팩 열기
             </button>
-            <div className="faint mono" style={{ fontSize: 11, textAlign: 'center' }}>오늘 1회 무료 · 다음 팩까지 23:41:08</div>
+            <div className="faint mono" style={{ fontSize: 11, textAlign: 'center' }}>
+              {featuredCard ? '오늘 1회 무료 · 다음 팩까지 23:41:08' : '카드 등록 후 팩을 열 수 있습니다'}
+            </div>
           </div>
         </div>
 
@@ -200,14 +203,14 @@ export function Binder() {
           </div>
           <div className="wrapgap">
             <button className={'chip btn-sm' + (rarF === 'all' ? ' on' : '')} onClick={() => setRarF('all')}>전체 등급</button>
-            {Object.keys(DATA.RARITY).map((r) => (
+            {Object.keys(RARITY_META).map((r) => (
               <button
                 key={r}
                 className={'chip btn-sm' + (rarF === r ? ' on' : '')}
                 onClick={() => setRarF(r)}
-                style={rarF === r ? { background: DATA.RARITY[r as keyof typeof DATA.RARITY].color, borderColor: DATA.RARITY[r as keyof typeof DATA.RARITY].color, color: '#0A0813', fontWeight: 700 } : {}}
+                style={rarF === r ? { background: RARITY_META[r as keyof typeof RARITY_META].color, borderColor: RARITY_META[r as keyof typeof RARITY_META].color, color: '#0A0813', fontWeight: 700 } : {}}
               >
-                {DATA.RARITY[r as keyof typeof DATA.RARITY].label}
+                {RARITY_META[r as keyof typeof RARITY_META].label}
               </button>
             ))}
           </div>
@@ -215,9 +218,9 @@ export function Binder() {
 
         {/* binder grid */}
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', marginTop: 24, justifyItems: 'center', rowGap: 26 }}>
-          {cards.map((c) => <Collectible key={c.id} card={c} ip={DATA.ipById(c.ip)} onClick={() => setDetail(c)} />)}
+          {cards.map((c) => <Collectible key={c.id} card={c} ip={ipsById.get(c.ip)} onClick={() => setDetail(c)} />)}
         </div>
-        {!cards.length && <Empty icon="card" text="조건에 맞는 카드가 없어요" />}
+        {!cards.length && <Empty icon="card" text={catalog.cards.length ? '조건에 맞는 카드가 없어요' : '등록된 카드가 아직 없습니다'} sub={catalog.cards.length ? undefined : 'Supabase 카탈로그 seed 또는 admin 등록 후 바인더 탐색에 공개됩니다.'} />}
 
         <div className="between card" style={{ marginTop: 34, padding: '22px 26px', flexWrap: 'wrap', gap: 16 }}>
           <div>
@@ -228,8 +231,8 @@ export function Binder() {
         </div>
       </div>
 
-      {detail && <CardDetail card={detail} onClose={() => setDetail(null)} go={go} />}
-      {packOpen && <PackOpen onClose={() => setPackOpen(false)} />}
+      {detail && <CardDetail card={detail} ip={ipsById.get(detail.ip)} onClose={() => setDetail(null)} go={go} />}
+      {packOpen && featuredCard && <PackOpen card={featuredCard} ip={ipsById.get(featuredCard.ip)} onClose={() => setPackOpen(false)} />}
     </div>
   );
 }

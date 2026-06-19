@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { DATA } from '@/lib/data';
+import type { CatalogSnapshot } from '@/lib/catalog';
 import { Icon } from '@/components/ui/Icon';
 import { Poster } from '@/components/ui/Poster';
+import { Empty } from '@/components/ui/Empty';
 
-export function Events() {
+export function Events({ catalog }: { catalog: Pick<CatalogSnapshot, 'events'> }) {
   const [mode, setMode] = useState('전체');
-  const list = DATA.EVENTS.filter((e) => mode === '전체' || e.mode === mode || (mode === '진행중' && e.status === '진행중'));
+  const list = catalog.events.filter((e) => mode === '전체' || e.mode === mode || (mode === '진행중' && e.status === '진행중'));
   return (
     <div className="screen">
       <div className="wrap" style={{ paddingTop: 48, paddingBottom: 80 }}>
@@ -23,8 +24,7 @@ export function Events() {
             ))}
           </div>
         </div>
-        {/* featured */}
-        {list[0] && (
+        {list[0] ? (
           <div className="card lift" style={{ marginTop: 28, padding: 0, overflow: 'hidden', textAlign: 'left', width: '100%', cursor: 'pointer', position: 'relative' }}>
             <div className="event-featured-layout" style={{ position: 'relative', minHeight: 300, display: 'grid', gridTemplateColumns: '1.1fr 0.9fr' }}>
               <div className="event-featured-copy" style={{ padding: '40px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -49,6 +49,12 @@ export function Events() {
               </div>
             </div>
           </div>
+        ) : (
+          <Empty
+            icon="event"
+            text={catalog.events.length ? '조건에 맞는 이벤트가 없어요' : '등록된 이벤트가 아직 없습니다'}
+            sub={catalog.events.length ? '필터를 바꿔보세요' : 'Supabase 카탈로그 seed 또는 admin 등록 후 이벤트 목록에 공개됩니다.'}
+          />
         )}
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', marginTop: 24 }}>
           {list.slice(1).map((e) => (
