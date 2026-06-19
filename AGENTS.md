@@ -16,7 +16,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `gh issue view/list`, `gh pr view`, remote 상태 확인 같은 읽기 작업은 필요 시 수행할 수 있다.
 - issue 생성/수정, PR 생성, push, 배포, Supabase remote 적용, 외부 서비스 설정 변경은 사용자가 명시적으로 요청했거나 직전에 확인한 경우에만 수행한다.
 - `main` push 또는 `main`으로 merge되는 PR은 GitHub Actions를 통해 Supabase remote migration과 Vercel production deploy를 유발할 수 있으므로 production write로 취급한다.
-- Vercel Git 자동 배포는 `vercel.json`의 `git.deploymentEnabled: false`로 비활성화되어 있다. Production 배포는 GitHub Actions의 Vercel CLI 경로만 사용한다.
+- Vercel Git 자동 배포는 `vercel.json`의 `git.deploymentEnabled: false`로 비활성화되어 있다. Preview와 production 배포는 GitHub Actions의 Vercel CLI 경로만 사용한다.
 
 ## 공통 참조 규칙
 

@@ -21,7 +21,7 @@ function CardDetail({ card, onClose, go }: { card: Card; onClose: () => void; go
     <Modal onClose={onClose}>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 28, alignItems: 'center' }} className="cd-grid">
         <div style={{ justifySelf: 'center' }}>
-          <Collectible card={{ ...card, owned: true }} ip={ip} size="lg" />
+          <Collectible card={card} ip={ip} size="lg" />
         </div>
         <div>
           <div className="row" style={{ gap: 8 }}>

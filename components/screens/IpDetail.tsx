@@ -47,7 +47,6 @@ export function IpDetail({ id }: { id: string }) {
         <div style={{ position: 'absolute', inset: 0, background: ip.bg }} />
         <div className="sheen" />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 30%, var(--bg) 96%)' }} />
-        <div className="glyph" style={{ fontSize: 'clamp(60px,14vw,140px)', opacity: 0.16, color: '#fff' }}>{ip.glyph}</div>
       </div>
       <div className="wrap" style={{ marginTop: -110, position: 'relative', zIndex: 3, paddingBottom: 80 }}>
         <button className="btn btn-ghost btn-sm" onClick={() => go('iphub')} style={{ marginBottom: 20 }}>
