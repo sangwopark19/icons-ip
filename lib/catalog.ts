@@ -74,6 +74,7 @@ interface EventRow {
 const PUBLIC_MEDIA_BUCKET = 'public-media';
 const PUBLIC_MEDIA_PREFIX = `${PUBLIC_MEDIA_BUCKET}/`;
 const RARITIES: RarityKey[] = ['N', 'R', 'SR', 'SSR', 'HOLO'];
+const naturalIdCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
 const mockSnapshot = (): CatalogSnapshot => ({
   source: 'mock',
@@ -98,7 +99,11 @@ function backgroundFor(
   imageUrlForPath: (path: string) => string,
   fallback: string,
 ) {
-  return bg ?? (imagePath ? imageBg(imageUrlForPath(imagePath)) : fallback);
+  return imagePath ? imageBg(imageUrlForPath(imagePath)) : bg ?? fallback;
+}
+
+function byNaturalId<T extends { id: string }>(a: T, b: T) {
+  return naturalIdCollator.compare(a.id, b.id);
 }
 
 function toStock(stock: string): Stock {
@@ -123,7 +128,7 @@ function toIp(row: IpRow, verticalsByKey: Map<string, Vertical>, imageUrlForPath
     sub: row.sub ?? '',
     v: verticalsByKey.get(row.vertical_key) ?? fallbackVertical(row.vertical_key),
     glyph: row.glyph ?? row.title,
-    bg: row.bg ?? (row.image_path ? imageBg(imageUrlForPath(row.image_path)) : DATA.IPS[0]?.bg ?? ''),
+    bg: backgroundFor(row.bg, row.image_path, imageUrlForPath, DATA.IPS[0]?.bg ?? ''),
     fans: row.fans_count ?? 0,
     goods: row.goods_count ?? 0,
     cards: row.cards_count ?? 0,
@@ -258,14 +263,19 @@ export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
     return data.publicUrl;
   };
   const ips = ((ipsResult.data ?? []) as IpRow[]).map((row) => toIp(row, verticalsByKey, imageUrlForPath));
+  const goods = ((goodsResult.data ?? []) as GoodRow[]).map((row) => toGood(row, imageUrlForPath)).sort(byNaturalId);
+  const cards = ((cardsResult.data ?? []) as CardRow[]).map((row) => toCard(row, imageUrlForPath)).sort(byNaturalId);
+  const events = ((eventsResult.data ?? []) as EventRow[])
+    .map((row) => toEvent(row, new Map(ips.map((ip) => [ip.id, ip])), imageUrlForPath))
+    .sort(byNaturalId);
 
   return {
     source: 'supabase',
     verticals,
     ips,
-    goods: ((goodsResult.data ?? []) as GoodRow[]).map((row) => toGood(row, imageUrlForPath)),
-    cards: ((cardsResult.data ?? []) as CardRow[]).map((row) => toCard(row, imageUrlForPath)),
-    events: ((eventsResult.data ?? []) as EventRow[]).map((row) => toEvent(row, new Map(ips.map((ip) => [ip.id, ip])), imageUrlForPath)),
+    goods,
+    cards,
+    events,
   };
 }
 

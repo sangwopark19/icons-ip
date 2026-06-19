@@ -136,6 +136,28 @@ jobs:
       - name: Pull Vercel preview environment
         run: vercel pull --yes --environment=preview
 
+      - name: Check Vercel preview Supabase environment
+        run: |
+          env_file=".vercel/.env.preview.local"
+          missing=0
+
+          if [ ! -f "$env_file" ]; then
+            echo "::error title=Missing Vercel environment file::$env_file was not created by vercel pull"
+            exit 1
+          fi
+
+          if ! grep -Eq '^NEXT_PUBLIC_SUPABASE_URL=.+$' "$env_file"; then
+            echo "::error title=Missing Vercel environment::NEXT_PUBLIC_SUPABASE_URL is required for preview catalog data"
+            missing=1
+          fi
+
+          if ! grep -Eq '^NEXT_PUBLIC_SUPABASE_(PUBLISHABLE_KEY|ANON_KEY)=.+$' "$env_file"; then
+            echo "::error title=Missing Vercel environment::NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is required for preview catalog data"
+            missing=1
+          fi
+
+          exit "$missing"
+
       - name: Build Vercel preview output
         run: vercel build
 
@@ -183,6 +205,28 @@ jobs:
 
       - name: Pull Vercel production environment
         run: vercel pull --yes --environment=production
+
+      - name: Check Vercel production Supabase environment
+        run: |
+          env_file=".vercel/.env.production.local"
+          missing=0
+
+          if [ ! -f "$env_file" ]; then
+            echo "::error title=Missing Vercel environment file::$env_file was not created by vercel pull"
+            exit 1
+          fi
+
+          if ! grep -Eq '^NEXT_PUBLIC_SUPABASE_URL=.+$' "$env_file"; then
+            echo "::error title=Missing Vercel environment::NEXT_PUBLIC_SUPABASE_URL is required for production catalog data"
+            missing=1
+          fi
+
+          if ! grep -Eq '^NEXT_PUBLIC_SUPABASE_(PUBLISHABLE_KEY|ANON_KEY)=.+$' "$env_file"; then
+            echo "::error title=Missing Vercel environment::NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is required for production catalog data"
+            missing=1
+          fi
+
+          exit "$missing"
 
       - name: Build Vercel production output
         run: vercel build --prod

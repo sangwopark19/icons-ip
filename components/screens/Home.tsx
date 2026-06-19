@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { CatalogSnapshot } from '@/lib/catalog';
-import { DATA, type Ip } from '@/lib/data';
+import { DATA, type Card, type Ip } from '@/lib/data';
 import { hrefFor } from '@/lib/routes';
 import { Icon } from '@/components/ui/Icon';
 import { Poster } from '@/components/ui/Poster';
@@ -22,24 +22,31 @@ const compactNumber = (n: number) =>
 
 const plainNumber = (n: number) => new Intl.NumberFormat('ko-KR').format(n);
 
-function Hero({ stats }: { stats: HeroStats }) {
+const heroCardPositions = [
+  { top: 150, left: '4%', transform: 'rotate(-12deg)', opacity: 0.8 },
+  { top: 360, left: '-1%', transform: 'rotate(6deg)', opacity: 0.6 },
+  { top: 140, right: '4%', transform: 'rotate(11deg)', opacity: 0.8 },
+  { top: 360, right: '1%', transform: 'rotate(-7deg)', opacity: 0.6 },
+] as const;
+
+function Hero({ stats, cards, ipsById }: { stats: HeroStats; cards: Card[]; ipsById: Map<string, Ip> }) {
   return (
     <header style={{ position: 'relative', paddingTop: 'calc(var(--nav-h) + 40px)', overflow: 'hidden' }}>
       {/* floating cards backdrop */}
-      <div className="hide-mob" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', top: 150, left: '4%', transform: 'rotate(-12deg)', opacity: 0.8 }}>
-          <Collectible card={DATA.CARDS[2]} ip={DATA.ipById(DATA.CARDS[2].ip)} size="sm" />
+      {!!cards.length && (
+        <div className="hide-mob" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          {heroCardPositions.map((position, index) => {
+            const card = cards[index];
+            if (!card) return null;
+
+            return (
+              <div key={card.id} style={{ position: 'absolute', ...position }}>
+                <Collectible card={{ ...card, owned: true }} ip={ipsById.get(card.ip)} size="sm" />
+              </div>
+            );
+          })}
         </div>
-        <div style={{ position: 'absolute', top: 360, left: '-1%', transform: 'rotate(6deg)', opacity: 0.6 }}>
-          <Collectible card={DATA.CARDS[4]} ip={DATA.ipById(DATA.CARDS[4].ip)} size="sm" />
-        </div>
-        <div style={{ position: 'absolute', top: 140, right: '4%', transform: 'rotate(11deg)', opacity: 0.8 }}>
-          <Collectible card={DATA.CARDS[0]} ip={DATA.ipById(DATA.CARDS[0].ip)} size="sm" />
-        </div>
-        <div style={{ position: 'absolute', top: 360, right: '1%', transform: 'rotate(-7deg)', opacity: 0.6 }}>
-          <Collectible card={DATA.CARDS[3]} ip={DATA.ipById(DATA.CARDS[3].ip)} size="sm" />
-        </div>
-      </div>
+      )}
 
       <div className="wrap" style={{ position: 'relative', zIndex: 2, textAlign: 'center', paddingBottom: 64 }}>
         <div
@@ -82,13 +89,15 @@ function Hero({ stats }: { stats: HeroStats }) {
         </div>
       </div>
       {/* mobile card strip */}
-      <div className="only-mob mobile-contained-strip" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 24px 40px', scrollbarWidth: 'none' }}>
-        {DATA.CARDS.slice(0, 4).map((c) => (
-          <div key={c.id} style={{ flex: '0 0 auto' }}>
-            <Collectible card={c} ip={DATA.ipById(c.ip)} size="sm" />
-          </div>
-        ))}
-      </div>
+      {!!cards.length && (
+        <div className="only-mob mobile-contained-strip" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 24px 40px', scrollbarWidth: 'none' }}>
+          {cards.slice(0, 4).map((c) => (
+            <div key={c.id} style={{ flex: '0 0 auto' }}>
+              <Collectible card={{ ...c, owned: true }} ip={ipsById.get(c.ip)} size="sm" />
+            </div>
+          ))}
+        </div>
+      )}
     </header>
   );
 }
@@ -148,17 +157,17 @@ export function Home({ catalog }: { catalog: CatalogSnapshot }) {
   const featuredIps = catalog.ips.filter((i) => i.featured);
   const displayIps = (featuredIps.length > 0 ? featuredIps : catalog.ips).slice(0, 4);
   const ipsById = new Map(catalog.ips.map((ip) => [ip.id, ip]));
-  const displayCards = catalog.cards.length ? catalog.cards : DATA.CARDS;
+  const displayCards = catalog.cards;
   const stats = {
     fans: compactNumber(catalog.ips.reduce((sum, ip) => sum + ip.fans, 0)),
     ips: catalog.ips.length,
-    goods: plainNumber(catalog.ips.reduce((sum, ip) => sum + ip.goods, 0)),
+    goods: plainNumber(catalog.goods.length),
     events: catalog.events.length,
   };
 
   return (
     <div>
-      <Hero stats={stats} />
+      <Hero stats={stats} cards={displayCards} ipsById={ipsById} />
 
       {/* fan verticals */}
       <section className="section">
@@ -221,15 +230,19 @@ export function Home({ catalog }: { catalog: CatalogSnapshot }) {
                 <Link className="btn btn-ghost" href={hrefFor('exchange')}>카드 교환 마켓</Link>
               </div>
             </div>
-            <div className="mobile-card-fan" style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-              {displayCards.slice(0, 3).map((c, i) => (
-                <div key={c.id} style={{ marginTop: i === 1 ? -28 : i === 2 ? 18 : 0 }}>
-                  <Link href={hrefFor('binder')}>
-                    <Collectible card={{ ...c, owned: true }} ip={ipsById.get(c.ip) ?? DATA.ipById(c.ip)} />
-                  </Link>
-                </div>
-              ))}
-            </div>
+            {displayCards.length > 0 ? (
+              <div className="mobile-card-fan" style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                {displayCards.slice(0, 3).map((c, i) => (
+                  <div key={c.id} style={{ marginTop: i === 1 ? -28 : i === 2 ? 18 : 0 }}>
+                    <Link href={hrefFor('binder')}>
+                      <Collectible card={{ ...c, owned: true }} ip={ipsById.get(c.ip)} />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Empty icon="card" text="등록된 카드가 아직 없습니다" sub="Supabase 카탈로그 seed 또는 admin 등록 후 홈에 공개됩니다." />
+            )}
           </div>
         </div>
       </section>

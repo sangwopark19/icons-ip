@@ -31,7 +31,7 @@ export function Events({ catalog }: { catalog: Pick<CatalogSnapshot, 'events'> }
                 <div className="row" style={{ gap: 8 }}>
                   <span className="tag" style={{ color: '#0A0813', background: list[0].accent, border: 'none', fontWeight: 700 }}>{list[0].mode}</span>
                   <span className="tag" style={{ color: '#fff' }}>{list[0].status}</span>
-                  <span className="tag" style={{ color: 'var(--lime)', borderColor: 'var(--line-2)' }}>NOW</span>
+                  {list[0].status === '진행중' && <span className="tag" style={{ color: 'var(--lime)', borderColor: 'var(--line-2)' }}>NOW</span>}
                 </div>
                 <h2 className="h-lg" style={{ marginTop: 18 }}>{list[0].title}</h2>
                 <div className="muted row" style={{ gap: 18, marginTop: 14, flexWrap: 'wrap' }}>

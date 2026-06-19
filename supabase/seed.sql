@@ -1,5 +1,5 @@
 -- ICONS local seed for P0 public catalog browsing.
--- Scope: verticals + IP Hub only (#7). Goods/cards/events are handled by follow-up slices.
+-- Scope: verticals, IP Hub, goods, cards, and events for public catalog browsing.
 
 insert into public.verticals (key, label, color) values
   ('blgl', 'BL/GL', '#FF4D9D'),
@@ -151,19 +151,19 @@ on conflict (id) do update set
   cards_count = excluded.cards_count,
   updated_at = now();
 
-insert into public.goods (id, ip_id, name, type, price, badge, stock, bg) values
-  ('g1', 'cheong', '청명 매화 향수 한정판', '음원·앨범', 38000, '한정', 'low', 'url("/generated/goods/g1.png") center / cover no-repeat, linear-gradient(150deg, #1d2f6e, #2D6FDB 55%, #8B5CFF)'),
-  ('g2', 'hwasan', '화산강림 청명 아크릴 스탠드', '아크릴 스탠드', 22000, '신상', 'ok', 'url("/generated/goods/g2.png") center / cover no-repeat, linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
-  ('g3', 'hoshina', '호시나 미오 1st 포토카드 세트', '포토카드', 15000, '한정', 'low', 'url("/generated/goods/g3.png") center / cover no-repeat, linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
-  ('g4', 'lumen', 'LUMEN 시즌2 피규어', '피규어', 89000, '예약', 'ok', 'url("/generated/goods/g4.png") center / cover no-repeat, linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)'),
-  ('g5', 'nocturne', '녹턴 클럽 멤버 키링 6종', '키링', 12000, null, 'ok', 'url("/generated/goods/g5.png") center / cover no-repeat, linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)'),
-  ('g6', 'aster', 'ASTER 콜렉터 박스 세트', '한정 세트', 74000, '한정', 'soldout', 'url("/generated/goods/g6.png") center / cover no-repeat, linear-gradient(150deg, #1d1d6e, #5B7BFF 55%, #2DE2FF)'),
-  ('g7', 'lilac', '라일락 노트 엽서북', '문구', 9000, null, 'ok', 'url("/generated/goods/g7.png") center / cover no-repeat, linear-gradient(150deg, #3a0c5e, #A981FF 55%, #FF4D9D)'),
-  ('g8', 'rune', 'RUNE 오버사이즈 후드', '의류', 54000, '신상', 'ok', 'url("/generated/goods/g8.png") center / cover no-repeat, linear-gradient(150deg, #5e3a0c, #FFB23D 55%, #FF4D9D)'),
-  ('g9', 'hwasan', '화산강림 매화검 레플리카', '한정 세트', 128000, '한정', 'low', 'url("/generated/goods/g9.png") center / cover no-repeat, linear-gradient(150deg, #2a1550, #8B5CFF 55%, #2DE2FF)'),
-  ('g10', 'hoshina', '호시나 미오 아크릴 디오라마', '아크릴 스탠드', 34000, null, 'ok', 'url("/generated/goods/g10.png") center / cover no-repeat, linear-gradient(150deg, #0c5e5e, #38F0C0 55%, #8B5CFF)'),
-  ('g11', 'lumen', 'LUMEN 홀로그램 포토카드 12종', '포토카드', 18000, '한정', 'low', 'url("/generated/goods/g11.png") center / cover no-repeat, linear-gradient(150deg, #0c3a5e, #2DE2FF 55%, #A981FF)'),
-  ('g12', 'cheong', '청명 자수 패치 키링', '키링', 11000, '신상', 'ok', 'url("/generated/goods/g12.png") center / cover no-repeat, linear-gradient(150deg, #1d2f6e, #5B7BFF 55%, #FF4D9D)')
+insert into public.goods (id, ip_id, name, type, price, badge, stock, stock_qty, bg) values
+  ('g1', 'cheong', '청명 매화 향수 한정판', '음원·앨범', 38000, '한정', 'low', 7, 'url("/generated/goods/g1.png") center / cover no-repeat, linear-gradient(150deg, #1d2f6e, #2D6FDB 55%, #8B5CFF)'),
+  ('g2', 'hwasan', '화산강림 청명 아크릴 스탠드', '아크릴 스탠드', 22000, '신상', 'ok', 120, 'url("/generated/goods/g2.png") center / cover no-repeat, linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
+  ('g3', 'hoshina', '호시나 미오 1st 포토카드 세트', '포토카드', 15000, '한정', 'low', 9, 'url("/generated/goods/g3.png") center / cover no-repeat, linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
+  ('g4', 'lumen', 'LUMEN 시즌2 피규어', '피규어', 89000, '예약', 'ok', 80, 'url("/generated/goods/g4.png") center / cover no-repeat, linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)'),
+  ('g5', 'nocturne', '녹턴 클럽 멤버 키링 6종', '키링', 12000, null, 'ok', 150, 'url("/generated/goods/g5.png") center / cover no-repeat, linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)'),
+  ('g6', 'aster', 'ASTER 콜렉터 박스 세트', '한정 세트', 74000, '한정', 'soldout', 0, 'url("/generated/goods/g6.png") center / cover no-repeat, linear-gradient(150deg, #1d1d6e, #5B7BFF 55%, #2DE2FF)'),
+  ('g7', 'lilac', '라일락 노트 엽서북', '문구', 9000, null, 'ok', 200, 'url("/generated/goods/g7.png") center / cover no-repeat, linear-gradient(150deg, #3a0c5e, #A981FF 55%, #FF4D9D)'),
+  ('g8', 'rune', 'RUNE 오버사이즈 후드', '의류', 54000, '신상', 'ok', 90, 'url("/generated/goods/g8.png") center / cover no-repeat, linear-gradient(150deg, #5e3a0c, #FFB23D 55%, #FF4D9D)'),
+  ('g9', 'hwasan', '화산강림 매화검 레플리카', '한정 세트', 128000, '한정', 'low', 5, 'url("/generated/goods/g9.png") center / cover no-repeat, linear-gradient(150deg, #2a1550, #8B5CFF 55%, #2DE2FF)'),
+  ('g10', 'hoshina', '호시나 미오 아크릴 디오라마', '아크릴 스탠드', 34000, null, 'ok', 110, 'url("/generated/goods/g10.png") center / cover no-repeat, linear-gradient(150deg, #0c5e5e, #38F0C0 55%, #8B5CFF)'),
+  ('g11', 'lumen', 'LUMEN 홀로그램 포토카드 12종', '포토카드', 18000, '한정', 'low', 10, 'url("/generated/goods/g11.png") center / cover no-repeat, linear-gradient(150deg, #0c3a5e, #2DE2FF 55%, #A981FF)'),
+  ('g12', 'cheong', '청명 자수 패치 키링', '키링', 11000, '신상', 'ok', 140, 'url("/generated/goods/g12.png") center / cover no-repeat, linear-gradient(150deg, #1d2f6e, #5B7BFF 55%, #FF4D9D)')
 on conflict (id) do update set
   ip_id = excluded.ip_id,
   name = excluded.name,
@@ -171,6 +171,7 @@ on conflict (id) do update set
   price = excluded.price,
   badge = excluded.badge,
   stock = excluded.stock,
+  stock_qty = excluded.stock_qty,
   bg = excluded.bg,
   updated_at = now();
 
@@ -195,9 +196,9 @@ on conflict (id) do update set
   bg = excluded.bg;
 
 insert into public.events (id, ip_id, title, mode, status, starts_at, ends_at, location, accent, bg) values
-  ('e1', null, '귀멸의칼날 × ICONS 팝업스토어', '오프라인', '진행중', '2026-05-10 00:00:00+09', '2026-05-28 23:59:00+09', '성수 갤러리아 포레', '#FF4D9D', 'linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #FFB23D)'),
-  ('e2', 'hoshina', '호시나 미오 1주년 온라인 팬미팅', '온라인', '예매중', '2026-05-17 20:00:00+09', null, 'ICONS Live', '#38F0C0', 'linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
-  ('e3', 'hwasan', '화산강림 매화 특별전', '오프라인', '예정', '2026-06-02 00:00:00+09', '2026-06-16 23:59:00+09', '강남 ICONS 플래그십', '#8B5CFF', 'linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
+  ('e1', null, '귀멸의칼날 × ICONS 팝업스토어', '오프라인', '진행중', '2026-06-18 00:00:00+09', '2026-07-05 23:59:00+09', '성수 갤러리아 포레', '#FF4D9D', 'linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #FFB23D)'),
+  ('e2', 'hoshina', '호시나 미오 1주년 온라인 팬미팅', '온라인', '예매중', '2026-06-27 20:00:00+09', null, 'ICONS Live', '#38F0C0', 'linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
+  ('e3', 'hwasan', '화산강림 매화 특별전', '오프라인', '예정', '2026-07-10 00:00:00+09', '2026-07-24 23:59:00+09', '강남 ICONS 플래그십', '#8B5CFF', 'linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
   ('e4', 'lumen', 'LUMEN 시즌2 글로벌 카운트다운', '온라인', '예정', '2026-06-20 21:00:00+09', null, 'ICONS Live', '#2DE2FF', 'linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)'),
   ('e5', 'nocturne', '녹턴 클럽 단독 쇼케이스', '오프라인', '예매중', '2026-06-28 18:00:00+09', null, '홍대 무브홀', '#FF4D9D', 'linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)')
 on conflict (id) do update set

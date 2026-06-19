@@ -11,18 +11,39 @@ import { Modal } from '@/components/ui/Modal';
 import { Empty } from '@/components/ui/Empty';
 import { useGo, type Go } from '@/components/shell/useGo';
 
-function CardDetail({ card, ip, onClose, go }: { card: Card; ip?: Ip; onClose: () => void; go: Go }) {
+function CardDetail({
+  card,
+  ip,
+  isMockCatalog,
+  onClose,
+  go,
+}: {
+  card: Card;
+  ip?: Ip;
+  isMockCatalog: boolean;
+  onClose: () => void;
+  go: Go;
+}) {
   const info = RARITY_META[card.rarity];
-  const stats: [string, string][] = [
-    ['시세', '₩' + (info.foil ? '48,000' : '12,000')],
-    ['보유 팬', (120 - +card.no.slice(0, 3)).toString()],
-    ['발행량', card.no.split('/')[1]],
-  ];
+  const noMatch = /^(\d+)\/(\d+)$/.exec(card.no);
+  const stats: [string, string][] = isMockCatalog
+    ? [
+        ['시세', '₩' + (info.foil ? '48,000' : '12,000')],
+        ['보유 팬', noMatch ? (120 - Number(noMatch[1])).toString() : '-'],
+        ['발행량', noMatch?.[2] ?? '-'],
+      ]
+    : [
+        ['등급', info.label],
+        ['번호', card.no || '-'],
+        ['IP', ip?.title ?? 'IP 미지정'],
+      ];
+  const displayCard = isMockCatalog ? card : { ...card, owned: true };
+
   return (
     <Modal onClose={onClose}>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 28, alignItems: 'center' }} className="cd-grid">
         <div style={{ justifySelf: 'center' }}>
-          <Collectible card={card} ip={ip} size="lg" />
+          <Collectible card={displayCard} ip={ip} size="lg" />
         </div>
         <div>
           <div className="row" style={{ gap: 8 }}>
@@ -32,9 +53,11 @@ function CardDetail({ card, ip, onClose, go }: { card: Card; ip?: Ip; onClose: (
           <h2 className="h-lg" style={{ marginTop: 14 }}>{card.name}</h2>
           <div className="mono muted" style={{ marginTop: 6 }}>{ip?.title ?? 'IP 미지정'} · No.{card.no}</div>
           <p className="muted" style={{ marginTop: 14, fontSize: 14 }}>
-            {card.owned
-              ? '보유 중인 카드입니다. 교환 마켓에 등록하거나 컬렉션에 전시할 수 있어요.'
-              : '아직 보유하지 않은 카드입니다. 팝업 참여 · 가챠 · 교환으로 획득할 수 있어요.'}
+            {isMockCatalog
+              ? card.owned
+                ? '보유 중인 카드입니다. 교환 마켓에 등록하거나 컬렉션에 전시할 수 있어요.'
+                : '아직 보유하지 않은 카드입니다. 팝업 참여 · 가챠 · 교환으로 획득할 수 있어요.'
+              : '공개 카드풀에 등록된 카드입니다.'}
           </p>
           <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginTop: 20 }}>
             {stats.map(([l, v]) => (
@@ -45,13 +68,17 @@ function CardDetail({ card, ip, onClose, go }: { card: Card; ip?: Ip; onClose: (
             ))}
           </div>
           <div className="row" style={{ gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
-            {card.owned ? (
-              <>
-                <button className="btn btn-holo" onClick={() => { onClose(); go('exchange'); }}>교환 등록 <Icon name="swap" size={15} /></button>
-                <button className="btn btn-ghost">전시하기</button>
-              </>
+            {isMockCatalog ? (
+              card.owned ? (
+                <>
+                  <button className="btn btn-holo" onClick={() => { onClose(); go('exchange'); }}>교환 등록 <Icon name="swap" size={15} /></button>
+                  <button className="btn btn-ghost">전시하기</button>
+                </>
+              ) : (
+                <button className="btn btn-holo" onClick={() => { onClose(); go('exchange'); }}>교환으로 획득 <Icon name="arrow" size={15} /></button>
+              )
             ) : (
-              <button className="btn btn-holo" onClick={() => { onClose(); go('exchange'); }}>교환으로 획득 <Icon name="arrow" size={15} /></button>
+              <button className="btn btn-ghost" disabled>보유 연동 준비 중</button>
             )}
           </div>
         </div>
@@ -117,7 +144,7 @@ function PackOpen({ card, ip, onClose }: { card: Card; ip?: Ip; onClose: () => v
         )}
         {stage === 'reveal' && (
           <div className="rise">
-            <p className="mono" style={{ color: 'var(--lime)', fontWeight: 700, letterSpacing: '.1em', marginBottom: 18 }}>✦ HOLO 카드 획득! ✦</p>
+            <p className="mono" style={{ color: 'var(--lime)', fontWeight: 700, letterSpacing: '.1em', marginBottom: 18 }}>✦ {RARITY_META[card.rarity].label} 카드 획득! ✦</p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <Collectible card={{ ...card, owned: true }} ip={ip} size="lg" />
             </div>
@@ -134,30 +161,43 @@ function PackOpen({ card, ip, onClose }: { card: Card; ip?: Ip; onClose: () => v
   );
 }
 
-export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'ips' | 'cards'> }) {
+export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'source' | 'ips' | 'cards'> }) {
   const go = useGo();
   const [filter, setFilter] = useState<'all' | 'owned' | 'wish'>('all');
   const [rarF, setRarF] = useState('all');
   const [detail, setDetail] = useState<Card | null>(null);
   const [packOpen, setPackOpen] = useState(false);
+  const isMockCatalog = catalog.source === 'mock';
   const ipsById = new Map(catalog.ips.map((ip) => [ip.id, ip]));
-  const featuredCard = catalog.cards.find((c) => c.rarity === 'HOLO') ?? catalog.cards[0];
+  const featuredCard = isMockCatalog ? catalog.cards.find((c) => c.rarity === 'HOLO') ?? catalog.cards[0] : null;
 
   let cards = catalog.cards;
-  if (filter === 'owned') cards = cards.filter((c) => c.owned);
-  if (filter === 'wish') cards = cards.filter((c) => !c.owned);
+  if (isMockCatalog && filter === 'owned') cards = cards.filter((c) => c.owned);
+  if (isMockCatalog && filter === 'wish') cards = cards.filter((c) => !c.owned);
   if (rarF !== 'all') cards = cards.filter((c) => c.rarity === rarF);
 
-  const owned = catalog.cards.filter((c) => c.owned).length;
+  const owned = isMockCatalog ? catalog.cards.filter((c) => c.owned).length : 0;
   const total = catalog.cards.length;
-  const pct = total ? Math.round((owned / total) * 100) : 0;
+  const pct = isMockCatalog && total ? Math.round((owned / total) * 100) : 0;
+  const ipCount = new Set(catalog.cards.map((c) => c.ip)).size;
+  const holoCount = catalog.cards.filter((c) => c.rarity === 'HOLO').length;
+  const ownershipFilters = isMockCatalog
+    ? ([['all', '전체'], ['owned', '보유'], ['wish', '미보유']] as const)
+    : ([['all', '전체']] as const);
 
-  const stats: [string | number, string][] = [
-    [owned, '보유 카드'],
-    [total - owned, '미보유'],
-    ['7', '보유 IP'],
-    ['HOLO ×2', '최고 등급'],
-  ];
+  const stats: [string | number, string][] = isMockCatalog
+    ? [
+        [owned, '보유 카드'],
+        [total - owned, '미보유'],
+        ['7', '보유 IP'],
+        ['HOLO ×2', '최고 등급'],
+      ]
+    : [
+        [total, '등록 카드'],
+        [ipCount, '연결 IP'],
+        [holoCount, 'HOLO'],
+        [Object.keys(RARITY_META).length, '등급'],
+      ];
 
   return (
     <div className="screen">
@@ -165,9 +205,11 @@ export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'ips' | 'ca
         {/* header / collection progress */}
         <div className="card mobile-stack" style={{ padding: '28px 30px', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 30, alignItems: 'center', borderRadius: 'var(--r-lg)' }}>
           <div>
-            <div className="eyebrow" style={{ marginBottom: 14 }}>My Binder</div>
-            <h1 className="h-lg">수집 바인더</h1>
-            <p className="muted" style={{ marginTop: 8 }}>참여로 모은 IP 기념 카드를 모아보세요. 컬렉션을 완성하면 한정 보상이 열립니다.</p>
+            <div className="eyebrow" style={{ marginBottom: 14 }}>{isMockCatalog ? 'My Binder' : 'Card Catalog'}</div>
+            <h1 className="h-lg">{isMockCatalog ? '수집 바인더' : '카드 탐색'}</h1>
+            <p className="muted" style={{ marginTop: 8 }}>
+              {isMockCatalog ? '참여로 모은 IP 기념 카드를 모아보세요. 컬렉션을 완성하면 한정 보상이 열립니다.' : '공개 카드풀에 등록된 IP 기념 카드를 둘러보세요.'}
+            </p>
             <div className="row" style={{ gap: 'clamp(18px,4vw,36px)', marginTop: 20, flexWrap: 'wrap' }}>
               {stats.map(([n, l]) => (
                 <div key={l} className="col">
@@ -178,26 +220,46 @@ export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'ips' | 'ca
             </div>
           </div>
           <div className="col" style={{ gap: 14 }}>
-            <div className="between">
-              <span className="mono" style={{ fontSize: 13 }}>컬렉션 달성률</span>
-              <span className="mono holo-text" style={{ fontWeight: 700 }}>{pct}%</span>
-            </div>
-            <div style={{ height: 12, borderRadius: 99, background: 'var(--surface-2)', overflow: 'hidden', border: '1px solid var(--line)' }}>
-              <div style={{ height: '100%', width: pct + '%', background: 'var(--holo)', backgroundSize: '200%', animation: 'holoShift 6s ease infinite' }} />
-            </div>
-            <button className="btn btn-holo" disabled={!featuredCard} style={{ marginTop: 8 }} onClick={() => setPackOpen(true)}>
-              <Icon name="spark" size={17} fill /> 데일리 팩 열기
-            </button>
-            <div className="faint mono" style={{ fontSize: 11, textAlign: 'center' }}>
-              {featuredCard ? '오늘 1회 무료 · 다음 팩까지 23:41:08' : '카드 등록 후 팩을 열 수 있습니다'}
-            </div>
+            {isMockCatalog ? (
+              <>
+                <div className="between">
+                  <span className="mono" style={{ fontSize: 13 }}>컬렉션 달성률</span>
+                  <span className="mono holo-text" style={{ fontWeight: 700 }}>{pct}%</span>
+                </div>
+                <div style={{ height: 12, borderRadius: 99, background: 'var(--surface-2)', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                  <div style={{ height: '100%', width: pct + '%', background: 'var(--holo)', backgroundSize: '200%', animation: 'holoShift 6s ease infinite' }} />
+                </div>
+                <button className="btn btn-holo" disabled={!featuredCard} style={{ marginTop: 8 }} onClick={() => setPackOpen(true)}>
+                  <Icon name="spark" size={17} fill /> 데일리 팩 열기
+                </button>
+                <div className="faint mono" style={{ fontSize: 11, textAlign: 'center' }}>
+                  {featuredCard ? '오늘 1회 무료 · 다음 팩까지 23:41:08' : '카드 등록 후 팩을 열 수 있습니다'}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="between">
+                  <span className="mono" style={{ fontSize: 13 }}>공개 카드풀</span>
+                  <span className="mono holo-text" style={{ fontWeight: 700 }}>{total}장</span>
+                </div>
+                <div style={{ height: 12, borderRadius: 99, background: 'var(--surface-2)', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                  <div style={{ height: '100%', width: total ? '100%' : 0, background: 'var(--holo)', backgroundSize: '200%', animation: 'holoShift 6s ease infinite' }} />
+                </div>
+                <button className="btn btn-ghost" disabled style={{ marginTop: 8 }}>
+                  보유 연동 준비 중
+                </button>
+                <div className="faint mono" style={{ fontSize: 11, textAlign: 'center' }}>
+                  카드풀 공개 탐색
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* filters */}
         <div className="between" style={{ marginTop: 30, flexWrap: 'wrap', gap: 14 }}>
           <div className="wrapgap">
-            {([['all', '전체'], ['owned', '보유'], ['wish', '미보유']] as const).map(([k, l]) => (
+            {ownershipFilters.map(([k, l]) => (
               <button key={k} className={'chip' + (filter === k ? ' on' : '')} onClick={() => setFilter(k)}>{l}</button>
             ))}
           </div>
@@ -218,21 +280,23 @@ export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'ips' | 'ca
 
         {/* binder grid */}
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', marginTop: 24, justifyItems: 'center', rowGap: 26 }}>
-          {cards.map((c) => <Collectible key={c.id} card={c} ip={ipsById.get(c.ip)} onClick={() => setDetail(c)} />)}
+          {cards.map((c) => <Collectible key={c.id} card={isMockCatalog ? c : { ...c, owned: true }} ip={ipsById.get(c.ip)} onClick={() => setDetail(c)} />)}
         </div>
         {!cards.length && <Empty icon="card" text={catalog.cards.length ? '조건에 맞는 카드가 없어요' : '등록된 카드가 아직 없습니다'} sub={catalog.cards.length ? undefined : 'Supabase 카탈로그 seed 또는 admin 등록 후 바인더 탐색에 공개됩니다.'} />}
 
-        <div className="between card" style={{ marginTop: 34, padding: '22px 26px', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 17 }}>중복 카드가 있나요?</div>
-            <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>교환 마켓에서 다른 팬과 직거래하거나 경매에 올려보세요.</div>
+        {isMockCatalog && (
+          <div className="between card" style={{ marginTop: 34, padding: '22px 26px', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 17 }}>중복 카드가 있나요?</div>
+              <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>교환 마켓에서 다른 팬과 직거래하거나 경매에 올려보세요.</div>
+            </div>
+            <button className="btn btn-ghost" onClick={() => go('exchange')}>교환 마켓으로 <Icon name="swap" size={16} /></button>
           </div>
-          <button className="btn btn-ghost" onClick={() => go('exchange')}>교환 마켓으로 <Icon name="swap" size={16} /></button>
-        </div>
+        )}
       </div>
 
-      {detail && <CardDetail card={detail} ip={ipsById.get(detail.ip)} onClose={() => setDetail(null)} go={go} />}
-      {packOpen && featuredCard && <PackOpen card={featuredCard} ip={ipsById.get(featuredCard.ip)} onClose={() => setPackOpen(false)} />}
+      {detail && <CardDetail card={detail} ip={ipsById.get(detail.ip)} isMockCatalog={isMockCatalog} onClose={() => setDetail(null)} go={go} />}
+      {isMockCatalog && packOpen && featuredCard && <PackOpen card={featuredCard} ip={ipsById.get(featuredCard.ip)} onClose={() => setPackOpen(false)} />}
     </div>
   );
 }
