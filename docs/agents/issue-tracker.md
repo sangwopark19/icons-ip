@@ -20,3 +20,16 @@ Create a GitHub issue.
 ## When a skill says "fetch the relevant ticket"
 
 Run `gh issue view <number> --comments`.
+
+## Project board
+
+The active execution board is GitHub Project `ICONS v1 P0 Foundation` (`https://github.com/users/sangwopark19/projects/3`).
+
+Use the issue body as the spec source, and use the Project fields as the scheduling source:
+
+- `Status`: `Todo` → `In Progress` → `Done`.
+- `Phase`: release slice such as `P0 Foundation`.
+- `Track`: parallel work stream such as `Catalog and IP Hub`, `Auth and Onboarding`, `Community`, `Search`, or `Admin Ops`.
+- `Dependency`: startability. Pick `Unblocked` work first.
+
+Do not maintain a second dependency source with GitHub native parent/sub-issue or blocked-by relationships unless the user explicitly asks for that migration. If issue text and Project fields disagree, call out the conflict before acting.

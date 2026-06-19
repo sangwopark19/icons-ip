@@ -55,7 +55,7 @@ jobs:
         run: supabase db start
 
       - name: Apply local migrations
-        run: supabase db reset --local --no-seed
+        run: supabase db reset --local
 
       - name: Lint local database
         run: supabase db lint --local --fail-on error
@@ -93,8 +93,8 @@ jobs:
       - name: Link Supabase project
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
 
-      - name: Push Supabase migrations
-        run: supabase db push --linked
+      - name: Push Supabase migrations and seed
+        run: supabase db push --linked --include-seed
 
   deploy-vercel-preview:
     name: deploy-vercel-preview

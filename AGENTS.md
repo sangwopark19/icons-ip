@@ -74,26 +74,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - 사용자가 명시적으로 요청하지 않으면 branch 생성, staging, commit, push, PR 생성을 하지 않는다.
 - `main`에 push하거나 PR을 merge하는 작업은 production 배포 경로를 시작할 수 있으므로, 단순 Git 정리로 취급하지 말고 사용자 요청/확인 범위 안에서만 수행한다.
 - GitHub Actions 앱 빌드는 Node 26을 사용하지만, Vercel project/runtime Node.js Version은 공식 production Functions 지원 범위인 24.x로 유지한다.
-- branch를 만들 때 사용자가 별도 prefix를 지정하지 않으면 `ps/` prefix를 사용한다.
-- branch 이름은 반드시 영어로 작성한다. 한글, 공백, non-ASCII 문자를 사용하지 않는다.
-- branch 이름은 `ps/<type>/<short-kebab-summary>` 형식을 따른다. `<type>`은 commit type과 맞추고, `<short-kebab-summary>`는 소문자 영어 kebab-case로 짧게 쓴다. 예: `ps/docs/agent-rules`, `ps/feat/icons-prototype`, `ps/feat/supabase-draft-schema`, `ps/fix/gacha-pity-counter`.
-- staging 전에는 `git status --short`로 변경 범위를 확인한다.
-- repo에 unrelated/untracked 파일이 있을 수 있으므로 `git add .` 같은 broad staging을 피하고, 의도한 파일만 명시적으로 stage한다.
-- commit은 하나의 논리적 변경 단위로 만들고, Conventional Commits 형식을 따른다: `<type>(<scope>): <summary>`.
-- commit type은 `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `build`, `ci`, `style`, `perf`만 사용한다.
-- `feat`는 사용자-facing 기능, 화면, 플로우, DB 기능 추가에 사용한다. 초기 구현도 실제 제품 기능이면 `feat`를 사용한다.
-- `chore`는 설정, repo 운영, agent 규칙, 의존성, 순수 스캐폴딩에 사용한다.
-- commit scope는 `app`, `ui`, `db`, `auth`, `commerce`, `gacha`, `ticketing`, `community`, `docs`, `agents`, `build`, `ci` 중에서 고른다.
-- commit summary는 한국어로 쓰고 마침표를 붙이지 않는다. Conventional Commits의 구조 토큰(`feat`, `fix`, `docs`, scope 등)은 그대로 사용한다.
-- PR title도 Conventional Commits 형식을 따른다: `<type>(<scope>): <summary>`.
-- PR title의 summary는 한국어로 쓴다.
-- PR에 여러 commit이 있어도 PR title은 PR 전체 목적을 대표하는 하나의 Conventional Commit 제목으로 쓴다.
-- PR body는 `요약`, `배경`, `검증`, `참고` 섹션을 기본으로 쓴다.
-- PR body 내용은 한국어로 쓴다.
-- PR body에 patch notes는 기본 포함하지 않는다. 사용자가 명시적으로 요청할 때만 추가한다.
-- PR은 기본적으로 바로 review 가능한 PR로 생성한다. draft PR은 사용자가 명시적으로 요청할 때만 사용한다.
-- PR merge는 squash merge를 기본으로 한다. 커밋 히스토리 자체가 리뷰/추적 단위로 의미 있을 때만 사용자가 명시적으로 요청해 merge commit을 사용한다.
-- 초기 또는 큰 변경을 단위별로 나눌 때는 다음처럼 레이어를 분리한다: `chore(build): 프로젝트 도구 초기화`, `feat(app): 프로토타입 라우트와 화면 추가`, `docs(docs): 제품과 아키텍처 문서 정의`, `feat(db): Supabase 초안 스키마와 RPC 추가`, `docs(agents): Codex 작업 규칙 추가`.
 - 사용자 변경으로 보이는 파일은 되돌리지 않는다. 같은 파일을 수정해야 하면 현재 내용을 기준으로 필요한 부분만 좁게 편집한다.
 
 ## 문서 운영

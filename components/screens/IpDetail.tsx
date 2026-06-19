@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { DATA, type FandomEvent } from '@/lib/data';
+import { DATA, type FandomEvent, type Ip } from '@/lib/data';
 import { Icon } from '@/components/ui/Icon';
 import { Collectible } from '@/components/ui/Collectible';
 import { GoodsCard } from '@/components/ui/GoodsCard';
@@ -31,9 +31,8 @@ function EventRow({ e, go }: { e: FandomEvent; go: Go }) {
   );
 }
 
-export function IpDetail({ id }: { id: string }) {
+export function IpDetail({ ip }: { ip: Ip }) {
   const go = useGo();
-  const ip = DATA.ipById(id) || DATA.IPS[0];
   const [tab, setTab] = useState('굿즈');
   const goods = DATA.GOODS.filter((g) => g.ip === ip.id);
   const cards = DATA.CARDS.filter((c) => c.ip === ip.id);
