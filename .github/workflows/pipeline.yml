@@ -99,6 +99,92 @@ jobs:
       - name: Push Supabase migrations and seed
         run: supabase db push --linked --include-seed
 
+      - name: Sync Supabase Auth URL configuration
+        env:
+          SUPABASE_AUTH_SITE_URL: https://icons-ip.vercel.app
+          SUPABASE_AUTH_REDIRECT_URLS: |
+            https://icons-ip.vercel.app/auth/callback
+            http://localhost:3000/auth/callback
+            http://127.0.0.1:3000/auth/callback
+        run: |
+          set -euo pipefail
+
+          config_file="$(mktemp)"
+          status="$(curl -sS -o "$config_file" -w '%{http_code}' \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/config/auth")"
+
+          if [ "$status" != "200" ]; then
+            message="$(jq -r '.message // .error // "unknown error"' "$config_file" 2>/dev/null || true)"
+            echo "::error title=Supabase Auth config read failed::HTTP $status ${message}"
+            exit 1
+          fi
+
+          current_site_url="$(jq -r '.site_url // ""' "$config_file")"
+          current_allow_list="$(jq -r '.uri_allow_list // ""' "$config_file")"
+          required_redirect_urls="$(printf '%s\n' "$SUPABASE_AUTH_REDIRECT_URLS" | sed '/^$/d' | jq -R . | jq -s .)"
+
+          missing_count="$(jq -nr \
+            --arg current "$current_allow_list" \
+            --argjson required "$required_redirect_urls" '
+              def trim: gsub("^\\s+|\\s+$"; "");
+              ($current | split(",") | map(trim) | map(select(length > 0))) as $existing
+              | [$required[] as $url | select(($existing | index($url)) | not)]
+              | length
+            ')"
+
+          updated_allow_list="$(jq -nr \
+            --arg current "$current_allow_list" \
+            --argjson required "$required_redirect_urls" '
+              def trim: gsub("^\\s+|\\s+$"; "");
+              ($current | split(",") | map(trim) | map(select(length > 0))) as $existing
+              | reduce $required[] as $url ($existing; if index($url) then . else . + [$url] end)
+              | join(",")
+            ')"
+
+          if [ "$current_site_url" = "$SUPABASE_AUTH_SITE_URL" ] && [ "$missing_count" = "0" ]; then
+            echo "Supabase Auth URL configuration is already up to date."
+            exit 0
+          fi
+
+          patch_file="$(mktemp)"
+          jq -n \
+            --arg site_url "$SUPABASE_AUTH_SITE_URL" \
+            --arg uri_allow_list "$updated_allow_list" \
+            '{site_url: $site_url, uri_allow_list: $uri_allow_list}' > "$patch_file"
+
+          updated_file="$(mktemp)"
+          patch_status="$(curl -sS -o "$updated_file" -w '%{http_code}' \
+            -X PATCH \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data-binary "@$patch_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/config/auth")"
+
+          if [ "$patch_status" != "200" ]; then
+            message="$(jq -r '.message // .error // "unknown error"' "$updated_file" 2>/dev/null || true)"
+            echo "::error title=Supabase Auth config update failed::HTTP $patch_status ${message}"
+            exit 1
+          fi
+
+          verified_site_url="$(jq -r '.site_url // ""' "$updated_file")"
+          verified_allow_list="$(jq -r '.uri_allow_list // ""' "$updated_file")"
+          verified_missing_count="$(jq -nr \
+            --arg current "$verified_allow_list" \
+            --argjson required "$required_redirect_urls" '
+              def trim: gsub("^\\s+|\\s+$"; "");
+              ($current | split(",") | map(trim) | map(select(length > 0))) as $existing
+              | [$required[] as $url | select(($existing | index($url)) | not)]
+              | length
+            ')"
+
+          if [ "$verified_site_url" != "$SUPABASE_AUTH_SITE_URL" ] || [ "$verified_missing_count" != "0" ]; then
+            echo "::error title=Supabase Auth config verification failed::Auth URL settings did not persist"
+            exit 1
+          fi
+
+          echo "Supabase Auth URL configuration updated."
+
   deploy-vercel-preview:
     name: deploy-vercel-preview
     runs-on: ubuntu-latest
