@@ -1,12 +1,12 @@
 import { notFound } from 'next/navigation';
 import { IpDetail } from '@/components/screens/IpDetail';
-import { getCatalogIp } from '@/lib/catalog';
+import { getCatalogIpDetail } from '@/lib/catalog';
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const ip = await getCatalogIp(id);
+  const detail = await getCatalogIpDetail(id);
 
-  if (!ip) notFound();
+  if (!detail) notFound();
 
-  return <IpDetail ip={ip} />;
+  return <IpDetail detail={detail} />;
 }

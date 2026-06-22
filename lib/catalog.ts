@@ -13,6 +13,27 @@ export interface CatalogSnapshot {
   events: FandomEvent[];
 }
 
+export interface CatalogPostPreview {
+  id: string;
+  user: string;
+  ipName: string;
+  avatar: string;
+  text: string;
+  likes: number;
+  comments: number;
+  time: string;
+  tag: string;
+}
+
+export interface CatalogIpDetail {
+  source: CatalogSnapshot['source'];
+  ip: Ip;
+  goods: Good[];
+  cards: Card[];
+  events: FandomEvent[];
+  posts: CatalogPostPreview[];
+}
+
 interface VerticalRow {
   key: string;
   label: string;
@@ -71,6 +92,24 @@ interface EventRow {
   image_path: string | null;
 }
 
+interface PostRow {
+  id: string;
+  user_id: string;
+  ip_id: string | null;
+  text: string;
+  tag: string | null;
+  created_at: string;
+}
+
+interface PublicProfileRow {
+  id: string;
+  nickname: string | null;
+}
+
+interface PostReactionRow {
+  post_id: string;
+}
+
 const PUBLIC_MEDIA_BUCKET = 'public-media';
 const PUBLIC_MEDIA_PREFIX = `${PUBLIC_MEDIA_BUCKET}/`;
 const RARITIES: RarityKey[] = ['N', 'R', 'SR', 'SSR', 'HOLO'];
@@ -84,6 +123,19 @@ const mockSnapshot = (): CatalogSnapshot => ({
   cards: DATA.CARDS,
   events: DATA.EVENTS,
 });
+
+const mockPostPreviews = (): CatalogPostPreview[] =>
+  DATA.POSTS.map((post) => ({
+    id: post.id,
+    user: post.user,
+    ipName: post.ipName,
+    avatar: post.avatar,
+    text: post.text,
+    likes: post.likes,
+    comments: post.comments,
+    time: post.time,
+    tag: post.tag,
+  }));
 
 const fallbackVertical = (key: string): Vertical => ({
   key,
@@ -196,6 +248,29 @@ function formatEventDate(startsAt: string | null, endsAt: string | null) {
   return startDate === endDate ? `${startDate}${startTime}` : `${startDate} - ${endDate}`;
 }
 
+function formatPostTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 1) return '방금 전';
+  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}시간 전`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}일 전`;
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: 'numeric',
+    day: 'numeric',
+  }).format(date);
+}
+
 function toEvent(row: EventRow, ipsById: Map<string, Ip>, imageUrlForPath: (path: string) => string): FandomEvent {
   const ip = row.ip_id ? ipsById.get(row.ip_id) : null;
   return {
@@ -208,6 +283,37 @@ function toEvent(row: EventRow, ipsById: Map<string, Ip>, imageUrlForPath: (path
     loc: row.location ?? '',
     accent: row.accent ?? ip?.v.color ?? '#8B5CFF',
     img: backgroundFor(row.bg, row.image_path, imageUrlForPath, ip?.bg ?? DATA.EVENTS[0]?.img ?? ''),
+  };
+}
+
+function countByPostId(rows: PostReactionRow[]) {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function toPostPreview(
+  row: PostRow,
+  ip: Ip,
+  profilesById: Map<string, PublicProfileRow>,
+  likesByPostId: Map<string, number>,
+  commentsByPostId: Map<string, number>,
+): CatalogPostPreview {
+  const profile = profilesById.get(row.user_id);
+  const nickname = profile?.nickname?.trim() || `fan_${row.user_id.slice(0, 6)}`;
+
+  return {
+    id: row.id,
+    user: nickname,
+    ipName: ip.title,
+    avatar: ip.v.color,
+    text: row.text,
+    likes: likesByPostId.get(row.id) ?? 0,
+    comments: commentsByPostId.get(row.id) ?? 0,
+    time: formatPostTime(row.created_at),
+    tag: row.tag?.trim() || '커뮤니티',
   };
 }
 
@@ -282,4 +388,86 @@ export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
 export async function getCatalogIp(id: string): Promise<Ip | null> {
   const catalog = await getCatalogSnapshot();
   return catalog.ips.find((ip) => ip.id === id) ?? null;
+}
+
+export function buildCatalogIpDetail(
+  catalog: CatalogSnapshot,
+  id: string,
+  posts: (CatalogPostPreview & { ipId?: string | null })[],
+): CatalogIpDetail | null {
+  const ip = catalog.ips.find((item) => item.id === id);
+  if (!ip) return null;
+
+  return {
+    source: catalog.source,
+    ip,
+    goods: catalog.goods.filter((good) => good.ip === id),
+    cards: catalog.cards.filter((card) => card.ip === id),
+    events: catalog.events.filter((event) => event.ip === id),
+    posts: posts
+      .filter((post) => (post.ipId ? post.ipId === id : post.ipName === ip.title))
+      .slice(0, 3)
+      .map(({ id: postId, user, ipName, avatar, text, likes, comments, time, tag }) => ({
+        id: postId,
+        user,
+        ipName,
+        avatar,
+        text,
+        likes,
+        comments,
+        time,
+        tag,
+      })),
+  };
+}
+
+async function getCatalogPostPreviewsForIp(id: string, ip: Ip): Promise<CatalogPostPreview[]> {
+  const supabase = await createClient();
+  const postsResult = await supabase
+    .from('posts')
+    .select('id,user_id,ip_id,text,tag,created_at')
+    .eq('ip_id', id)
+    .eq('status', 'visible')
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  if (postsResult.error) {
+    throw new Error(`Failed to load catalog posts: ${postsResult.error.message}`);
+  }
+
+  const posts = (postsResult.data ?? []) as PostRow[];
+  if (!posts.length) return [];
+
+  const postIds = posts.map((post) => post.id);
+  const userIds = Array.from(new Set(posts.map((post) => post.user_id)));
+  const [profilesResult, likesResult, commentsResult] = await Promise.all([
+    supabase.from('public_profiles').select('id,nickname').in('id', userIds),
+    supabase.from('likes').select('post_id').in('post_id', postIds),
+    supabase.from('comments').select('post_id').in('post_id', postIds),
+  ]);
+
+  if (profilesResult.error) {
+    throw new Error(`Failed to load post authors: ${profilesResult.error.message}`);
+  }
+  if (likesResult.error) {
+    throw new Error(`Failed to load post likes: ${likesResult.error.message}`);
+  }
+  if (commentsResult.error) {
+    throw new Error(`Failed to load post comments: ${commentsResult.error.message}`);
+  }
+
+  const profilesById = new Map(((profilesResult.data ?? []) as PublicProfileRow[]).map((profile) => [profile.id, profile]));
+  const likesByPostId = countByPostId((likesResult.data ?? []) as PostReactionRow[]);
+  const commentsByPostId = countByPostId((commentsResult.data ?? []) as PostReactionRow[]);
+
+  return posts.map((post) => toPostPreview(post, ip, profilesById, likesByPostId, commentsByPostId));
+}
+
+export async function getCatalogIpDetail(id: string): Promise<CatalogIpDetail | null> {
+  const catalog = await getCatalogSnapshot();
+  const ip = catalog.ips.find((item) => item.id === id);
+  if (!ip) return null;
+
+  const posts = catalog.source === 'mock' ? mockPostPreviews() : await getCatalogPostPreviewsForIp(id, ip);
+  return buildCatalogIpDetail(catalog, id, posts);
 }
