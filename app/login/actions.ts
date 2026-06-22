@@ -1,8 +1,18 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { authCallbackUrl, authSignUpErrorMessage, isOnboarded, onboardingPath, safeNextPath } from '@/lib/auth/onboarding';
+import {
+  AUTH_CALLBACK_PATH,
+  AUTH_NEXT_COOKIE_MAX_AGE_SECONDS,
+  AUTH_NEXT_COOKIE_NAME,
+  authCallbackUrl,
+  authNextCookieValue,
+  authSignUpErrorMessage,
+  isOnboarded,
+  onboardingPath,
+  safeNextPath,
+} from '@/lib/auth/onboarding';
 import { getProfileForUser } from '@/lib/auth/server';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -67,6 +77,24 @@ async function requestOrigin() {
   return `${proto}://${firstHost}`;
 }
 
+async function rememberAuthNextPath(origin: string, next: string) {
+  const cookieStore = await cookies();
+  const safeNext = safeNextPath(next);
+
+  if (safeNext === '/') {
+    cookieStore.set(AUTH_NEXT_COOKIE_NAME, '', { path: AUTH_CALLBACK_PATH, maxAge: 0 });
+    return;
+  }
+
+  cookieStore.set(AUTH_NEXT_COOKIE_NAME, authNextCookieValue(safeNext), {
+    httpOnly: true,
+    maxAge: AUTH_NEXT_COOKIE_MAX_AGE_SECONDS,
+    path: AUTH_CALLBACK_PATH,
+    sameSite: 'lax',
+    secure: origin.startsWith('https://'),
+  });
+}
+
 export async function signInWithEmailAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const parsed = validateCredentials(formData);
   if (!parsed.ok) return parsed.state;
@@ -98,7 +126,8 @@ export async function signUpWithEmailAction(_state: AuthActionState, formData: F
   if (!isConfigured) return { errors: { form: 'Supabase 환경변수를 설정한 뒤 가입할 수 있습니다.' } };
 
   const supabase = await createClient();
-  const emailRedirectTo = authCallbackUrl(await requestOrigin(), next);
+  const origin = await requestOrigin();
+  const emailRedirectTo = authCallbackUrl(origin);
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -112,6 +141,7 @@ export async function signUpWithEmailAction(_state: AuthActionState, formData: F
   }
 
   if (!data.session) {
+    await rememberAuthNextPath(origin, next);
     return { message: '가입 확인 메일을 보냈습니다. 받은편지함과 스팸함에서 최신 확인 메일을 열어주세요. 이미 가입한 이메일이라면 로그인도 시도할 수 있습니다.' };
   }
 

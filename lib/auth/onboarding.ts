@@ -18,7 +18,9 @@ interface AuthErrorLike {
   status?: number | null;
 }
 
-const AUTH_CALLBACK_PATH = '/auth/callback';
+export const AUTH_CALLBACK_PATH = '/auth/callback';
+export const AUTH_NEXT_COOKIE_NAME = 'icons_auth_next';
+export const AUTH_NEXT_COOKIE_MAX_AGE_SECONDS = 10 * 60;
 
 const GENERIC_AUTH_ERROR_MESSAGE = '인증을 완료하지 못했습니다. 다시 시도하거나 새 확인 메일을 요청해주세요.';
 const GENERIC_SIGNUP_ERROR_MESSAGE = '가입 요청을 처리하지 못했습니다. 이메일 형식과 비밀번호를 확인한 뒤 다시 시도해주세요.';
@@ -69,10 +71,17 @@ export function onboardingPath(next: string) {
   return `/onboarding?next=${encodeURIComponent(safeNextPath(next))}`;
 }
 
-export function authCallbackUrl(origin: string, next: string): string {
-  const url = new URL(AUTH_CALLBACK_PATH, origin);
-  url.searchParams.set('next', safeNextPath(next));
-  return url.toString();
+export function authCallbackUrl(origin: string): string {
+  return new URL(AUTH_CALLBACK_PATH, origin).toString();
+}
+
+export function authNextCookieValue(next: string): string {
+  return encodeURIComponent(safeNextPath(next));
+}
+
+export function authNextPathFromCookie(value: string | null | undefined): string {
+  if (!value) return '/';
+  return safeNextPath(value);
 }
 
 function normalizeAuthCode(code: string | null | undefined) {

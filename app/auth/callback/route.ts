@@ -1,16 +1,33 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { authErrorLoginPath, isOnboarded, onboardingPath, safeNextPath } from '@/lib/auth/onboarding';
+import {
+  AUTH_CALLBACK_PATH,
+  AUTH_NEXT_COOKIE_NAME,
+  authErrorLoginPath,
+  authNextPathFromCookie,
+  isOnboarded,
+  onboardingPath,
+  safeNextPath,
+} from '@/lib/auth/onboarding';
 import { getProfileForUser } from '@/lib/auth/server';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
 function redirectTo(request: NextRequest, path: string) {
-  return NextResponse.redirect(new URL(path, request.url));
+  const response = NextResponse.redirect(new URL(path, request.url));
+  response.cookies.set(AUTH_NEXT_COOKIE_NAME, '', { path: AUTH_CALLBACK_PATH, maxAge: 0 });
+  return response;
+}
+
+function callbackNextPath(request: NextRequest) {
+  const queryNext = request.nextUrl.searchParams.get('next');
+  if (queryNext !== null) return safeNextPath(queryNext);
+
+  return authNextPathFromCookie(request.cookies.get(AUTH_NEXT_COOKIE_NAME)?.value);
 }
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
-  const next = safeNextPath(request.nextUrl.searchParams.get('next'));
+  const next = callbackNextPath(request);
   const providerError = request.nextUrl.searchParams.get('error_code') ?? request.nextUrl.searchParams.get('error');
 
   if (providerError) return redirectTo(request, authErrorLoginPath(providerError, next));

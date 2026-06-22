@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   authCallbackUrl,
   authErrorMessage,
+  authNextCookieValue,
+  authNextPathFromCookie,
   authSignUpErrorMessage,
   isOnboarded,
   nextPathWithSearch,
@@ -87,16 +89,21 @@ describe('nextPathWithSearch', () => {
 });
 
 describe('authCallbackUrl', () => {
-  it('builds the production auth callback URL with a safe next path', () => {
-    expect(authCallbackUrl('https://icons-ip.vercel.app', '/community?sort=hot#feed')).toBe(
-      'https://icons-ip.vercel.app/auth/callback?next=%2Fcommunity%3Fsort%3Dhot%23feed',
-    );
+  it('builds the exact production auth callback URL allowed by Supabase', () => {
+    expect(authCallbackUrl('https://icons-ip.vercel.app')).toBe('https://icons-ip.vercel.app/auth/callback');
+  });
+});
+
+describe('auth next cookie helpers', () => {
+  it('round-trips a safe next path for the auth callback cookie', () => {
+    const value = authNextCookieValue('/community?sort=hot#feed');
+
+    expect(authNextPathFromCookie(value)).toBe('/community?sort=hot#feed');
   });
 
-  it('falls back to the root next path when next is unsafe', () => {
-    expect(authCallbackUrl('https://icons-ip.vercel.app', 'https://evil.example')).toBe(
-      'https://icons-ip.vercel.app/auth/callback?next=%2F',
-    );
+  it('falls back to root when the cookie value is unsafe', () => {
+    expect(authNextPathFromCookie(authNextCookieValue('https://evil.example'))).toBe('/');
+    expect(authNextPathFromCookie('%')).toBe('/');
   });
 });
 
