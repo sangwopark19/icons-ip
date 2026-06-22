@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { isOnboarded, nextPathWithSearch, safeNextPath, type ProfileForOnboarding } from './onboarding';
+import {
+  authCallbackUrl,
+  authErrorMessage,
+  authSignUpErrorMessage,
+  isOnboarded,
+  nextPathWithSearch,
+  safeNextPath,
+  type ProfileForOnboarding,
+} from './onboarding';
 
 const completeProfile = (overrides: Partial<ProfileForOnboarding> = {}): ProfileForOnboarding => ({
   email: 'fan@icons.gg',
@@ -75,5 +83,45 @@ describe('nextPathWithSearch', () => {
     expect(nextPathWithSearch('/community', new URLSearchParams({ channel: '전체', sort: '인기순' }))).toBe(
       '/community?channel=%EC%A0%84%EC%B2%B4&sort=%EC%9D%B8%EA%B8%B0%EC%88%9C',
     );
+  });
+});
+
+describe('authCallbackUrl', () => {
+  it('builds the production auth callback URL with a safe next path', () => {
+    expect(authCallbackUrl('https://icons-ip.vercel.app', '/community?sort=hot#feed')).toBe(
+      'https://icons-ip.vercel.app/auth/callback?next=%2Fcommunity%3Fsort%3Dhot%23feed',
+    );
+  });
+
+  it('falls back to the root next path when next is unsafe', () => {
+    expect(authCallbackUrl('https://icons-ip.vercel.app', 'https://evil.example')).toBe(
+      'https://icons-ip.vercel.app/auth/callback?next=%2F',
+    );
+  });
+});
+
+describe('authErrorMessage', () => {
+  it.each([
+    ['otp_expired', '인증 링크'],
+    ['email_address_invalid', '이메일 주소'],
+    ['weak_password', '비밀번호'],
+    ['over_email_send_rate_limit', '잠시 후'],
+    ['over_request_rate_limit', '요청이 너무 많습니다'],
+    ['unknown_provider_error', '인증을 완료하지 못했습니다'],
+  ])('maps %s to an actionable Korean message', (code, expected) => {
+    expect(authErrorMessage(code)).toContain(expected);
+  });
+});
+
+describe('authSignUpErrorMessage', () => {
+  it('does not reveal whether an email is already registered', () => {
+    const message = authSignUpErrorMessage({ code: 'user_already_exists', message: 'User already registered' });
+
+    expect(message).toContain('가입 요청을 처리하지 못했습니다');
+    expect(message).not.toContain('이미 가입');
+  });
+
+  it('explains email send rate limits without exposing account existence', () => {
+    expect(authSignUpErrorMessage({ code: 'over_email_send_rate_limit' })).toContain('확인 메일 요청이 너무 많습니다');
   });
 });

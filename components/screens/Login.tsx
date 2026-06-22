@@ -6,6 +6,7 @@ import { signInWithEmailAction, signUpWithEmailAction, type AuthActionState } fr
 type LoginMode = 'signin' | 'signup';
 
 interface LoginProps {
+  initialError?: string;
   initialMode: LoginMode;
   isConfigured: boolean;
   next: string;
@@ -64,13 +65,14 @@ function Field({
   );
 }
 
-export function Login({ initialMode, isConfigured, next }: LoginProps) {
+export function Login({ initialError, initialMode, isConfigured, next }: LoginProps) {
   const [mode, setMode] = useState<LoginMode>(initialMode);
   const [signInState, signInAction, signInPending] = useActionState(signInWithEmailAction, emptyState);
   const [signUpState, signUpAction, signUpPending] = useActionState(signUpWithEmailAction, emptyState);
   const isSignUp = mode === 'signup';
   const state = isSignUp ? signUpState : signInState;
   const pending = isSignUp ? signUpPending : signInPending;
+  const formError = state.errors?.form ?? (state.message ? undefined : initialError);
 
   return (
     <div className="screen" style={{ display: 'grid', placeItems: 'center', minHeight: '100vh' }}>
@@ -102,9 +104,9 @@ export function Login({ initialMode, isConfigured, next }: LoginProps) {
           <input type="hidden" name="next" value={next} />
           <Field error={state.errors?.email} label="이메일" name="email" placeholder="you@icons.gg" type="email" />
           <Field error={state.errors?.password} label="비밀번호" name="password" placeholder="비밀번호" type="password" />
-          {state.errors?.form && (
+          {formError && (
             <div className="card" role="alert" style={{ padding: 12, borderRadius: 12, color: 'var(--pink)', fontSize: 13.5, fontWeight: 700 }}>
-              {state.errors.form}
+              {formError}
             </div>
           )}
           {state.message && (

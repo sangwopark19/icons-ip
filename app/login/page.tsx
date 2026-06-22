@@ -1,5 +1,5 @@
 import { Login } from '@/components/screens/Login';
-import { isOnboarded, safeNextPath } from '@/lib/auth/onboarding';
+import { authErrorMessage, isOnboarded, safeNextPath } from '@/lib/auth/onboarding';
 import { getCurrentAuthState } from '@/lib/auth/server';
 import { redirect } from 'next/navigation';
 
@@ -15,6 +15,7 @@ export default async function Page({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
   const next = safeNextPath(firstParam(params.next));
   const initialMode = firstParam(params.mode) === 'signup' ? 'signup' : 'signin';
+  const initialError = authErrorMessage(firstParam(params.auth_error));
   const auth = await getCurrentAuthState();
 
   if (auth.user) {
@@ -22,5 +23,5 @@ export default async function Page({ searchParams }: PageProps) {
     redirect(`/onboarding?next=${encodeURIComponent(next)}`);
   }
 
-  return <Login initialMode={initialMode} isConfigured={auth.isConfigured} next={next} />;
+  return <Login initialError={initialError} initialMode={initialMode} isConfigured={auth.isConfigured} next={next} />;
 }

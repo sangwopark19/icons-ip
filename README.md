@@ -39,6 +39,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 URL과 public key 둘 중 하나라도 없으면 인증 미들웨어는 세션 갱신을 건너뛰고, 공개 카탈로그는 로컬 개발용 mock 데이터로 fallback한다. Vercel preview와 production 배포는 Supabase 공개 환경변수가 없으면 workflow preflight에서 실패한다.
 
+## Supabase Auth URL 설정
+
+이메일 회원가입 확인 링크가 앱 세션으로 교환되려면 Supabase Dashboard → Authentication → URL Configuration에서 다음 값을 유지한다.
+
+- Site URL: `https://icons-ip.vercel.app`
+- Redirect URLs:
+  - `https://icons-ip.vercel.app/auth/callback`
+  - `http://localhost:3000/auth/callback`
+  - `http://127.0.0.1:3000/auth/callback`
+
+Production 확인 메일은 `/auth/callback`으로 돌아와 세션 쿠키를 설정한 뒤 온보딩 완료 여부에 따라 `/onboarding` 또는 요청한 `next` 경로로 이동한다.
+
 ## 주요 스크립트
 
 ```bash

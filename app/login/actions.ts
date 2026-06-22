@@ -1,7 +1,8 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { isOnboarded, safeNextPath } from '@/lib/auth/onboarding';
+import { authCallbackUrl, authSignUpErrorMessage, isOnboarded, onboardingPath, safeNextPath } from '@/lib/auth/onboarding';
 import { getProfileForUser } from '@/lib/auth/server';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -39,8 +40,31 @@ function validateCredentials(formData: FormData): { ok: true; credentials: Crede
   return { ok: true, credentials: { email, password, next } };
 }
 
-function onboardingPath(next: string) {
-  return `/onboarding?next=${encodeURIComponent(next)}`;
+function normalizedOrigin(value: string | null) {
+  if (!value) return undefined;
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+async function requestOrigin() {
+  const headersList = await headers();
+  const origin = normalizedOrigin(headersList.get('origin'));
+  if (origin) return origin;
+
+  const host = headersList.get('x-forwarded-host') ?? headersList.get('host');
+  if (!host) return 'http://localhost:3000';
+
+  const firstHost = host.split(',')[0]?.trim();
+  if (!firstHost) return 'http://localhost:3000';
+
+  const firstProto = (headersList.get('x-forwarded-proto') ?? '').split(',')[0]?.trim();
+  const proto = firstProto || (firstHost.startsWith('localhost') || firstHost.startsWith('127.') ? 'http' : 'https');
+
+  return `${proto}://${firstHost}`;
 }
 
 export async function signInWithEmailAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -74,17 +98,21 @@ export async function signUpWithEmailAction(_state: AuthActionState, formData: F
   if (!isConfigured) return { errors: { form: 'Supabase 환경변수를 설정한 뒤 가입할 수 있습니다.' } };
 
   const supabase = await createClient();
+  const emailRedirectTo = authCallbackUrl(await requestOrigin(), next);
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo,
+    },
   });
 
   if (error || !data.user) {
-    return { errors: { form: '가입 정보를 확인해주세요.' } };
+    return { errors: { form: authSignUpErrorMessage(error) } };
   }
 
   if (!data.session) {
-    return { message: '가입 확인 메일을 보냈습니다. 메일 확인 후 로그인해주세요.' };
+    return { message: '가입 확인 메일을 보냈습니다. 받은편지함과 스팸함에서 최신 확인 메일을 열어주세요. 이미 가입한 이메일이라면 로그인도 시도할 수 있습니다.' };
   }
 
   redirect(onboardingPath(next));
