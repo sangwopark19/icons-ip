@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DATA, type FandomEvent, type Ip } from '@/lib/data';
 import { Icon } from '@/components/ui/Icon';
 import { Collectible } from '@/components/ui/Collectible';
@@ -33,7 +34,9 @@ function EventRow({ e, go }: { e: FandomEvent; go: Go }) {
 
 export function IpDetail({ ip }: { ip: Ip }) {
   const go = useGo();
+  const router = useRouter();
   const [tab, setTab] = useState('굿즈');
+  const loginPath = `/login?next=${encodeURIComponent(`/ip/${ip.id}`)}`;
   const goods = DATA.GOODS.filter((g) => g.ip === ip.id);
   const cards = DATA.CARDS.filter((c) => c.ip === ip.id);
   const events = DATA.EVENTS.filter((e) => e.ip === ip.id);
@@ -59,7 +62,7 @@ export function IpDetail({ ip }: { ip: Ip }) {
             <p className="muted" style={{ marginTop: 10, maxWidth: 560 }}>{ip.synopsis}</p>
           </div>
           <div className="row" style={{ gap: 10 }}>
-            <button className="btn btn-holo">팬덤 가입 <Icon name="plus" size={15} /></button>
+            <button className="btn btn-holo" onClick={() => router.push(loginPath)}>팬덤 가입 <Icon name="plus" size={15} /></button>
             <button className="btn btn-ghost">알림 받기</button>
           </div>
         </div>
