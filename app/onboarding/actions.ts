@@ -60,7 +60,6 @@ export async function completeOnboardingAction(
   const { error } = await supabase
     .from('profiles')
     .update({
-      email: user.email ?? null,
       nickname,
       birth_date: birthDate,
       consents: { terms, privacy, marketing },
