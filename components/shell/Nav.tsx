@@ -7,6 +7,7 @@ import { NAV_ITEMS, hrefFor, isActive } from '@/lib/routes';
 import { Icon } from '@/components/ui/Icon';
 import { useCart } from './CartProvider';
 import { useGo } from './useGo';
+import { AuthButton } from './AuthButton';
 
 export function Nav() {
   const pathname = usePathname();
@@ -42,9 +43,7 @@ export function Nav() {
             <Icon name="bag" />
             {count > 0 && <span className="badge">{count}</span>}
           </button>
-          <button className="btn btn-ghost btn-sm hide-mob" onClick={() => go('login')} style={{ height: 40 }}>
-            로그인
-          </button>
+          <AuthButton />
         </div>
       </div>
     </nav>

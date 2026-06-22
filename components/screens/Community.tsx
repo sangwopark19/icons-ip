@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DATA, type Post } from '@/lib/data';
+import { nextPathWithSearch } from '@/lib/auth/onboarding';
 import { Icon } from '@/components/ui/Icon';
 import { Empty } from '@/components/ui/Empty';
 import { useGo } from '@/components/shell/useGo';
@@ -38,6 +40,7 @@ function PostCard({ p }: { p: Post }) {
 
 export function Community() {
   const go = useGo();
+  const router = useRouter();
   const [ch, setCh] = useState('전체');
   const [sort, setSort] = useState('최신순');
   const channels = ['전체', ...DATA.IPS.slice(0, 5).map((i) => i.title)];
@@ -95,7 +98,18 @@ export function Community() {
               placeholder="IP 채널에 글을 남겨보세요…"
               style={{ flex: 1, height: 44, border: '1px solid var(--line-2)', background: 'var(--bg-2)', borderRadius: 99, padding: '0 18px', color: 'var(--text)', fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
             />
-            <button className="btn btn-holo btn-sm" onClick={() => go('login')}>게시</button>
+            <button
+              className="btn btn-holo btn-sm"
+              onClick={() =>
+                router.push(
+                  `/login?next=${encodeURIComponent(
+                    nextPathWithSearch(window.location.pathname, new URLSearchParams(window.location.search)),
+                  )}`,
+                )
+              }
+            >
+              게시
+            </button>
           </div>
           {/* sort */}
           <div className="between" style={{ margin: '22px 2px 16px' }}>
