@@ -106,14 +106,11 @@ interface PublicProfileRow {
   nickname: string | null;
 }
 
-interface PostReactionRow {
-  post_id: string;
-}
-
 const PUBLIC_MEDIA_BUCKET = 'public-media';
 const PUBLIC_MEDIA_PREFIX = `${PUBLIC_MEDIA_BUCKET}/`;
 const RARITIES: RarityKey[] = ['N', 'R', 'SR', 'SSR', 'HOLO'];
 const naturalIdCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+type CatalogSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 const mockSnapshot = (): CatalogSnapshot => ({
   source: 'mock',
@@ -286,14 +283,6 @@ function toEvent(row: EventRow, ipsById: Map<string, Ip>, imageUrlForPath: (path
   };
 }
 
-function countByPostId(rows: PostReactionRow[]) {
-  const counts = new Map<string, number>();
-  for (const row of rows) {
-    counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
-  }
-  return counts;
-}
-
 function toPostPreview(
   row: PostRow,
   ip: Ip,
@@ -315,6 +304,30 @@ function toPostPreview(
     time: formatPostTime(row.created_at),
     tag: row.tag?.trim() || '커뮤니티',
   };
+}
+
+async function countReactionsByPostId(
+  supabase: CatalogSupabaseClient,
+  table: 'likes' | 'comments',
+  postIds: string[],
+  label: 'likes' | 'comments',
+) {
+  const entries = await Promise.all(
+    postIds.map(async (postId) => {
+      const result = await supabase
+        .from(table)
+        .select('post_id', { count: 'exact', head: true })
+        .eq('post_id', postId);
+
+      if (result.error) {
+        throw new Error(`Failed to load post ${label}: ${result.error.message}`);
+      }
+
+      return [postId, result.count ?? 0] as const;
+    }),
+  );
+
+  return new Map(entries);
 }
 
 export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
@@ -440,25 +453,17 @@ async function getCatalogPostPreviewsForIp(id: string, ip: Ip): Promise<CatalogP
 
   const postIds = posts.map((post) => post.id);
   const userIds = Array.from(new Set(posts.map((post) => post.user_id)));
-  const [profilesResult, likesResult, commentsResult] = await Promise.all([
+  const [profilesResult, likesByPostId, commentsByPostId] = await Promise.all([
     supabase.from('public_profiles').select('id,nickname').in('id', userIds),
-    supabase.from('likes').select('post_id').in('post_id', postIds),
-    supabase.from('comments').select('post_id').in('post_id', postIds),
+    countReactionsByPostId(supabase, 'likes', postIds, 'likes'),
+    countReactionsByPostId(supabase, 'comments', postIds, 'comments'),
   ]);
 
   if (profilesResult.error) {
     throw new Error(`Failed to load post authors: ${profilesResult.error.message}`);
   }
-  if (likesResult.error) {
-    throw new Error(`Failed to load post likes: ${likesResult.error.message}`);
-  }
-  if (commentsResult.error) {
-    throw new Error(`Failed to load post comments: ${commentsResult.error.message}`);
-  }
 
   const profilesById = new Map(((profilesResult.data ?? []) as PublicProfileRow[]).map((profile) => [profile.id, profile]));
-  const likesByPostId = countByPostId((likesResult.data ?? []) as PostReactionRow[]);
-  const commentsByPostId = countByPostId((commentsResult.data ?? []) as PostReactionRow[]);
 
   return posts.map((post) => toPostPreview(post, ip, profilesById, likesByPostId, commentsByPostId));
 }

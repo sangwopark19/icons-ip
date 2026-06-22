@@ -68,14 +68,21 @@ const postForIp: CatalogPostPreview = {
 type QueryRecord = {
   table: string;
   select?: string;
+  selectOptions?: { count?: string; head?: boolean };
   eq: [string, unknown][];
   in: [string, unknown[]][];
   order: [string, { ascending?: boolean } | undefined][];
   limit?: number;
 };
 
-function makeResult<T>(data: T[]) {
-  return { data, error: null };
+type QueryResult<T> = {
+  data: T[] | null;
+  count?: number | null;
+  error: null;
+};
+
+function makeResult<T>(data: T[] | null, count?: number | null): QueryResult<T> {
+  return { data, count, error: null };
 }
 
 function createQuery<T extends Record<string, unknown>>(
@@ -87,8 +94,9 @@ function createQuery<T extends Record<string, unknown>>(
   records.push(record);
 
   const query = {
-    select(value: string) {
+    select(value: string, options?: { count?: string; head?: boolean }) {
       record.select = value;
+      record.selectOptions = options;
       return query;
     },
     eq(column: string, value: unknown) {
@@ -107,8 +115,8 @@ function createQuery<T extends Record<string, unknown>>(
       record.limit = value;
       return query;
     },
-    then<TResult1 = { data: T[]; error: null }, TResult2 = never>(
-      onfulfilled?: ((value: { data: T[]; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
+    then<TResult1 = QueryResult<T>, TResult2 = never>(
+      onfulfilled?: ((value: QueryResult<T>) => TResult1 | PromiseLike<TResult1>) | null,
       onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
     ) {
       try {
@@ -127,7 +135,9 @@ function createQuery<T extends Record<string, unknown>>(
           });
         }
         if (typeof record.limit === 'number') data = data.slice(0, record.limit);
-        return Promise.resolve(makeResult(data)).then(onfulfilled, onrejected);
+        return Promise.resolve(
+          makeResult(record.selectOptions?.head ? null : data, record.selectOptions?.count ? data.length : undefined),
+        ).then(onfulfilled, onrejected);
       } catch (error) {
         return Promise.reject(error).then(onfulfilled, onrejected);
       }
@@ -171,13 +181,12 @@ function createSupabaseClient(records: QueryRecord[]) {
       { id: 'u2', nickname: null },
     ],
     likes: [
-      { post_id: 'p1' },
-      { post_id: 'p1' },
+      ...Array.from({ length: 1005 }, () => ({ post_id: 'p1' })),
       { post_id: 'p2' },
     ],
     comments: [
       { post_id: 'p1' },
-      { post_id: 'p3' },
+      ...Array.from({ length: 1001 }, () => ({ post_id: 'p3' })),
     ],
   };
 
@@ -226,9 +235,9 @@ describe('getCatalogIpDetail', () => {
     const detail = await getCatalogIpDetail('hwasan');
 
     expect(detail?.posts).toEqual([
-      expect.objectContaining({ id: 'p1', user: 'neonfan', likes: 2, comments: 1, tag: '팝업' }),
+      expect.objectContaining({ id: 'p1', user: 'neonfan', likes: 1005, comments: 1, tag: '팝업' }),
       expect.objectContaining({ id: 'p2', user: 'fan_u2', likes: 1, comments: 0, tag: '커뮤니티' }),
-      expect.objectContaining({ id: 'p3', user: 'neonfan', likes: 0, comments: 1, tag: '후기' }),
+      expect.objectContaining({ id: 'p3', user: 'neonfan', likes: 0, comments: 1001, tag: '후기' }),
     ]);
     expect(detail?.posts).toHaveLength(3);
     expect(detail?.posts).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: 'hidden' })]));
@@ -241,6 +250,40 @@ describe('getCatalogIpDetail', () => {
       order: [['created_at', { ascending: false }]],
       limit: 3,
     });
+    expect(records.filter((record) => record.table === 'likes')).toEqual([
+      expect.objectContaining({
+        select: 'post_id',
+        selectOptions: { count: 'exact', head: true },
+        eq: [['post_id', 'p1']],
+      }),
+      expect.objectContaining({
+        select: 'post_id',
+        selectOptions: { count: 'exact', head: true },
+        eq: [['post_id', 'p2']],
+      }),
+      expect.objectContaining({
+        select: 'post_id',
+        selectOptions: { count: 'exact', head: true },
+        eq: [['post_id', 'p3']],
+      }),
+    ]);
+    expect(records.filter((record) => record.table === 'comments')).toEqual([
+      expect.objectContaining({
+        select: 'post_id',
+        selectOptions: { count: 'exact', head: true },
+        eq: [['post_id', 'p1']],
+      }),
+      expect.objectContaining({
+        select: 'post_id',
+        selectOptions: { count: 'exact', head: true },
+        eq: [['post_id', 'p2']],
+      }),
+      expect.objectContaining({
+        select: 'post_id',
+        selectOptions: { count: 'exact', head: true },
+        eq: [['post_id', 'p3']],
+      }),
+    ]);
 
     mocks.isConfigured = false;
     mocks.client = null;
