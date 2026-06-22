@@ -12,6 +12,17 @@ export interface ProfileForOnboarding {
   onboarded_at?: string | null;
 }
 
+interface AuthErrorLike {
+  code?: string | null;
+  message?: string | null;
+  status?: number | null;
+}
+
+const AUTH_CALLBACK_PATH = '/auth/callback';
+
+const GENERIC_AUTH_ERROR_MESSAGE = '인증을 완료하지 못했습니다. 다시 시도하거나 새 확인 메일을 요청해주세요.';
+const GENERIC_SIGNUP_ERROR_MESSAGE = '가입 요청을 처리하지 못했습니다. 이메일 형식과 비밀번호를 확인한 뒤 다시 시도해주세요.';
+
 export function isOnboarded(profile: ProfileForOnboarding | null | undefined, authEmail?: string | null): boolean {
   if (!profile) return false;
   if (!(profile.email ?? authEmail)?.trim()) return false;
@@ -52,4 +63,82 @@ export function safeNextPath(value: FormDataEntryValue | string | null | undefin
 export function nextPathWithSearch(pathname: string, searchParams: Pick<URLSearchParams, 'toString'>): string {
   const query = searchParams.toString();
   return query ? `${pathname}?${query}` : pathname;
+}
+
+export function onboardingPath(next: string) {
+  return `/onboarding?next=${encodeURIComponent(safeNextPath(next))}`;
+}
+
+export function authCallbackUrl(origin: string, next: string): string {
+  const url = new URL(AUTH_CALLBACK_PATH, origin);
+  url.searchParams.set('next', safeNextPath(next));
+  return url.toString();
+}
+
+function normalizeAuthCode(code: string | null | undefined) {
+  return code?.trim() || undefined;
+}
+
+export function authErrorMessage(code: string | null | undefined): string | undefined {
+  switch (normalizeAuthCode(code)) {
+    case undefined:
+      return undefined;
+    case 'otp_expired':
+    case 'flow_state_expired':
+    case 'bad_code_verifier':
+    case 'bad_oauth_callback':
+    case 'missing_code':
+    case 'exchange_failed':
+      return '인증 링크가 만료되었거나 이미 사용되었습니다. 최신 확인 메일의 링크를 열거나 회원가입을 다시 시도해주세요.';
+    case 'email_address_invalid':
+    case 'validation_failed':
+      return '이메일 주소 형식을 확인해주세요. 예: you@icons.gg';
+    case 'weak_password':
+      return '비밀번호가 보안 조건을 충족하지 않습니다. 더 긴 비밀번호로 다시 시도해주세요.';
+    case 'over_email_send_rate_limit':
+      return '확인 메일 요청이 너무 많습니다. 잠시 후 받은편지함과 스팸함을 확인하고 다시 시도해주세요.';
+    case 'over_request_rate_limit':
+      return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+    case 'signup_disabled':
+    case 'email_provider_disabled':
+    case 'provider_disabled':
+      return '현재 이메일 회원가입을 사용할 수 없습니다. 잠시 후 다시 시도해주세요.';
+    default:
+      return GENERIC_AUTH_ERROR_MESSAGE;
+  }
+}
+
+export function authSignUpErrorMessage(error: AuthErrorLike | null | undefined): string {
+  switch (normalizeAuthCode(error?.code)) {
+    case 'email_address_invalid':
+    case 'validation_failed':
+      return '이메일 주소 형식을 확인해주세요. 예: you@icons.gg';
+    case 'weak_password':
+      return '비밀번호가 보안 조건을 충족하지 않습니다. 더 긴 비밀번호로 다시 시도해주세요.';
+    case 'over_email_send_rate_limit':
+      return '확인 메일 요청이 너무 많습니다. 잠시 후 받은편지함과 스팸함을 확인하고 다시 시도해주세요.';
+    case 'over_request_rate_limit':
+      return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+    case 'signup_disabled':
+    case 'email_provider_disabled':
+    case 'provider_disabled':
+      return '현재 이메일 회원가입을 사용할 수 없습니다. 잠시 후 다시 시도해주세요.';
+    case 'email_exists':
+    case 'identity_already_exists':
+    case 'user_already_exists':
+      return '가입 요청을 처리하지 못했습니다. 받은편지함과 스팸함에서 최신 확인 메일을 확인하거나 로그인도 시도해보세요.';
+    default:
+      return GENERIC_SIGNUP_ERROR_MESSAGE;
+  }
+}
+
+export function authErrorLoginPath(code: string | null | undefined, next: string = '/') {
+  const url = new URL('/login', 'https://icons.local');
+  url.searchParams.set('mode', 'signin');
+  url.searchParams.set('auth_error', normalizeAuthCode(code) ?? 'unknown_provider_error');
+
+  const safeNext = safeNextPath(next);
+  if (safeNext !== '/') url.searchParams.set('next', safeNext);
+
+  return `${url.pathname}${url.search}`;
 }

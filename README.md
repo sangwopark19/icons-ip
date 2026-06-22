@@ -39,6 +39,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 URL과 public key 둘 중 하나라도 없으면 인증 미들웨어는 세션 갱신을 건너뛰고, 공개 카탈로그는 로컬 개발용 mock 데이터로 fallback한다. Vercel preview와 production 배포는 Supabase 공개 환경변수가 없으면 workflow preflight에서 실패한다.
 
+## Supabase Auth URL 설정
+
+이메일 회원가입 확인 링크가 앱 세션으로 교환되려면 Supabase Dashboard → Authentication → URL Configuration에서 다음 값을 유지한다.
+
+- Site URL: `https://icons-ip.vercel.app`
+- Redirect URLs:
+  - `https://icons-ip.vercel.app/auth/callback`
+  - `http://localhost:3000/auth/callback`
+  - `http://127.0.0.1:3000/auth/callback`
+
+Production 확인 메일은 `/auth/callback`으로 돌아와 세션 쿠키를 설정한 뒤 온보딩 완료 여부에 따라 `/onboarding` 또는 요청한 `next` 경로로 이동한다. `main` 배포 workflow는 `SUPABASE_ACCESS_TOKEN`으로 위 Site URL과 Redirect URLs를 확인하고, 누락 시 동일 값으로 보정한다.
+
 ## 주요 스크립트
 
 ```bash
@@ -60,7 +72,7 @@ GitHub Actions는 `CI/CD Pipeline` workflow 하나로 PR 검증(lint/test/build/
 
 Vercel Git 연결은 프로젝트 메타데이터용으로 유지하지만, `vercel.json`의 `git.deploymentEnabled: false`로 Vercel Git 자동 배포는 생성하지 않는다. Preview와 production 배포 경로는 GitHub Actions의 Vercel CLI deploy만 사용한다.
 
-`deploy-supabase`는 linked Supabase project에 migration과 `supabase/seed.sql` seed를 push한다. 이 단계가 Vercel 배포보다 먼저 실행되므로, 이후 `deploy-vercel` secret preflight나 Vercel 배포가 실패해도 Supabase migration/seed는 이미 적용됐을 수 있다.
+`deploy-supabase`는 linked Supabase project에 migration과 `supabase/seed.sql` seed를 push한 뒤 Supabase Auth Site URL과 Redirect URLs를 production callback 설정으로 동기화한다. 이 단계가 Vercel 배포보다 먼저 실행되므로, 이후 `deploy-vercel` secret preflight나 Vercel 배포가 실패해도 Supabase migration/seed와 Auth URL 설정은 이미 적용됐을 수 있다.
 
 배포 workflow에는 다음 GitHub Secrets가 필요하다.
 
