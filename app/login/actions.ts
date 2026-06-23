@@ -1,5 +1,6 @@
 'use server';
 
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import {
@@ -31,6 +32,28 @@ interface Credentials {
   password: string;
   next: string;
 }
+
+interface SignupResendState {
+  emailHash: string;
+  resendCount: number;
+  windowStartedAt: number;
+}
+
+interface AuthErrorLike {
+  code?: string | null;
+  message?: string | null;
+  status?: number | null;
+}
+
+const AUTH_SIGNUP_RESEND_COOKIE_NAME = 'icons_auth_signup_resend';
+const AUTH_SIGNUP_RESEND_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60;
+const AUTH_SIGNUP_RESEND_STATE_MAX_AGE_MS = AUTH_SIGNUP_RESEND_COOKIE_MAX_AGE_SECONDS * 1000;
+const AUTH_SIGNUP_RESEND_WINDOW_MS = 10 * 60 * 1000;
+const AUTH_SIGNUP_RESEND_MAX_ATTEMPTS = 3;
+const SIGNUP_CONFIRMATION_SENT_MESSAGE = '가입 확인 메일을 보냈습니다. 받은편지함과 스팸함에서 최신 확인 메일을 열어주세요. 이미 가입한 이메일이라면 로그인도 시도할 수 있습니다.';
+const SIGNUP_CONFIRMATION_RESENT_MESSAGE = '새 확인 메일을 보냈습니다. 받은편지함과 스팸함에서 최신 확인 메일을 열어주세요.';
+
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
 function readString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -95,6 +118,114 @@ async function rememberAuthNextPath(origin: string, next: string) {
   });
 }
 
+function normalizedEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function signupResendSecret() {
+  return process.env.AUTH_SIGNUP_RESEND_SECRET?.trim() || null;
+}
+
+function hmacDigest(secret: string, value: string) {
+  return createHmac('sha256', secret).update(value).digest('base64url');
+}
+
+function emailHash(email: string, secret: string) {
+  return hmacDigest(secret, normalizedEmail(email));
+}
+
+function signaturesMatch(actual: string, expected: string) {
+  const actualBuffer = Buffer.from(actual);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
+function encodeSignupResendState(state: SignupResendState, secret: string) {
+  const payload = Buffer.from(JSON.stringify(state), 'utf8').toString('base64url');
+  return `${payload}.${hmacDigest(secret, payload)}`;
+}
+
+function signupResendStateFromCookie(value: string | null | undefined, now: number, secret: string | null): SignupResendState | null {
+  if (!value) return null;
+  if (!secret) return null;
+
+  try {
+    const [payload, signature, extra] = value.split('.');
+    if (!payload || !signature || extra !== undefined) return null;
+    if (!signaturesMatch(signature, hmacDigest(secret, payload))) return null;
+
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as Partial<SignupResendState>;
+    const resendCount = parsed.resendCount;
+    const windowStartedAt = parsed.windowStartedAt;
+    if (typeof parsed.emailHash !== 'string' || !parsed.emailHash) return null;
+    if (typeof resendCount !== 'number' || !Number.isInteger(resendCount) || resendCount < 0) return null;
+    if (typeof windowStartedAt !== 'number' || !Number.isFinite(windowStartedAt)) return null;
+    if (windowStartedAt > now) return null;
+    if (now - windowStartedAt >= AUTH_SIGNUP_RESEND_STATE_MAX_AGE_MS) return null;
+
+    return {
+      emailHash: parsed.emailHash,
+      resendCount,
+      windowStartedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function setSignupResendState(cookieStore: CookieStore, origin: string, state: SignupResendState, secret: string | null) {
+  if (!secret) return;
+
+  cookieStore.set(AUTH_SIGNUP_RESEND_COOKIE_NAME, encodeSignupResendState(state, secret), {
+    httpOnly: true,
+    maxAge: AUTH_SIGNUP_RESEND_COOKIE_MAX_AGE_SECONDS,
+    path: '/login',
+    sameSite: 'lax',
+    secure: origin.startsWith('https://'),
+  });
+}
+
+function isSignupResendWindowActive(state: SignupResendState, now: number) {
+  return now - state.windowStartedAt < AUTH_SIGNUP_RESEND_WINDOW_MS;
+}
+
+function currentSignupResendWindow(state: SignupResendState, now: number): SignupResendState {
+  if (isSignupResendWindowActive(state, now)) return state;
+  return {
+    emailHash: state.emailHash,
+    resendCount: 0,
+    windowStartedAt: now,
+  };
+}
+
+function normalizeAuthCode(error: AuthErrorLike | null | undefined) {
+  return error?.code?.trim() || undefined;
+}
+
+function isExistingAccountSignUpError(error: AuthErrorLike | null | undefined) {
+  switch (normalizeAuthCode(error)) {
+    case 'email_exists':
+    case 'identity_already_exists':
+    case 'user_already_exists':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function isOperationalAuthEmailError(error: AuthErrorLike | null | undefined) {
+  switch (normalizeAuthCode(error)) {
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+    case 'signup_disabled':
+    case 'email_provider_disabled':
+    case 'provider_disabled':
+      return true;
+    default:
+      return false;
+  }
+}
+
 export async function signInWithEmailAction(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const parsed = validateCredentials(formData);
   if (!parsed.ok) return parsed.state;
@@ -128,21 +259,96 @@ export async function signUpWithEmailAction(_state: AuthActionState, formData: F
   const supabase = await createClient();
   const origin = await requestOrigin();
   const emailRedirectTo = authCallbackUrl(origin);
+  const normalizedSignupEmail = normalizedEmail(email);
+  const cookieStore = await cookies();
+  const now = Date.now();
+  const resendSecret = signupResendSecret();
+  const signupResendState = signupResendStateFromCookie(
+    cookieStore.get(AUTH_SIGNUP_RESEND_COOKIE_NAME)?.value,
+    now,
+    resendSecret,
+  );
+  const signupEmailHash = resendSecret ? emailHash(normalizedSignupEmail, resendSecret) : null;
+
+  if (signupEmailHash && signupResendState?.emailHash === signupEmailHash) {
+    const resendWindow = currentSignupResendWindow(signupResendState, now);
+    if (isSignupResendWindowActive(signupResendState, now) && resendWindow.resendCount >= AUTH_SIGNUP_RESEND_MAX_ATTEMPTS) {
+      return { errors: { form: '확인 메일 재요청이 너무 많습니다. 10분 후 다시 시도해주세요.' } };
+    }
+
+    const attemptedResendState = {
+      emailHash: signupEmailHash,
+      resendCount: resendWindow.resendCount + 1,
+      windowStartedAt: resendWindow.windowStartedAt,
+    };
+
+    await rememberAuthNextPath(origin, next);
+    setSignupResendState(cookieStore, origin, attemptedResendState, resendSecret);
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: normalizedSignupEmail,
+      options: {
+        emailRedirectTo,
+      },
+    });
+
+    if (error) return { errors: { form: authSignUpErrorMessage(error) } };
+
+    return { message: SIGNUP_CONFIRMATION_RESENT_MESSAGE };
+  }
+
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: normalizedSignupEmail,
     password,
     options: {
       emailRedirectTo,
     },
   });
 
-  if (error || !data.user) {
+  if (error) {
+    if (isExistingAccountSignUpError(error)) {
+      await rememberAuthNextPath(origin, next);
+      if (signupEmailHash) {
+        setSignupResendState(cookieStore, origin, {
+          emailHash: signupEmailHash,
+          resendCount: 1,
+          windowStartedAt: now,
+        }, resendSecret);
+      }
+
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: normalizedSignupEmail,
+        options: {
+          emailRedirectTo,
+        },
+      });
+
+      if (resendError && isOperationalAuthEmailError(resendError)) {
+        return { errors: { form: authSignUpErrorMessage(resendError) } };
+      }
+
+      return { message: SIGNUP_CONFIRMATION_SENT_MESSAGE };
+    }
+
+    return { errors: { form: authSignUpErrorMessage(error) } };
+  }
+
+  if (!data.user) {
     return { errors: { form: authSignUpErrorMessage(error) } };
   }
 
   if (!data.session) {
     await rememberAuthNextPath(origin, next);
-    return { message: '가입 확인 메일을 보냈습니다. 받은편지함과 스팸함에서 최신 확인 메일을 열어주세요. 이미 가입한 이메일이라면 로그인도 시도할 수 있습니다.' };
+    if (signupEmailHash) {
+      setSignupResendState(cookieStore, origin, {
+        emailHash: signupEmailHash,
+        resendCount: 0,
+        windowStartedAt: now,
+      }, resendSecret);
+    }
+    return { message: SIGNUP_CONFIRMATION_SENT_MESSAGE };
   }
 
   redirect(onboardingPath(next));
