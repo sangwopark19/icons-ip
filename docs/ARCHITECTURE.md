@@ -1,6 +1,6 @@
 # ICONS — 아키텍처
 
-> 상태: Draft · 최종 수정 2026-06-18 · 짝 문서: [`PRD.md`](./PRD.md)
+> 상태: Draft · 최종 수정 2026-06-23 · 짝 문서: [`PRD.md`](./PRD.md)
 > 이 문서는 **어떻게 만들 것인가**를 정의한다. 현재 코드베이스(프로토타입)에서 출발해 목표 아키텍처와 이전 경로를 기술한다.
 >
 > ⚠️ 이 프로젝트의 Next.js 16은 학습 데이터와 API/관례가 다를 수 있다(`AGENTS.md`). 실제 코드 작성 전 `node_modules/next/dist/docs/`를 확인한다. 본 문서가 코드 디테일과 어긋나면 코드를 따른다.
@@ -27,13 +27,16 @@
 | 화면 | 11개 라우트 ↔ screen 컴포넌트 | `app/**/page.tsx` → `components/screens/*` |
 | 셸 | Nav · MobNav · SiteFooter · CartProvider · `useGo` | `components/shell/*` |
 | 라우팅 맵 | 프로토타입 route-id ↔ 경로 | `lib/routes.ts` |
-| 데이터 | **mock** (IP·굿즈·카드·이벤트·포스트·교환·마켓) | `lib/data.ts` |
-| 인증 | Supabase SSR **스캐폴딩**(세션 갱신, 리다이렉트 없음, env 없으면 no-op) | `lib/supabase/{client,server,middleware}.ts`, 루트 `proxy.ts` |
+| 데이터 | Supabase 공개 카탈로그 읽기 + mock fallback. IP 상세 커뮤니티 preview는 Supabase `posts`/`public_profiles`에서 읽음 | `lib/catalog.ts`, `lib/data.ts` |
+| 인증 | Supabase SSR 이메일/PW Auth, 확인 메일 callback, 온보딩 게이트, 우상단 AuthButton 상태 동기화. env 없으면 no-op/폼 비활성화 | `app/login/*`, `app/auth/callback/route.ts`, `app/onboarding/*`, `components/shell/AuthButton.tsx`, `lib/auth/*`, `lib/supabase/*`, 루트 `proxy.ts` |
+| 보호 액션 | IP 팔로우/언팔로우 server action + 온보딩 추천 IP 저장. DB 갱신은 `follow_ip`/`unfollow_ip` RPC 사용 | `app/ip/actions.ts`, `app/onboarding/actions.ts`, `lib/ip-follow*`, `supabase/migrations/20260623090001_ip_follow_rpc.sql` |
 | CI/CD | GitHub Actions `CI/CD Pipeline`: PR 검증 + Vercel preview 배포, merge queue 검증, `main` push production 배포. Actions 앱 빌드 Node는 26 | `.github/workflows/pipeline.yml` |
 | 배포 | PR은 Vercel prebuilt preview deploy, `main` push는 Supabase linked migration push 후 Vercel prebuilt production deploy. Vercel Git 자동 배포는 비활성화 | GitHub Secrets + `.github/workflows/pipeline.yml`, `vercel.json` |
 | Production runtime | Vercel project/runtime Node.js Version은 공식 지원 범위인 24.x 유지 | Vercel Project Settings |
+| 도메인/DNS | `iconsip.com` primary, `www.iconsip.com` alias, `icons-ip.vercel.app` fallback. DNS는 Cloudflare에서 관리 | Cloudflare DNS, Vercel Domains |
+| Auth 메일 | Supabase Auth custom SMTP → Resend. Sender는 `no-reply@iconsip.com`, Resend domain은 `iconsip.com` | Supabase Auth SMTP, Resend |
 
-**요청 프록시 주의**: 루트 `proxy.ts`가 `export function proxy()` + `config.matcher`로 동작한다(Next 16에서 미들웨어가 이 형태). `lib/supabase/middleware.ts`의 `updateSession`을 호출하며 **로그인 리다이렉트는 하지 않는다**(공개 브라우징 정책).
+**요청 프록시 주의**: 루트 `proxy.ts`가 `export function proxy()` + `config.matcher`로 동작한다(Next 16에서 미들웨어가 이 형태). `lib/supabase/middleware.ts`의 `updateSession`을 호출하며 **보호 액션 전까지 로그인 리다이렉트는 하지 않는다**(공개 브라우징 정책).
 
 화면↔라우트 매핑(현재):
 `/`·`/ip`·`/ip/[id]`·`/shop`·`/binder`·`/exchange`·`/community`·`/events`·`/market`·`/search`·`/login`
@@ -59,9 +62,14 @@
         └─────────────┘                               │  Auth          │
                                                       │  Storage       │
                                                       └────────────────┘
+                                                              │
+                                                              ▼
+                                                      Resend custom SMTP
 ```
 
-핵심: **읽기**는 Server Component가 RLS 하에서 직접 조회. **상태 변경**은 Server Action이 검증 후 **RPC 함수** 호출. **돈 확정**은 토스 웹훅(Route Handler) → RPC.
+Cloudflare DNS는 `iconsip.com`/`www.iconsip.com`을 Vercel로 보내고, 같은 zone에 Resend 발송 인증용 DKIM/SPF/DMARC/MX 레코드를 둔다.
+
+핵심: **읽기**는 Server Component가 RLS 하에서 직접 조회. **상태 변경**은 Server Action이 검증 후 **RPC 함수** 호출. **돈 확정**은 토스 웹훅(Route Handler) → RPC. Auth 메일은 Supabase 기본 메일 provider가 아니라 Resend custom SMTP를 사용한다.
 
 ---
 
@@ -71,7 +79,7 @@
 |---|---|---|
 | 호스팅 | **Vercel** (Fluid Compute) | Next 16, Route Handler 웹훅·Cron |
 | DB/Auth/Storage | **Supabase** (Postgres + Auth + Storage) | 스캐폴딩 이미 존재 |
-| 인증 | Supabase Auth: **이메일/PW + Google + Apple + Kakao** | 소셜도 온보딩에서 프로필 완성 |
+| 인증 | Supabase Auth: 현재 **이메일/PW** 구현, 목표 **Google + Apple + Kakao** 추가 | 소셜 버튼은 UI만 있고 아직 비활성화. 모든 가입 경로는 온보딩에서 프로필 완성 |
 | 결제 | **토스페이먼츠** 직접(결제창/위젯 + 웹훅) | 단일 PG. 굿즈·티켓·지갑 충전 공용 |
 | 검색 | **Postgres** pg_trgm + ILIKE | 외부 검색엔진 없음(v1) |
 | 미디어 | **Supabase Storage** | public(카탈로그/아트워크) + authed(업로드) |
@@ -166,11 +174,18 @@
 ## 8. 인증 & 온보딩 흐름
 
 1. 진입: 보호 액션 클릭 → `/login`.
-2. 수단: 이메일/PW 또는 Google/Apple/Kakao(OAuth, Supabase Auth).
-   - Supabase는 Google/Apple 네이티브 지원. **Kakao**는 커스텀 OAuth/OIDC 설정으로 연동.
-3. 콜백 → 세션 수립(쿠키). `proxy.ts`가 매 요청 세션 갱신(현행 유지).
-4. **온보딩 게이트**: `profiles` 미완성(이메일/닉네임/생년월일/동의 누락) 시 온보딩 폼으로. 소셜 가입도 동일.
-5. 완료 후 관심 IP 팔로우 추천.
+2. 현재 수단: 이메일/PW. Google/Apple/Kakao는 v1 목표지만 아직 provider 연동 전이며 UI 버튼은 비활성 상태다.
+3. 회원가입: Supabase `signUp()`으로 확인 메일 발송. 같은 브라우저에서 같은 이메일을 반복 제출하면 서명된 httpOnly cookie로 3회/10분 window를 추적하고 `auth.resend({ type: 'signup' })`로 확인 메일을 재발송한다. 10분 window가 지나도 같은 이메일 cookie가 유효하면 `signUp()` 반복 대신 `resend` 흐름으로 재개한다.
+4. 확인 메일 콜백: `/auth/callback`에서 code를 session으로 교환한다. `next`는 query가 아니라 `icons_auth_next` httpOnly cookie로 보존하고, callback path allow-list는 query 없는 exact URL만 사용한다.
+5. 세션 수립 후 **온보딩 게이트**: `profiles` 미완성(이메일/닉네임/생년월일/동의 누락) 시 온보딩 폼으로 보낸다. 소셜 가입을 추가해도 같은 게이트를 사용한다.
+6. 온보딩 완료 후 추천 IP 팔로우를 저장하고 보존된 `next` 경로로 이동한다.
+
+Production Auth 설정:
+
+- Site URL: `https://iconsip.com`
+- Redirect URLs: `https://iconsip.com/auth/callback`, `https://www.iconsip.com/auth/callback`, `https://icons-ip.vercel.app/auth/callback`, Vercel preview wildcard, local callback.
+- 이메일 confirmation은 켜고, custom SMTP는 Resend `iconsip.com` domain을 사용한다.
+- `main` 배포 workflow가 Supabase Management API로 Site URL, redirect allow-list, secure email change, email rate limit을 확인·동기화한다. custom SMTP 필수 필드가 비어 있으면 production 배포를 실패시킨다.
 
 본인확인: 자가신고 생년월일 + 결제 시 결제사 위임. (게임물 연령등급이 요구하면 §PRD 5.1대로 PASS 본인인증을 가챠/고액 결제 게이트에 추가.)
 
@@ -228,12 +243,19 @@
 ```
 app/
   (existing screens)                  # 점진적으로 서버 페치 + 액션 연결
+  auth/callback/route.ts              # Supabase Auth code exchange
+  login/actions.ts                    # 이메일 Auth + signup resend + logout
+  onboarding/actions.ts               # 프로필 완성 + 추천 IP 팔로우
+  ip/actions.ts                       # IP 팔로우 보호 액션
   admin/                              # 역할 게이트 백오피스
   api/
     webhooks/tosspayments/route.ts    # 결제 확정 웹훅
     cron/*                            # 예약 정리 등
 lib/
-  data.ts                             # → 시드 소스로 격하, 점진 제거
+  auth/                               # 온보딩 판정, next/callback helper, auth server state
+  catalog.ts                          # Supabase catalog read + mock fallback adapter
+  data.ts                             # → 시드 소스로 격하, 로컬 fallback 유지
+  ip-follow*.ts                       # 팔로우 상태/선택/RPC helper
   supabase/{client,server,middleware} # 유지
   db/                                 # 쿼리·RPC 래퍼
 supabase/
