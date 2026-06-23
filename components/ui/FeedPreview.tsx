@@ -1,8 +1,19 @@
 import Link from 'next/link';
-import type { Post } from '@/lib/data';
 import { Icon } from './Icon';
 
-export function FeedPreview({ p, href = '/community' }: { p: Post; href?: string }) {
+export interface FeedPreviewPost {
+  user: string;
+  ipName: string;
+  avatar: string;
+  text: string;
+  likes: number;
+  comments: number;
+  time: string;
+  tag: string;
+  img?: string | null;
+}
+
+export function FeedPreview({ p, href = '/community' }: { p: FeedPreviewPost; href?: string }) {
   return (
     <Link className="card" href={href} style={{ padding: 18, textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 14 }}>
       <div

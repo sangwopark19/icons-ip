@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DATA, type FandomEvent, type Ip } from '@/lib/data';
+import type { CatalogIpDetail } from '@/lib/catalog';
+import type { FandomEvent } from '@/lib/data';
 import { Icon } from '@/components/ui/Icon';
 import { Collectible } from '@/components/ui/Collectible';
 import { GoodsCard } from '@/components/ui/GoodsCard';
@@ -32,15 +33,13 @@ function EventRow({ e, go }: { e: FandomEvent; go: Go }) {
   );
 }
 
-export function IpDetail({ ip }: { ip: Ip }) {
+export function IpDetail({ detail }: { detail: CatalogIpDetail }) {
   const go = useGo();
   const router = useRouter();
+  const { ip, goods, cards, events, posts } = detail;
   const [tab, setTab] = useState('굿즈');
   const loginPath = `/login?next=${encodeURIComponent(`/ip/${ip.id}`)}`;
-  const goods = DATA.GOODS.filter((g) => g.ip === ip.id);
-  const cards = DATA.CARDS.filter((c) => c.ip === ip.id);
-  const events = DATA.EVENTS.filter((e) => e.ip === ip.id);
-  const tabs: [string, number | ''][] = [['굿즈', goods.length], ['카드', cards.length], ['팝업', events.length], ['커뮤니티', '']];
+  const tabs: [string, number | ''][] = [['굿즈', goods.length], ['카드', cards.length], ['팝업', events.length], ['커뮤니티', posts.length]];
 
   return (
     <div className="screen">
@@ -85,14 +84,22 @@ export function IpDetail({ ip }: { ip: Ip }) {
         </div>
 
         {tab === '굿즈' && (
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-            {goods.map((g) => <GoodsCard key={g.id} g={g} />)}
-          </div>
+          goods.length ? (
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+              {goods.map((g) => <GoodsCard key={g.id} g={g} ip={ip} />)}
+            </div>
+          ) : (
+            <Empty icon="bag" text="등록된 굿즈가 아직 없습니다" />
+          )
         )}
         {tab === '카드' && (
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', justifyItems: 'center' }}>
-            {cards.map((c) => <Collectible key={c.id} card={c} ip={ip} onClick={() => go('binder')} />)}
-          </div>
+          cards.length ? (
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', justifyItems: 'center' }}>
+              {cards.map((c) => <Collectible key={c.id} card={c} ip={ip} onClick={() => go('binder')} />)}
+            </div>
+          ) : (
+            <Empty icon="card" text="등록된 카드가 아직 없습니다" />
+          )
         )}
         {tab === '팝업' && (
           <div className="col" style={{ gap: 14 }}>
@@ -101,7 +108,7 @@ export function IpDetail({ ip }: { ip: Ip }) {
         )}
         {tab === '커뮤니티' && (
           <div className="col" style={{ gap: 14 }}>
-            {DATA.POSTS.slice(0, 3).map((p) => <FeedPreview key={p.id} p={p} />)}
+            {posts.length ? posts.map((p) => <FeedPreview key={p.id} p={p} />) : <Empty icon="chat" text="아직 포스트가 없어요" sub="공개 포스트가 등록되면 이 IP 탭에 표시됩니다." />}
           </div>
         )}
       </div>
