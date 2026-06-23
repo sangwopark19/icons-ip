@@ -77,7 +77,7 @@ GitHub Actions는 `CI/CD Pipeline` workflow 하나로 PR 검증(lint/test/build/
 
 Vercel Git 연결은 프로젝트 메타데이터용으로 유지하지만, `vercel.json`의 `git.deploymentEnabled: false`로 Vercel Git 자동 배포는 생성하지 않는다. Preview와 production 배포 경로는 GitHub Actions의 Vercel CLI deploy만 사용한다.
 
-`deploy-supabase`는 linked Supabase project에 migration과 `supabase/seed.sql` seed를 push한 뒤 Supabase Auth Site URL, Redirect URLs, confirmation/rate-limit 설정을 production callback 설정으로 동기화한다. 이 단계는 custom SMTP 필수 설정이 누락되면 실패한다. 이 단계가 Vercel 배포보다 먼저 실행되므로, 이후 `deploy-vercel` secret preflight나 Vercel 배포가 실패해도 Supabase migration/seed와 Auth 설정은 이미 적용됐을 수 있다.
+`deploy-supabase`는 Supabase Auth Site URL, Redirect URLs, confirmation/rate-limit 설정을 production callback 설정으로 먼저 확인·동기화하고, custom SMTP 필수 설정이 누락되면 migration/seed를 원격에 push하기 전에 실패한다. Auth 설정 검증이 끝나면 linked Supabase project에 migration과 `supabase/seed.sql` seed를 push한다. 이 단계가 Vercel 배포보다 먼저 실행되므로, 이후 `deploy-vercel` secret preflight나 Vercel 배포가 실패해도 Supabase migration/seed와 Auth 설정은 이미 적용됐을 수 있다.
 
 배포 workflow에는 다음 GitHub Secrets가 필요하다.
 

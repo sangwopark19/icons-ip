@@ -93,12 +93,6 @@ jobs:
           done
           exit "$missing"
 
-      - name: Link Supabase project
-        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
-
-      - name: Push Supabase migrations and seed
-        run: supabase db push --linked --include-seed
-
       - name: Sync and verify Supabase Auth configuration
         env:
           SUPABASE_AUTH_SITE_URL: https://icons-ip.vercel.app
@@ -224,6 +218,12 @@ jobs:
           fi
 
           echo "Supabase Auth configuration updated."
+
+      - name: Link Supabase project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Push Supabase migrations and seed
+        run: supabase db push --linked --include-seed
 
   deploy-vercel-preview:
     name: deploy-vercel-preview
