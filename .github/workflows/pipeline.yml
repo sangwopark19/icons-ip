@@ -93,17 +93,12 @@ jobs:
           done
           exit "$missing"
 
-      - name: Link Supabase project
-        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
-
-      - name: Push Supabase migrations and seed
-        run: supabase db push --linked --include-seed
-
-      - name: Sync Supabase Auth URL configuration
+      - name: Sync and verify Supabase Auth configuration
         env:
           SUPABASE_AUTH_SITE_URL: https://icons-ip.vercel.app
           SUPABASE_AUTH_REDIRECT_URLS: |
             https://icons-ip.vercel.app/auth/callback
+            https://icons-ip-*.vercel.app/auth/callback
             http://localhost:3000/auth/callback
             http://127.0.0.1:3000/auth/callback
         run: |
@@ -124,6 +119,24 @@ jobs:
           current_allow_list="$(jq -r '.uri_allow_list // ""' "$config_file")"
           required_redirect_urls="$(printf '%s\n' "$SUPABASE_AUTH_REDIRECT_URLS" | sed '/^$/d' | jq -R . | jq -s .)"
 
+          smtp_missing="$(jq -r '
+            [
+              (select(.external_email_enabled != true) | "external_email_enabled"),
+              (select((.smtp_host // "") == "") | "smtp_host"),
+              (select((.smtp_port // "") == "") | "smtp_port"),
+              (select((.smtp_user // "") == "") | "smtp_user"),
+              (select((.smtp_admin_email // "") == "") | "smtp_admin_email")
+            ]
+            | map(select(. != null))
+            | join(", ")
+          ' "$config_file")"
+
+          if [ -n "$smtp_missing" ]; then
+            echo "::error title=Supabase custom SMTP is required::Missing or disabled Auth SMTP settings: $smtp_missing"
+            echo "Configure custom SMTP in Supabase Auth before production deploy. Do not commit SMTP credentials."
+            exit 1
+          fi
+
           missing_count="$(jq -nr \
             --arg current "$current_allow_list" \
             --argjson required "$required_redirect_urls" '
@@ -142,8 +155,16 @@ jobs:
               | join(",")
             ')"
 
-          if [ "$current_site_url" = "$SUPABASE_AUTH_SITE_URL" ] && [ "$missing_count" = "0" ]; then
-            echo "Supabase Auth URL configuration is already up to date."
+          current_mailer_autoconfirm="$(jq -r '.mailer_autoconfirm // ""' "$config_file")"
+          current_secure_email_change="$(jq -r '.mailer_secure_email_change_enabled // ""' "$config_file")"
+          current_rate_limit_email_sent="$(jq -r '.rate_limit_email_sent // ""' "$config_file")"
+
+          if [ "$current_site_url" = "$SUPABASE_AUTH_SITE_URL" ] \
+            && [ "$missing_count" = "0" ] \
+            && [ "$current_mailer_autoconfirm" = "false" ] \
+            && [ "$current_secure_email_change" = "true" ] \
+            && [ "$current_rate_limit_email_sent" = "30" ]; then
+            echo "Supabase Auth configuration is already up to date."
             exit 0
           fi
 
@@ -151,7 +172,13 @@ jobs:
           jq -n \
             --arg site_url "$SUPABASE_AUTH_SITE_URL" \
             --arg uri_allow_list "$updated_allow_list" \
-            '{site_url: $site_url, uri_allow_list: $uri_allow_list}' > "$patch_file"
+            '{
+              site_url: $site_url,
+              uri_allow_list: $uri_allow_list,
+              mailer_autoconfirm: false,
+              mailer_secure_email_change_enabled: true,
+              rate_limit_email_sent: 30
+            }' > "$patch_file"
 
           updated_file="$(mktemp)"
           patch_status="$(curl -sS -o "$updated_file" -w '%{http_code}' \
@@ -169,6 +196,9 @@ jobs:
 
           verified_site_url="$(jq -r '.site_url // ""' "$updated_file")"
           verified_allow_list="$(jq -r '.uri_allow_list // ""' "$updated_file")"
+          verified_mailer_autoconfirm="$(jq -r '.mailer_autoconfirm // ""' "$updated_file")"
+          verified_secure_email_change="$(jq -r '.mailer_secure_email_change_enabled // ""' "$updated_file")"
+          verified_rate_limit_email_sent="$(jq -r '.rate_limit_email_sent // ""' "$updated_file")"
           verified_missing_count="$(jq -nr \
             --arg current "$verified_allow_list" \
             --argjson required "$required_redirect_urls" '
@@ -178,12 +208,22 @@ jobs:
               | length
             ')"
 
-          if [ "$verified_site_url" != "$SUPABASE_AUTH_SITE_URL" ] || [ "$verified_missing_count" != "0" ]; then
-            echo "::error title=Supabase Auth config verification failed::Auth URL settings did not persist"
+          if [ "$verified_site_url" != "$SUPABASE_AUTH_SITE_URL" ] \
+            || [ "$verified_missing_count" != "0" ] \
+            || [ "$verified_mailer_autoconfirm" != "false" ] \
+            || [ "$verified_secure_email_change" != "true" ] \
+            || [ "$verified_rate_limit_email_sent" != "30" ]; then
+            echo "::error title=Supabase Auth config verification failed::Auth settings did not persist"
             exit 1
           fi
 
-          echo "Supabase Auth URL configuration updated."
+          echo "Supabase Auth configuration updated."
+
+      - name: Link Supabase project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Push Supabase migrations and seed
+        run: supabase db push --linked --include-seed
 
   deploy-vercel-preview:
     name: deploy-vercel-preview
@@ -242,6 +282,11 @@ jobs:
 
           if ! grep -Eq '^NEXT_PUBLIC_SUPABASE_(PUBLISHABLE_KEY|ANON_KEY)=.+$' "$env_file"; then
             echo "::error title=Missing Vercel environment::NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is required for preview catalog data"
+            missing=1
+          fi
+
+          if ! grep -Eq '^AUTH_SIGNUP_RESEND_SECRET=.+$' "$env_file"; then
+            echo "::error title=Missing Vercel environment::AUTH_SIGNUP_RESEND_SECRET is required for preview auth resend cooldown"
             missing=1
           fi
 
@@ -312,6 +357,11 @@ jobs:
 
           if ! grep -Eq '^NEXT_PUBLIC_SUPABASE_(PUBLISHABLE_KEY|ANON_KEY)=.+$' "$env_file"; then
             echo "::error title=Missing Vercel environment::NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is required for production catalog data"
+            missing=1
+          fi
+
+          if ! grep -Eq '^AUTH_SIGNUP_RESEND_SECRET=.+$' "$env_file"; then
+            echo "::error title=Missing Vercel environment::AUTH_SIGNUP_RESEND_SECRET is required for production auth resend cooldown"
             missing=1
           fi
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { signOutAction } from '@/app/login/actions';
 import { nextPathWithSearch } from '@/lib/auth/onboarding';
@@ -9,6 +9,7 @@ import { getSupabaseConfig } from '@/lib/supabase/config';
 
 export function AuthButton() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isSignedIn, setIsSignedIn] = useState(false);
 
   useEffect(() => {
@@ -22,14 +23,14 @@ export function AuthButton() {
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsSignedIn(Boolean(session?.user));
+      if (mounted) setIsSignedIn(Boolean(session?.user));
     });
 
     return () => {
       mounted = false;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [pathname]);
 
   if (isSignedIn) {
     return (
