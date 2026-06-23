@@ -224,7 +224,7 @@ jobs:
 
             if [ "$verified_site_url" = "$SUPABASE_AUTH_SITE_URL" ] \
               && [ "$verified_missing_count" = "0" ] \
-              && [ "$verified_mailer_autoconfirm" = "false" ] \
+              && { [ "$verified_mailer_autoconfirm" = "false" ] || [ -z "$verified_mailer_autoconfirm" ]; } \
               && [ "$verified_secure_email_change" = "true" ] \
               && [ "$verified_rate_limit_email_sent" = "30" ]; then
               echo "Supabase Auth configuration updated."
@@ -250,7 +250,7 @@ jobs:
 
           if [ "$verified_site_url" != "$SUPABASE_AUTH_SITE_URL" ] \
             || [ "$verified_missing_count" != "0" ] \
-            || [ "$verified_mailer_autoconfirm" != "false" ] \
+            || { [ "$verified_mailer_autoconfirm" != "false" ] && [ -n "$verified_mailer_autoconfirm" ]; } \
             || [ "$verified_secure_email_change" != "true" ] \
             || [ "$verified_rate_limit_email_sent" != "30" ]; then
             echo "::error title=Supabase Auth config verification failed::site_url=${verified_site_url}, missing_redirect_count=${verified_missing_count}, mailer_autoconfirm=${verified_mailer_autoconfirm}, mailer_secure_email_change_enabled=${verified_secure_email_change}, rate_limit_email_sent=${verified_rate_limit_email_sent}"
