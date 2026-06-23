@@ -90,7 +90,7 @@ describe('signUpWithEmailAction signup confirmation resend', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-23T00:00:00.000Z'));
     mocks.isConfigured = true;
-    mocks.headers = new Map<string, string>([['origin', 'https://icons-ip.vercel.app']]);
+    mocks.headers = new Map<string, string>([['origin', 'https://iconsip.com']]);
     mocks.cookies.clear();
     mocks.cookieSetCalls.length = 0;
     mocks.signUp.mockReset();
@@ -147,7 +147,7 @@ describe('signUpWithEmailAction signup confirmation resend', () => {
       type: 'signup',
       email: 'fan@icons.gg',
       options: {
-        emailRedirectTo: 'https://icons-ip.vercel.app/auth/callback',
+        emailRedirectTo: 'https://iconsip.com/auth/callback',
       },
     });
 
@@ -264,7 +264,7 @@ describe('signUpWithEmailAction signup confirmation resend', () => {
       type: 'signup',
       email: 'fan@icons.gg',
       options: {
-        emailRedirectTo: 'https://icons-ip.vercel.app/auth/callback',
+        emailRedirectTo: 'https://iconsip.com/auth/callback',
       },
     });
     const payload = decodeSignedCookiePayload(latestCookieSet(AUTH_SIGNUP_RESEND_COOKIE_NAME)?.value ?? '');

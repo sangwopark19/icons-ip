@@ -90,7 +90,7 @@ describe('nextPathWithSearch', () => {
 
 describe('authCallbackUrl', () => {
   it('builds the exact production auth callback URL allowed by Supabase', () => {
-    expect(authCallbackUrl('https://icons-ip.vercel.app')).toBe('https://icons-ip.vercel.app/auth/callback');
+    expect(authCallbackUrl('https://iconsip.com')).toBe('https://iconsip.com/auth/callback');
   });
 });
 

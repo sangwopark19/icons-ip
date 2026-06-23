@@ -95,8 +95,10 @@ jobs:
 
       - name: Sync and verify Supabase Auth configuration
         env:
-          SUPABASE_AUTH_SITE_URL: https://icons-ip.vercel.app
+          SUPABASE_AUTH_SITE_URL: https://iconsip.com
           SUPABASE_AUTH_REDIRECT_URLS: |
+            https://iconsip.com/auth/callback
+            https://www.iconsip.com/auth/callback
             https://icons-ip.vercel.app/auth/callback
             https://icons-ip-*.vercel.app/auth/callback
             http://localhost:3000/auth/callback
