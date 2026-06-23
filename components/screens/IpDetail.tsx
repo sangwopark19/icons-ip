@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useFormStatus } from 'react-dom';
+import { toggleIpFollowAction } from '@/app/ip/actions';
 import type { CatalogIpDetail } from '@/lib/catalog';
 import type { FandomEvent } from '@/lib/data';
+import type { IpFollowState } from '@/lib/ip-follow';
 import { Icon } from '@/components/ui/Icon';
 import { Collectible } from '@/components/ui/Collectible';
 import { GoodsCard } from '@/components/ui/GoodsCard';
@@ -33,12 +35,40 @@ function EventRow({ e, go }: { e: FandomEvent; go: Go }) {
   );
 }
 
-export function IpDetail({ detail }: { detail: CatalogIpDetail }) {
+function FollowButton({ isFollowed }: { isFollowed: boolean }) {
+  const { pending } = useFormStatus();
+  const label = pending ? '저장 중' : isFollowed ? '팬덤 나가기' : '팬덤 가입';
+
+  return (
+    <button className={isFollowed ? 'btn btn-ghost' : 'btn btn-holo'} disabled={pending}>
+      {label} <Icon name={isFollowed ? 'check' : 'plus'} size={15} />
+    </button>
+  );
+}
+
+function FollowForm({ followState, ipId }: { followState: IpFollowState; ipId: string }) {
+  return (
+    <form action={toggleIpFollowAction}>
+      <input type="hidden" name="ipId" value={ipId} />
+      <input type="hidden" name="intent" value={followState.isFollowed ? 'unfollow' : 'follow'} />
+      <input type="hidden" name="next" value={`/ip/${ipId}`} />
+      <FollowButton isFollowed={followState.isFollowed} />
+    </form>
+  );
+}
+
+export function IpDetail({
+  detail,
+  followError,
+  followState,
+}: {
+  detail: CatalogIpDetail;
+  followError: boolean;
+  followState: IpFollowState;
+}) {
   const go = useGo();
-  const router = useRouter();
   const { ip, goods, cards, events, posts } = detail;
   const [tab, setTab] = useState('굿즈');
-  const loginPath = `/login?next=${encodeURIComponent(`/ip/${ip.id}`)}`;
   const tabs: [string, number | ''][] = [['굿즈', goods.length], ['카드', cards.length], ['팝업', events.length], ['커뮤니티', posts.length]];
 
   return (
@@ -61,10 +91,15 @@ export function IpDetail({ detail }: { detail: CatalogIpDetail }) {
             <p className="muted" style={{ marginTop: 10, maxWidth: 560 }}>{ip.synopsis}</p>
           </div>
           <div className="row" style={{ gap: 10 }}>
-            <button className="btn btn-holo" onClick={() => router.push(loginPath)}>팬덤 가입 <Icon name="plus" size={15} /></button>
+            <FollowForm followState={followState} ipId={ip.id} />
             <button className="btn btn-ghost">알림 받기</button>
           </div>
         </div>
+        {followError && (
+          <div className="card" role="alert" style={{ marginTop: 18, padding: 12, borderRadius: 12, color: 'var(--pink)', fontSize: 13.5, fontWeight: 700 }}>
+            팔로우 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.
+          </div>
+        )}
         <div className="row" style={{ gap: 'clamp(20px,4vw,40px)', marginTop: 28, flexWrap: 'wrap' }}>
           {([[(ip.fans / 1000).toFixed(1) + 'K', '팬'], [ip.goods, '굿즈'], [ip.cards, '카드'], [events.length, '이벤트']] as const).map(([n, l]) => (
             <div key={l} className="col">
