@@ -196,11 +196,49 @@ jobs:
             exit 1
           fi
 
-          verified_site_url="$(jq -r '.site_url // ""' "$updated_file")"
-          verified_allow_list="$(jq -r '.uri_allow_list // ""' "$updated_file")"
-          verified_mailer_autoconfirm="$(jq -r '.mailer_autoconfirm // ""' "$updated_file")"
-          verified_secure_email_change="$(jq -r '.mailer_secure_email_change_enabled // ""' "$updated_file")"
-          verified_rate_limit_email_sent="$(jq -r '.rate_limit_email_sent // ""' "$updated_file")"
+          verified_file="$(mktemp)"
+          for attempt in 1 2 3 4 5; do
+            verified_status="$(curl -sS -o "$verified_file" -w '%{http_code}' \
+              -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+              "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/config/auth")"
+
+            if [ "$verified_status" != "200" ]; then
+              message="$(jq -r '.message // .error // "unknown error"' "$verified_file" 2>/dev/null || true)"
+              echo "::error title=Supabase Auth config verification read failed::HTTP $verified_status ${message}"
+              exit 1
+            fi
+
+            verified_site_url="$(jq -r '.site_url // ""' "$verified_file")"
+            verified_allow_list="$(jq -r '.uri_allow_list // ""' "$verified_file")"
+            verified_mailer_autoconfirm="$(jq -r '.mailer_autoconfirm // ""' "$verified_file")"
+            verified_secure_email_change="$(jq -r '.mailer_secure_email_change_enabled // ""' "$verified_file")"
+            verified_rate_limit_email_sent="$(jq -r '.rate_limit_email_sent // ""' "$verified_file")"
+            verified_missing_count="$(jq -nr \
+              --arg current "$verified_allow_list" \
+              --argjson required "$required_redirect_urls" '
+                def trim: gsub("^\\s+|\\s+$"; "");
+                ($current | split(",") | map(trim) | map(select(length > 0))) as $existing
+                | [$required[] as $url | select(($existing | index($url)) | not)]
+                | length
+              ')"
+
+            if [ "$verified_site_url" = "$SUPABASE_AUTH_SITE_URL" ] \
+              && [ "$verified_missing_count" = "0" ] \
+              && [ "$verified_mailer_autoconfirm" = "false" ] \
+              && [ "$verified_secure_email_change" = "true" ] \
+              && [ "$verified_rate_limit_email_sent" = "30" ]; then
+              echo "Supabase Auth configuration updated."
+              exit 0
+            fi
+
+            sleep "$attempt"
+          done
+
+          verified_site_url="$(jq -r '.site_url // ""' "$verified_file")"
+          verified_allow_list="$(jq -r '.uri_allow_list // ""' "$verified_file")"
+          verified_mailer_autoconfirm="$(jq -r '.mailer_autoconfirm // ""' "$verified_file")"
+          verified_secure_email_change="$(jq -r '.mailer_secure_email_change_enabled // ""' "$verified_file")"
+          verified_rate_limit_email_sent="$(jq -r '.rate_limit_email_sent // ""' "$verified_file")"
           verified_missing_count="$(jq -nr \
             --arg current "$verified_allow_list" \
             --argjson required "$required_redirect_urls" '
@@ -215,11 +253,9 @@ jobs:
             || [ "$verified_mailer_autoconfirm" != "false" ] \
             || [ "$verified_secure_email_change" != "true" ] \
             || [ "$verified_rate_limit_email_sent" != "30" ]; then
-            echo "::error title=Supabase Auth config verification failed::Auth settings did not persist"
+            echo "::error title=Supabase Auth config verification failed::site_url=${verified_site_url}, missing_redirect_count=${verified_missing_count}, mailer_autoconfirm=${verified_mailer_autoconfirm}, mailer_secure_email_change_enabled=${verified_secure_email_change}, rate_limit_email_sent=${verified_rate_limit_email_sent}"
             exit 1
           fi
-
-          echo "Supabase Auth configuration updated."
 
       - name: Link Supabase project
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
