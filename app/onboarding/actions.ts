@@ -1,7 +1,9 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { safeNextPath } from '@/lib/auth/onboarding';
+import { buildRecommendedIpFollowChanges, uniqueSelectedIpIds } from '@/lib/ip-follow';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
@@ -29,6 +31,44 @@ function isFutureDate(value: string) {
   return birthDate > todayUtc;
 }
 
+async function filterExistingRecommendedIpIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  recommendedIpIds: string[],
+) {
+  if (!recommendedIpIds.length) return [];
+
+  const { data, error } = await supabase
+    .from('ips')
+    .select('id')
+    .in('id', recommendedIpIds);
+
+  if (error) {
+    throw new Error(`Failed to validate recommended IPs: ${error.message}`);
+  }
+
+  return uniqueSelectedIpIds(recommendedIpIds, new Set(((data ?? []) as { id: string }[]).map((row) => row.id)));
+}
+
+async function getFollowedRecommendedIpIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  recommendedIpIds: string[],
+) {
+  if (!recommendedIpIds.length) return [];
+
+  const { data, error } = await supabase
+    .from('ip_follows')
+    .select('ip_id')
+    .eq('user_id', userId)
+    .in('ip_id', recommendedIpIds);
+
+  if (error) {
+    throw new Error(`Failed to load followed recommendations: ${error.message}`);
+  }
+
+  return uniqueSelectedIpIds(((data ?? []) as { ip_id: string }[]).map((row) => row.ip_id), new Set(recommendedIpIds));
+}
+
 export async function completeOnboardingAction(
   _state: OnboardingActionState,
   formData: FormData,
@@ -39,6 +79,8 @@ export async function completeOnboardingAction(
   const terms = formData.get('terms') === 'on';
   const privacy = formData.get('privacy') === 'on';
   const marketing = formData.get('marketing') === 'on';
+  const selectedIpIds = uniqueSelectedIpIds(formData.getAll('followIpIds'));
+  const recommendedIpIds = uniqueSelectedIpIds(formData.getAll('recommendedIpIds'));
   const errors: NonNullable<OnboardingActionState['errors']> = {};
 
   if (!nickname) errors.nickname = '닉네임을 입력해주세요.';
@@ -57,13 +99,27 @@ export async function completeOnboardingAction(
 
   if (userError || !user) return { errors: { form: '로그인이 필요합니다.' } };
 
+  let existingRecommendedIpIds: string[];
+  let followedRecommendedIpIds: string[];
+  try {
+    existingRecommendedIpIds = await filterExistingRecommendedIpIds(supabase, recommendedIpIds);
+    followedRecommendedIpIds = await getFollowedRecommendedIpIds(supabase, user.id, existingRecommendedIpIds);
+  } catch {
+    return { errors: { form: '관심 IP를 확인하지 못했습니다. 다시 시도해주세요.' } };
+  }
+
+  const followChanges = buildRecommendedIpFollowChanges({
+    followedIpIds: followedRecommendedIpIds,
+    recommendedIpIds: existingRecommendedIpIds,
+    selectedIpIds,
+  });
+
   const { error } = await supabase
     .from('profiles')
     .update({
       nickname,
       birth_date: birthDate,
       consents: { terms, privacy, marketing },
-      onboarded_at: new Date().toISOString(),
     })
     .eq('id', user.id)
     .select('id')
@@ -71,6 +127,30 @@ export async function completeOnboardingAction(
 
   if (error?.code === '23505') return { errors: { nickname: '이미 사용 중인 닉네임입니다.' } };
   if (error) return { errors: { form: '프로필을 저장하지 못했습니다. 다시 시도해주세요.' } };
+
+  for (const ipId of followChanges.toFollow) {
+    const { error: followError } = await supabase.rpc('follow_ip', { target_ip_id: ipId });
+    if (followError) return { errors: { form: '관심 IP를 저장하지 못했습니다. 다시 시도해주세요.' } };
+    revalidatePath(`/ip/${ipId}`);
+  }
+
+  for (const ipId of followChanges.toUnfollow) {
+    const { error: unfollowError } = await supabase.rpc('unfollow_ip', { target_ip_id: ipId });
+    if (unfollowError) return { errors: { form: '관심 IP를 저장하지 못했습니다. 다시 시도해주세요.' } };
+    revalidatePath(`/ip/${ipId}`);
+  }
+
+  const { error: completeError } = await supabase
+    .from('profiles')
+    .update({ onboarded_at: new Date().toISOString() })
+    .eq('id', user.id)
+    .select('id')
+    .single();
+
+  if (completeError) return { errors: { form: '온보딩 완료 상태를 저장하지 못했습니다. 다시 시도해주세요.' } };
+
+  revalidatePath('/');
+  revalidatePath('/ip');
 
   redirect(next);
 }

@@ -137,6 +137,7 @@ insert into public.ips (
     48,
     36
   )
+-- fans_count는 최초 seed 값만 넣고, 이후 팔로우 RPC가 유지하는 공개 카운트를 덮어쓰지 않는다.
 on conflict (id) do update set
   title = excluded.title,
   sub = excluded.sub,
@@ -146,7 +147,6 @@ on conflict (id) do update set
   tagline = excluded.tagline,
   synopsis = excluded.synopsis,
   featured = excluded.featured,
-  fans_count = excluded.fans_count,
   goods_count = excluded.goods_count,
   cards_count = excluded.cards_count,
   updated_at = now();

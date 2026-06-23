@@ -6,10 +6,19 @@ import { completeOnboardingAction, type OnboardingActionState } from '@/app/onbo
 interface OnboardingProps {
   birthDate: string;
   email: string;
+  followedIpIds: string[];
   initialMarketing: boolean;
   isConfigured: boolean;
   next: string;
   nickname: string;
+  recommendedIps: {
+    color: string;
+    fans: number;
+    id: string;
+    sub: string;
+    tagline: string;
+    title: string;
+  }[];
 }
 
 const emptyState: OnboardingActionState = {};
@@ -23,8 +32,18 @@ function ErrorText({ children, id }: { children?: string; id: string }) {
   );
 }
 
-export function Onboarding({ birthDate, email, initialMarketing, isConfigured, next, nickname }: OnboardingProps) {
+export function Onboarding({
+  birthDate,
+  email,
+  followedIpIds,
+  initialMarketing,
+  isConfigured,
+  next,
+  nickname,
+  recommendedIps,
+}: OnboardingProps) {
   const [state, action, pending] = useActionState(completeOnboardingAction, emptyState);
+  const initiallyFollowed = new Set(followedIpIds);
 
   return (
     <div className="screen" style={{ display: 'grid', placeItems: 'center', minHeight: '100vh' }}>
@@ -109,6 +128,41 @@ export function Onboarding({ birthDate, email, initialMarketing, isConfigured, n
               마케팅 정보 수신 동의
             </label>
           </div>
+
+          {recommendedIps.length > 0 && (
+            <fieldset style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 14 }}>
+              <legend className="mono" style={{ padding: '0 6px', fontSize: 12, color: 'var(--dim)' }}>
+                관심 IP
+              </legend>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                {recommendedIps.map((ip) => (
+                  <label
+                    key={ip.id}
+                    style={{
+                      border: '1px solid var(--line)',
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      display: 'grid',
+                      gap: 6,
+                      minHeight: 104,
+                      padding: 12,
+                    }}
+                  >
+                    <span className="row" style={{ alignItems: 'flex-start', gap: 10, justifyContent: 'space-between' }}>
+                      <span className="col" style={{ gap: 3, minWidth: 0 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800 }}>{ip.title}</span>
+                        <span className="faint" style={{ fontSize: 12 }}>{ip.sub}</span>
+                      </span>
+                      <input defaultChecked={initiallyFollowed.has(ip.id)} name="followIpIds" type="checkbox" value={ip.id} />
+                      <input name="recommendedIpIds" type="hidden" value={ip.id} />
+                    </span>
+                    <span className="muted" style={{ fontSize: 12.5 }}>{ip.tagline}</span>
+                    <span className="mono" style={{ color: ip.color, fontSize: 11 }}>{new Intl.NumberFormat('ko-KR').format(ip.fans)} 팬</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
           {state.errors?.form && (
             <div className="card" role="alert" style={{ padding: 12, borderRadius: 12, color: 'var(--pink)', fontSize: 13.5, fontWeight: 700 }}>
