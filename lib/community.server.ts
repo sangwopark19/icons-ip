@@ -31,6 +31,12 @@ interface PublicProfileRow {
   nickname: string | null;
 }
 
+interface CommunityReactionCountRow {
+  post_id: string;
+  likes_count: number | string | null;
+  comments_count: number | string | null;
+}
+
 type CommunitySupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 function channelFromIp(ip: Ip): CommunityChannel {
@@ -65,28 +71,24 @@ function formatPostTime(value: string) {
   }).format(date);
 }
 
-async function countReactionsByPostId(
-  supabase: CommunitySupabaseClient,
-  table: 'likes' | 'comments',
-  postIds: string[],
-  label: 'likes' | 'comments',
-) {
-  const entries = await Promise.all(
-    postIds.map(async (postId) => {
-      const result = await supabase
-        .from(table)
-        .select('post_id', { count: 'exact', head: true })
-        .eq('post_id', postId);
+async function reactionCountsByPostId(supabase: CommunitySupabaseClient, postIds: string[]) {
+  const { data, error } = await supabase.rpc('community_post_reaction_counts', {
+    target_post_ids: postIds,
+  });
 
-      if (result.error) {
-        throw new Error(`Failed to load post ${label}: ${result.error.message}`);
-      }
+  if (error) {
+    throw new Error(`Failed to load post reactions: ${error.message}`);
+  }
 
-      return [postId, result.count ?? 0] as const;
-    }),
-  );
+  const likesByPostId = new Map<string, number>();
+  const commentsByPostId = new Map<string, number>();
 
-  return new Map(entries);
+  for (const row of (data ?? []) as CommunityReactionCountRow[]) {
+    likesByPostId.set(row.post_id, Number(row.likes_count ?? 0));
+    commentsByPostId.set(row.post_id, Number(row.comments_count ?? 0));
+  }
+
+  return { likesByPostId, commentsByPostId };
 }
 
 async function signedImageUrlByPath(supabase: CommunitySupabaseClient, paths: string[]) {
@@ -96,15 +98,15 @@ async function signedImageUrlByPath(supabase: CommunitySupabaseClient, paths: st
         .from(USER_UPLOADS_BUCKET)
         .createSignedUrl(path, SIGNED_IMAGE_EXPIRES_IN_SECONDS);
 
-      if (error) {
-        throw new Error(`Failed to load community image: ${error.message}`);
+      if (error || !data?.signedUrl) {
+        return null;
       }
 
       return [path, data.signedUrl] as const;
     }),
   );
 
-  return new Map(entries);
+  return new Map(entries.filter((entry): entry is [string, string] => entry !== null));
 }
 
 function publicAuthorName(profile: PublicProfileRow | undefined, userId: string) {
@@ -186,10 +188,9 @@ async function getSupabasePosts(ips: Ip[]) {
   const userIds = Array.from(new Set(posts.map((post) => post.user_id)));
   const imagePaths = Array.from(new Set(posts.map((post) => post.image_path).filter((path): path is string => Boolean(path))));
 
-  const [profilesResult, likesByPostId, commentsByPostId, imageUrlByPath] = await Promise.all([
+  const [profilesResult, reactionCounts, imageUrlByPath] = await Promise.all([
     supabase.from('public_profiles').select('id,nickname').in('id', userIds),
-    countReactionsByPostId(supabase, 'likes', postIds, 'likes'),
-    countReactionsByPostId(supabase, 'comments', postIds, 'comments'),
+    reactionCountsByPostId(supabase, postIds),
     signedImageUrlByPath(supabase, imagePaths),
   ]);
 
@@ -202,7 +203,15 @@ async function getSupabasePosts(ips: Ip[]) {
   const profilesById = new Map(((profilesResult.data ?? []) as PublicProfileRow[]).map((profile) => [profile.id, profile]));
 
   return posts.map((post) =>
-    toCommunityPost(post, ipsById, fallbackIp, profilesById, likesByPostId, commentsByPostId, imageUrlByPath),
+    toCommunityPost(
+      post,
+      ipsById,
+      fallbackIp,
+      profilesById,
+      reactionCounts.likesByPostId,
+      reactionCounts.commentsByPostId,
+      imageUrlByPath,
+    ),
   );
 }
 

@@ -33,6 +33,16 @@ type QueryResult<T> = {
   error: null;
 };
 
+interface RpcRecord {
+  functionName: string;
+  args: Record<string, unknown>;
+}
+
+interface CreateClientOptions {
+  rpcRecords?: RpcRecord[];
+  signedUrlFailures?: ReadonlySet<string>;
+}
+
 function createQuery<T extends Record<string, unknown>>(
   table: string,
   rows: T[],
@@ -89,7 +99,7 @@ function createQuery<T extends Record<string, unknown>>(
   return query;
 }
 
-function createClient(records: QueryRecord[]) {
+function createClient(records: QueryRecord[], options: CreateClientOptions = {}) {
   const rows = {
     posts: [
       {
@@ -122,10 +132,29 @@ function createClient(records: QueryRecord[]) {
     from(table: keyof typeof rows) {
       return createQuery(table, rows[table], records);
     },
+    async rpc(functionName: string, args: Record<string, unknown>) {
+      options.rpcRecords?.push({ functionName, args });
+
+      if (functionName !== 'community_post_reaction_counts') {
+        return { data: null, error: { message: `Unexpected RPC: ${functionName}` } };
+      }
+
+      return {
+        data: [{ post_id: 'p1', likes_count: 2, comments_count: 1 }],
+        error: null,
+      };
+    },
     storage: {
       from(bucket: string) {
         return {
           async createSignedUrl(path: string, expiresIn: number) {
+            if (options.signedUrlFailures?.has(path)) {
+              return {
+                data: null,
+                error: { message: 'Object not found' },
+              };
+            }
+
             return {
               data: { signedUrl: `https://cdn.example/${bucket}/${path}?exp=${expiresIn}` },
               error: null,
@@ -162,8 +191,9 @@ const catalog: CatalogSnapshot = {
 describe('getCommunitySnapshot', () => {
   it('loads visible Supabase posts with safe author, reaction and signed image fields', async () => {
     const records: QueryRecord[] = [];
+    const rpcRecords: RpcRecord[] = [];
     mocks.catalog = catalog;
-    mocks.client = createClient(records);
+    mocks.client = createClient(records, { rpcRecords });
 
     const snapshot = await getCommunitySnapshot();
 
@@ -189,5 +219,33 @@ describe('getCommunitySnapshot', () => {
       order: [['created_at', { ascending: false }]],
       limit: 30,
     });
+    expect(records.filter((record) => record.table === 'likes' || record.table === 'comments')).toEqual([]);
+    expect(rpcRecords).toEqual([{
+      functionName: 'community_post_reaction_counts',
+      args: { target_post_ids: ['p1'] },
+    }]);
+  });
+
+  it('omits a post image when signed URL creation fails without failing the public feed', async () => {
+    const records: QueryRecord[] = [];
+    const rpcRecords: RpcRecord[] = [];
+    mocks.catalog = catalog;
+    mocks.client = createClient(records, {
+      rpcRecords,
+      signedUrlFailures: new Set(['u1/community/p1.png']),
+    });
+
+    const snapshot = await getCommunitySnapshot();
+
+    expect(snapshot.posts).toEqual([
+      expect.objectContaining({
+        id: 'p1',
+        img: null,
+      }),
+    ]);
+    expect(rpcRecords).toEqual([{
+      functionName: 'community_post_reaction_counts',
+      args: { target_post_ids: ['p1'] },
+    }]);
   });
 });
