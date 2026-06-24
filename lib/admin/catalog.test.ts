@@ -39,7 +39,6 @@ describe('admin catalog form normalization', () => {
         bg: 'linear-gradient(red, blue)',
         imagePath: 'public-media/ip/hwasan.png',
         featured: true,
-        fansCount: 42,
       },
     });
   });
@@ -57,7 +56,6 @@ describe('admin catalog form normalization', () => {
         id: 'ID를 입력해주세요.',
         title: 'IP 이름을 입력해주세요.',
         verticalKey: '등록된 버티컬을 선택해주세요.',
-        fansCount: '팬 수는 0 이상의 정수여야 합니다.',
       },
     });
   });
@@ -83,7 +81,6 @@ describe('admin catalog form normalization', () => {
         price: 22000,
         badge: '신상',
         stock: 'ok',
-        stockQty: 12,
         bg: null,
         imagePath: null,
       },
@@ -103,7 +100,6 @@ describe('admin catalog form normalization', () => {
       errors: {
         price: '가격은 0 이상의 정수여야 합니다.',
         stock: '재고 상태를 선택해주세요.',
-        stockQty: '실재고는 0 이상의 정수여야 합니다.',
       },
     });
   });
@@ -124,7 +120,7 @@ describe('admin catalog form normalization', () => {
     });
   });
 
-  it('normalizes event forms with optional IP and dates', () => {
+  it('normalizes event forms with optional IP and KST date-times', () => {
     const formData = new FormData();
     formData.set('id', 'e100');
     formData.set('ipId', '');
@@ -144,12 +140,30 @@ describe('admin catalog form normalization', () => {
         title: '합동 팝업',
         mode: '오프라인',
         status: '예정',
-        startsAt: '2026-07-01T10:30',
+        startsAt: '2026-07-01T01:30:00.000Z',
         endsAt: null,
         location: '성수',
         accent: '#8B5CFF',
         bg: null,
         imagePath: null,
+      },
+    });
+  });
+
+  it('rejects malformed event date-times before RPC submission', () => {
+    const formData = new FormData();
+    formData.set('id', 'e101');
+    formData.set('title', '합동 팝업');
+    formData.set('mode', '오프라인');
+    formData.set('status', '예정');
+    formData.set('startsAt', '2026/07/01 10:30');
+    formData.set('endsAt', '2026-13-01T10:30');
+
+    expect(normalizeAdminEventForm(formData, context)).toEqual({
+      ok: false,
+      errors: {
+        startsAt: '일시는 YYYY-MM-DDTHH:mm 형식이어야 합니다.',
+        endsAt: '일시는 YYYY-MM-DDTHH:mm 형식이어야 합니다.',
       },
     });
   });

@@ -19,7 +19,6 @@ export interface AdminIpFormValue {
   bg: string | null;
   imagePath: string | null;
   featured: boolean;
-  fansCount: number;
 }
 
 export interface AdminGoodFormValue {
@@ -30,7 +29,6 @@ export interface AdminGoodFormValue {
   price: number;
   badge: string | null;
   stock: Stock;
-  stockQty: number;
   bg: string | null;
   imagePath: string | null;
 }
@@ -68,6 +66,8 @@ const STOCK_VALUES = new Set<Stock>(['low', 'ok', 'soldout']);
 const RARITY_VALUES = new Set<RarityKey>(['N', 'R', 'SR', 'SSR', 'HOLO']);
 const EVENT_MODES = new Set(['온라인', '오프라인']);
 const EVENT_STATUSES = new Set(['예매중', '예정', '진행중', '종료']);
+const ADMIN_DATE_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+const ADMIN_DATE_TIME_ERROR = '일시는 YYYY-MM-DDTHH:mm 형식이어야 합니다.';
 
 function readString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -108,6 +108,41 @@ function nonNegativeInteger(
   return value;
 }
 
+function localKstDateTimeToIso(formData: FormData, key: string, errors: AdminFieldErrors) {
+  const raw = readString(formData, key);
+  if (!raw) return null;
+
+  const match = ADMIN_DATE_TIME_PATTERN.exec(raw);
+  if (!match) {
+    errors[key] = ADMIN_DATE_TIME_ERROR;
+    return null;
+  }
+
+  const [, yearText, monthText, dayText, hourText, minuteText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  if (
+    month < 1
+    || month > 12
+    || day < 1
+    || day > lastDayOfMonth
+    || hour < 0
+    || hour > 23
+    || minute < 0
+    || minute > 59
+  ) {
+    errors[key] = ADMIN_DATE_TIME_ERROR;
+    return null;
+  }
+
+  return new Date(Date.UTC(year, month - 1, day, hour - 9, minute)).toISOString();
+}
+
 function validIpId(value: string, context: AdminCatalogContext, errors: AdminFieldErrors) {
   if (!value || !context.ipIds.has(value)) {
     errors.ipId = '등록된 IP를 선택해주세요.';
@@ -133,7 +168,6 @@ export function normalizeAdminIpForm(
   const id = readSlug(formData, 'id', errors, 'ID를 입력해주세요.');
   const title = readString(formData, 'title');
   const verticalKey = readString(formData, 'verticalKey');
-  const fansCount = nonNegativeInteger(formData, 'fansCount', errors, '팬 수는 0 이상의 정수여야 합니다.', 0);
 
   if (!title) errors.title = 'IP 이름을 입력해주세요.';
   if (!verticalKey || !context.verticalKeys.has(verticalKey)) {
@@ -155,7 +189,6 @@ export function normalizeAdminIpForm(
       bg: nullableString(formData, 'bg'),
       imagePath: nullableString(formData, 'imagePath'),
       featured: formData.get('featured') === 'on',
-      fansCount,
     },
   };
 }
@@ -171,7 +204,6 @@ export function normalizeAdminGoodForm(
   const type = readString(formData, 'type');
   const stock = readString(formData, 'stock') as Stock;
   const price = nonNegativeInteger(formData, 'price', errors, '가격은 0 이상의 정수여야 합니다.');
-  const stockQty = nonNegativeInteger(formData, 'stockQty', errors, '실재고는 0 이상의 정수여야 합니다.', 0);
 
   if (!name) errors.name = '굿즈 이름을 입력해주세요.';
   if (!type) errors.type = '굿즈 유형을 입력해주세요.';
@@ -189,7 +221,6 @@ export function normalizeAdminGoodForm(
       price,
       badge: nullableString(formData, 'badge'),
       stock,
-      stockQty,
       bg: nullableString(formData, 'bg'),
       imagePath: nullableString(formData, 'imagePath'),
     },
@@ -235,6 +266,8 @@ export function normalizeAdminEventForm(
   const title = readString(formData, 'title');
   const mode = readString(formData, 'mode');
   const status = readString(formData, 'status');
+  const startsAt = localKstDateTimeToIso(formData, 'startsAt', errors);
+  const endsAt = localKstDateTimeToIso(formData, 'endsAt', errors);
 
   if (rawIpId && !context.ipIds.has(rawIpId)) errors.ipId = '등록된 IP를 선택해주세요.';
   if (!title) errors.title = '이벤트 이름을 입력해주세요.';
@@ -251,8 +284,8 @@ export function normalizeAdminEventForm(
       title,
       mode,
       status,
-      startsAt: nullableString(formData, 'startsAt'),
-      endsAt: nullableString(formData, 'endsAt'),
+      startsAt,
+      endsAt,
       location: nullableString(formData, 'location'),
       accent: nullableString(formData, 'accent'),
       bg: nullableString(formData, 'bg'),

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { upsertAdminGoodAction } from './actions';
+import { upsertAdminEventAction, upsertAdminGoodAction, upsertAdminIpAction } from './actions';
 import type { CatalogSnapshot } from '@/lib/catalog';
 
 const mocks = vi.hoisted(() => ({
@@ -75,6 +75,34 @@ function goodForm() {
   return formData;
 }
 
+function ipForm() {
+  const formData = new FormData();
+  formData.set('id', 'hwasan');
+  formData.set('title', '화산강림');
+  formData.set('sub', '리디 · 로판');
+  formData.set('verticalKey', 'rofan');
+  formData.set('tagline', '매화는 다시 핀다');
+  formData.set('synopsis', '화산파의 부활');
+  formData.set('glyph', '화산');
+  formData.set('featured', 'on');
+  formData.set('fansCount', '42');
+  return formData;
+}
+
+function eventForm() {
+  const formData = new FormData();
+  formData.set('id', 'e100');
+  formData.set('ipId', 'hwasan');
+  formData.set('title', '합동 팝업');
+  formData.set('mode', '오프라인');
+  formData.set('status', '예정');
+  formData.set('startsAt', '2026-07-01T10:30');
+  formData.set('endsAt', '2026-07-01T12:00');
+  formData.set('location', '성수');
+  formData.set('accent', '#8B5CFF');
+  return formData;
+}
+
 describe('admin catalog actions', () => {
   beforeEach(() => {
     mocks.adminState = {
@@ -126,6 +154,25 @@ describe('admin catalog actions', () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
+  it('calls the admin IP RPC without overwriting the fan count cache', async () => {
+    await expect(upsertAdminIpAction({}, ipForm())).resolves.toEqual({
+      message: 'IP를 저장했습니다.',
+    });
+
+    expect(mocks.rpc).toHaveBeenCalledWith('admin_upsert_ip', {
+      target_id: 'hwasan',
+      target_title: '화산강림',
+      target_sub: '리디 · 로판',
+      target_vertical_key: 'rofan',
+      target_tagline: '매화는 다시 핀다',
+      target_synopsis: '화산파의 부활',
+      target_glyph: '화산',
+      target_bg: null,
+      target_image_path: null,
+      target_featured: true,
+    });
+  });
+
   it('calls the admin good RPC and refreshes catalog surfaces', async () => {
     const formData = goodForm();
     formData.set('previousIpId', 'lumen');
@@ -142,7 +189,6 @@ describe('admin catalog actions', () => {
       target_price: 22000,
       target_badge: '신상',
       target_stock: 'ok',
-      target_stock_qty: 12,
       target_bg: null,
       target_image_path: null,
     });
@@ -152,5 +198,25 @@ describe('admin catalog actions', () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/lumen');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/shop');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/admin');
+  });
+
+  it('calls the admin event RPC with KST date-times converted to UTC instants', async () => {
+    await expect(upsertAdminEventAction({}, eventForm())).resolves.toEqual({
+      message: '이벤트를 저장했습니다.',
+    });
+
+    expect(mocks.rpc).toHaveBeenCalledWith('admin_upsert_event', {
+      target_id: 'e100',
+      target_ip_id: 'hwasan',
+      target_title: '합동 팝업',
+      target_mode: '오프라인',
+      target_status: '예정',
+      target_starts_at: '2026-07-01T01:30:00.000Z',
+      target_ends_at: '2026-07-01T03:00:00.000Z',
+      target_location: '성수',
+      target_accent: '#8B5CFF',
+      target_bg: null,
+      target_image_path: null,
+    });
   });
 });

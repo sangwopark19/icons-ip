@@ -86,7 +86,6 @@ export async function upsertAdminIpAction(
     target_bg: value.bg,
     target_image_path: value.imagePath,
     target_featured: value.featured,
-    target_fans_count: value.fansCount,
   });
 
   if (error) return rpcFailure('IP를 저장하지 못했습니다. 다시 시도해주세요.');
@@ -117,7 +116,6 @@ export async function upsertAdminGoodAction(
     target_price: value.price,
     target_badge: value.badge,
     target_stock: value.stock,
-    target_stock_qty: value.stockQty,
     target_bg: value.bg,
     target_image_path: value.imagePath,
   });

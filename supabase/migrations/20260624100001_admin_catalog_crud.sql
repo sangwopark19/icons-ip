@@ -1,5 +1,8 @@
 -- Admin catalog writes go through audited RPCs instead of direct table writes.
 
+drop function if exists public.admin_upsert_ip(text, text, text, text, text, text, text, text, text, boolean, integer);
+drop function if exists public.admin_upsert_good(text, text, text, text, integer, text, text, integer, text, text);
+
 create or replace function public.admin_upsert_ip(
   target_id text,
   target_title text,
@@ -10,8 +13,7 @@ create or replace function public.admin_upsert_ip(
   target_glyph text,
   target_bg text,
   target_image_path text,
-  target_featured boolean,
-  target_fans_count integer
+  target_featured boolean
 )
 returns void
 language plpgsql
@@ -39,8 +41,7 @@ begin
     glyph,
     bg,
     image_path,
-    featured,
-    fans_count
+    featured
   )
   values (
     target_id,
@@ -52,8 +53,7 @@ begin
     target_glyph,
     target_bg,
     target_image_path,
-    target_featured,
-    target_fans_count
+    target_featured
   )
   on conflict (id) do update set
     title = excluded.title,
@@ -65,7 +65,6 @@ begin
     bg = excluded.bg,
     image_path = excluded.image_path,
     featured = excluded.featured,
-    fans_count = excluded.fans_count,
     updated_at = now();
 
   insert into public.audit_log (actor_id, action, target, diff)
@@ -90,7 +89,6 @@ create or replace function public.admin_upsert_good(
   target_price integer,
   target_badge text,
   target_stock text,
-  target_stock_qty integer,
   target_bg text,
   target_image_path text
 )
@@ -121,7 +119,6 @@ begin
     price,
     badge,
     stock,
-    stock_qty,
     bg,
     image_path
   )
@@ -133,7 +130,6 @@ begin
     target_price,
     target_badge,
     target_stock,
-    target_stock_qty,
     target_bg,
     target_image_path
   )
@@ -144,7 +140,6 @@ begin
     price = excluded.price,
     badge = excluded.badge,
     stock = excluded.stock,
-    stock_qty = excluded.stock_qty,
     bg = excluded.bg,
     image_path = excluded.image_path,
     updated_at = now();
@@ -330,13 +325,13 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_upsert_ip(text, text, text, text, text, text, text, text, text, boolean, integer) from public;
-revoke all on function public.admin_upsert_good(text, text, text, text, integer, text, text, integer, text, text) from public;
+revoke all on function public.admin_upsert_ip(text, text, text, text, text, text, text, text, text, boolean) from public;
+revoke all on function public.admin_upsert_good(text, text, text, text, integer, text, text, text, text) from public;
 revoke all on function public.admin_upsert_card(text, text, text, text, rarity, text, text) from public;
 revoke all on function public.admin_upsert_event(text, text, text, text, text, timestamptz, timestamptz, text, text, text, text) from public;
 
-grant execute on function public.admin_upsert_ip(text, text, text, text, text, text, text, text, text, boolean, integer) to authenticated;
-grant execute on function public.admin_upsert_good(text, text, text, text, integer, text, text, integer, text, text) to authenticated;
+grant execute on function public.admin_upsert_ip(text, text, text, text, text, text, text, text, text, boolean) to authenticated;
+grant execute on function public.admin_upsert_good(text, text, text, text, integer, text, text, text, text) to authenticated;
 grant execute on function public.admin_upsert_card(text, text, text, text, rarity, text, text) to authenticated;
 grant execute on function public.admin_upsert_event(text, text, text, text, text, timestamptz, timestamptz, text, text, text, text) to authenticated;
 

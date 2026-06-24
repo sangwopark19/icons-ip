@@ -44,7 +44,21 @@ function optional(value: string | null | undefined) {
 
 function dateTimeInput(value: string | null | undefined) {
   if (!value) return '';
-  return value.slice(0, 16);
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 }
 
 function ErrorText({ children }: { children?: string }) {
@@ -331,7 +345,6 @@ export function Admin({ admin, catalog, records }: AdminProps) {
                   </SelectField>
                   <Field defaultValue={selectedIp?.tagline} label="태그라인" name="tagline" />
                   <Field defaultValue={selectedIp?.glyph} label="글리프" name="glyph" />
-                  <Field defaultValue={selectedIp?.fansCount ?? 0} error={ipState.errors?.fansCount} label="팬 수" name="fansCount" type="number" />
                   <label className="row" style={{ alignItems: 'center', gap: 10, justifyContent: 'flex-start', paddingTop: 22 }}>
                     <input defaultChecked={selectedIp?.featured ?? false} name="featured" type="checkbox" />
                     featured
@@ -373,7 +386,6 @@ export function Admin({ admin, catalog, records }: AdminProps) {
                     <option value="low">low</option>
                     <option value="soldout">soldout</option>
                   </SelectField>
-                  <Field defaultValue={selectedGood?.stockQty ?? 0} error={goodState.errors?.stockQty} label="실재고" name="stockQty" type="number" />
                 </div>
                 <Field defaultValue={selectedGood?.bg} label="배경 CSS" name="bg" />
                 <Field defaultValue={selectedGood?.imagePath} label="이미지 경로" name="imagePath" />
