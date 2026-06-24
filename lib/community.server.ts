@@ -14,6 +14,7 @@ import {
 
 const USER_UPLOADS_BUCKET = 'user-uploads';
 const COMMUNITY_FEED_LIMIT = 30;
+const COMMUNITY_COMMENT_PREVIEW_LIMIT = 3;
 const SIGNED_IMAGE_EXPIRES_IN_SECONDS = 60 * 60;
 
 interface CommunityPostRow {
@@ -109,18 +110,24 @@ async function reactionCountsByPostId(supabase: CommunitySupabaseClient, postIds
 }
 
 async function commentsForPosts(supabase: CommunitySupabaseClient, postIds: string[]) {
-  const { data, error } = await supabase
-    .from('comments')
-    .select('id,post_id,user_id,text,created_at')
-    .in('post_id', postIds)
-    .order('created_at', { ascending: true })
-    .limit(COMMUNITY_FEED_LIMIT * 3);
+  const results = await Promise.all(
+    postIds.map(async (postId) => {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('id,post_id,user_id,text,created_at')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true })
+        .limit(COMMUNITY_COMMENT_PREVIEW_LIMIT);
 
-  if (error) {
-    throw new Error(`Failed to load community comments: ${error.message}`);
-  }
+      if (error) {
+        throw new Error(`Failed to load community comments: ${error.message}`);
+      }
 
-  return (data ?? []) as CommunityCommentRow[];
+      return (data ?? []) as CommunityCommentRow[];
+    }),
+  );
+
+  return results.flat();
 }
 
 async function viewerLikePostIds(
