@@ -249,6 +249,17 @@ describe('community reaction actions', () => {
     });
   });
 
+  it('sets unlike submissions as a requested final state', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan', liked: false }, error: null });
+
+    await expect(setCommunityPostLikeAction(likeForm(false))).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('set_post_like', {
+      target_post_id: postId,
+      should_like: false,
+    });
+  });
+
   it('redirects unauthenticated like submissions to login', async () => {
     mocks.auth = { isConfigured: true, user: null, profile: null };
 

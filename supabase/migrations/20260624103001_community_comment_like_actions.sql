@@ -187,25 +187,20 @@ create policy comments_read on public.comments for select
   );
 
 drop policy if exists comments_insert on public.comments;
-create policy comments_insert on public.comments for insert
-  with check (
-    (select auth.uid()) = user_id
-    and exists (
-      select 1
-      from public.posts
-      where posts.id = comments.post_id
-        and posts.status = 'visible'
-    )
-  );
+drop policy if exists comments_delete on public.comments;
 
-drop policy if exists likes_insert on public.likes;
-create policy likes_insert on public.likes for insert
-  with check (
+drop policy if exists likes_read on public.likes;
+create policy likes_read on public.likes for select
+  using (
     (select auth.uid()) = user_id
-    and exists (
+    or (select public.is_staff())
+    or exists (
       select 1
       from public.posts
       where posts.id = likes.post_id
         and posts.status = 'visible'
     )
   );
+
+drop policy if exists likes_insert on public.likes;
+drop policy if exists likes_delete on public.likes;
