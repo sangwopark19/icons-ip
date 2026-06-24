@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   canViewCommunityPost,
   type CommunityChannel,
+  type CommunityFeedComment,
   type CommunityFeedPost,
   type CommunityPostStatus,
   type CommunitySnapshot,
@@ -35,6 +36,22 @@ interface CommunityReactionCountRow {
   post_id: string;
   likes_count: number | string | null;
   comments_count: number | string | null;
+}
+
+interface CommunityCommentRow {
+  id: string;
+  post_id: string;
+  user_id: string;
+  text: string;
+  created_at: string;
+}
+
+interface CommunityLikeRow {
+  post_id: string;
+}
+
+interface CommunitySnapshotOptions {
+  viewerId?: string | null;
 }
 
 type CommunitySupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -91,6 +108,41 @@ async function reactionCountsByPostId(supabase: CommunitySupabaseClient, postIds
   return { likesByPostId, commentsByPostId };
 }
 
+async function commentsForPosts(supabase: CommunitySupabaseClient, postIds: string[]) {
+  const { data, error } = await supabase
+    .from('comments')
+    .select('id,post_id,user_id,text,created_at')
+    .in('post_id', postIds)
+    .order('created_at', { ascending: true })
+    .limit(COMMUNITY_FEED_LIMIT * 3);
+
+  if (error) {
+    throw new Error(`Failed to load community comments: ${error.message}`);
+  }
+
+  return (data ?? []) as CommunityCommentRow[];
+}
+
+async function viewerLikePostIds(
+  supabase: CommunitySupabaseClient,
+  postIds: string[],
+  viewerId: string | null,
+) {
+  if (!viewerId) return new Set<string>();
+
+  const { data, error } = await supabase
+    .from('likes')
+    .select('post_id')
+    .eq('user_id', viewerId)
+    .in('post_id', postIds);
+
+  if (error) {
+    throw new Error(`Failed to load viewer likes: ${error.message}`);
+  }
+
+  return new Set(((data ?? []) as CommunityLikeRow[]).map((row) => row.post_id));
+}
+
 async function signedImageUrlByPath(supabase: CommunitySupabaseClient, paths: string[]) {
   const entries = await Promise.all(
     paths.map(async (path) => {
@@ -117,6 +169,28 @@ function postFallbackIp(ips: Ip[]) {
   return ips[0] ?? null;
 }
 
+function commentItemsByPostId(
+  rows: CommunityCommentRow[],
+  profilesById: Map<string, PublicProfileRow>,
+  viewerId: string | null,
+) {
+  const grouped = new Map<string, CommunityFeedComment[]>();
+
+  for (const row of rows) {
+    const comments = grouped.get(row.post_id) ?? [];
+    comments.push({
+      id: row.id,
+      user: publicAuthorName(profilesById.get(row.user_id), row.user_id),
+      text: row.text,
+      time: formatPostTime(row.created_at),
+      canDelete: viewerId === row.user_id,
+    });
+    grouped.set(row.post_id, comments);
+  }
+
+  return grouped;
+}
+
 function toCommunityPost(
   row: CommunityPostRow,
   ipsById: Map<string, Ip>,
@@ -124,6 +198,9 @@ function toCommunityPost(
   profilesById: Map<string, PublicProfileRow>,
   likesByPostId: Map<string, number>,
   commentsByPostId: Map<string, number>,
+  commentsByPost: Map<string, CommunityFeedComment[]>,
+  likedPostIds: Set<string>,
+  viewerId: string | null,
   imageUrlByPath: Map<string, string>,
 ): CommunityFeedPost {
   const ip = row.ip_id ? ipsById.get(row.ip_id) : null;
@@ -141,6 +218,9 @@ function toCommunityPost(
     time: formatPostTime(row.created_at),
     tag: row.tag?.trim() || '커뮤니티',
     img: row.image_path ? imageUrlByPath.get(row.image_path) ?? null : null,
+    likedByViewer: likedPostIds.has(row.id),
+    canDelete: viewerId === row.user_id,
+    commentItems: commentsByPost.get(row.id) ?? [],
   };
 }
 
@@ -162,11 +242,14 @@ function mockPosts(ips: Ip[]): CommunityFeedPost[] {
       time: post.time,
       tag: post.tag,
       img: post.img,
+      likedByViewer: false,
+      canDelete: false,
+      commentItems: [],
     };
   });
 }
 
-async function getSupabasePosts(ips: Ip[]) {
+async function getSupabasePosts(ips: Ip[], viewerId: string | null) {
   const supabase = await createClient();
   const postsResult = await supabase
     .from('posts')
@@ -185,14 +268,19 @@ async function getSupabasePosts(ips: Ip[]) {
   if (!posts.length) return [];
 
   const postIds = posts.map((post) => post.id);
-  const userIds = Array.from(new Set(posts.map((post) => post.user_id)));
   const imagePaths = Array.from(new Set(posts.map((post) => post.image_path).filter((path): path is string => Boolean(path))));
 
-  const [profilesResult, reactionCounts, imageUrlByPath] = await Promise.all([
-    supabase.from('public_profiles').select('id,nickname').in('id', userIds),
+  const [reactionCounts, comments, likedPostIds, imageUrlByPath] = await Promise.all([
     reactionCountsByPostId(supabase, postIds),
+    commentsForPosts(supabase, postIds),
+    viewerLikePostIds(supabase, postIds, viewerId),
     signedImageUrlByPath(supabase, imagePaths),
   ]);
+  const userIds = Array.from(new Set([
+    ...posts.map((post) => post.user_id),
+    ...comments.map((comment) => comment.user_id),
+  ]));
+  const profilesResult = await supabase.from('public_profiles').select('id,nickname').in('id', userIds);
 
   if (profilesResult.error) {
     throw new Error(`Failed to load community authors: ${profilesResult.error.message}`);
@@ -201,6 +289,7 @@ async function getSupabasePosts(ips: Ip[]) {
   const ipsById = new Map(ips.map((ip) => [ip.id, ip]));
   const fallbackIp = postFallbackIp(ips);
   const profilesById = new Map(((profilesResult.data ?? []) as PublicProfileRow[]).map((profile) => [profile.id, profile]));
+  const commentsByPost = commentItemsByPostId(comments, profilesById, viewerId);
 
   return posts.map((post) =>
     toCommunityPost(
@@ -210,19 +299,23 @@ async function getSupabasePosts(ips: Ip[]) {
       profilesById,
       reactionCounts.likesByPostId,
       reactionCounts.commentsByPostId,
+      commentsByPost,
+      likedPostIds,
+      viewerId,
       imageUrlByPath,
     ),
   );
 }
 
-export async function getCommunitySnapshot(): Promise<CommunitySnapshot> {
+export async function getCommunitySnapshot(options: CommunitySnapshotOptions = {}): Promise<CommunitySnapshot> {
   const catalog = await getCatalogSnapshot();
+  const viewerId = options.viewerId ?? null;
 
   return {
     source: catalog.source,
     channels: catalog.ips.map(channelFromIp),
     goods: catalog.goods,
-    posts: catalog.source === 'mock' ? mockPosts(catalog.ips) : await getSupabasePosts(catalog.ips),
+    posts: catalog.source === 'mock' ? mockPosts(catalog.ips) : await getSupabasePosts(catalog.ips, viewerId),
     trending: DATA.TRENDING,
   };
 }
