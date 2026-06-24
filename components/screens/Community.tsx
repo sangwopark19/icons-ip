@@ -1,17 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { DATA, type Post } from '@/lib/data';
-import { nextPathWithSearch } from '@/lib/auth/onboarding';
+import { useActionState, useState } from 'react';
+import { useFormStatus } from 'react-dom';
+import { createCommunityPostAction, type CommunityPostActionState } from '@/app/community/actions';
+import type { CommunityChannel, CommunityFeedPost, CommunitySnapshot } from '@/lib/community';
+import { krw, type Good } from '@/lib/data';
 import { Icon } from '@/components/ui/Icon';
 import { Empty } from '@/components/ui/Empty';
 import { useGo } from '@/components/shell/useGo';
 
-function PostCard({ p }: { p: Post }) {
-  const [liked, setLiked] = useState(false);
+const emptyState: CommunityPostActionState = {};
+
+function ErrorText({ children, id }: { children?: string; id: string }) {
+  if (!children) return null;
   return (
-    <div className="card" style={{ padding: 18, borderRadius: 'var(--r)' }}>
+    <span id={id} style={{ color: 'var(--pink)', fontSize: 12.5, fontWeight: 600 }}>
+      {children}
+    </span>
+  );
+}
+
+function PostCard({ p }: { p: CommunityFeedPost }) {
+  const imageBackground = p.img && (p.img.startsWith('http') || p.img.startsWith('/'))
+    ? `url("${p.img}") center / cover no-repeat`
+    : p.img;
+
+  return (
+    <article className="card" style={{ padding: 18, borderRadius: 'var(--r)' }}>
       <div className="row" style={{ gap: 12 }}>
         <div style={{ width: 44, height: 44, borderRadius: 99, background: p.avatar, flex: '0 0 auto', display: 'grid', placeItems: 'center', fontWeight: 700, color: '#0A0813' }}>
           {p.user[0].toUpperCase()}
@@ -26,137 +41,212 @@ function PostCard({ p }: { p: Post }) {
         <span className="tag" style={{ marginLeft: 'auto', color: 'var(--violet-2)' }}>#{p.tag}</span>
       </div>
       <p style={{ marginTop: 14, fontSize: 15, lineHeight: 1.55 }}>{p.text}</p>
-      {p.img && <div style={{ marginTop: 14, height: 220, borderRadius: 14, background: p.img, position: 'relative', overflow: 'hidden' }}><div className="sheen" /></div>}
+      {imageBackground && <div style={{ marginTop: 14, height: 220, borderRadius: 14, background: imageBackground, position: 'relative', overflow: 'hidden' }}><div className="sheen" /></div>}
       <div className="row" style={{ marginTop: 16, gap: 22 }}>
-        <button className="row" style={{ gap: 7, color: liked ? 'var(--pink)' : 'var(--dim)', fontSize: 13.5, fontWeight: 600 }} onClick={() => setLiked(!liked)}>
-          <Icon name="heart" size={17} fill={liked ? 'currentColor' : undefined} /> {p.likes + (liked ? 1 : 0)}
-        </button>
+        <span className="row muted" style={{ gap: 7, fontSize: 13.5, fontWeight: 600 }}>
+          <Icon name="heart" size={17} /> {p.likes}
+        </span>
         <span className="row muted" style={{ gap: 7, fontSize: 13.5 }}><Icon name="chat" size={17} /> {p.comments}</span>
         <span className="row muted" style={{ gap: 7, fontSize: 13.5, marginLeft: 'auto' }}><Icon name="arrow" size={17} /> 공유</span>
+      </div>
+    </article>
+  );
+}
+
+function SubmitButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button className="btn btn-holo btn-sm" disabled={disabled || pending}>
+      {pending ? '게시 중' : '게시'}
+    </button>
+  );
+}
+
+function Composer({ channels }: { channels: CommunityChannel[] }) {
+  const [state, action] = useActionState(createCommunityPostAction, emptyState);
+  const defaultIpId = channels[0]?.id ?? '';
+  const disabled = !defaultIpId;
+
+  return (
+    <form action={action} className="card" style={{ padding: 16, display: 'grid', gridTemplateColumns: '42px 1fr auto', gap: 14, alignItems: 'start', borderRadius: 'var(--r)' }}>
+      <input type="hidden" name="next" value="/community" />
+      <div style={{ width: 42, height: 42, borderRadius: 99, background: 'var(--holo)', flex: '0 0 auto' }} />
+      <div className="col" style={{ gap: 10 }}>
+        <div className="row" style={{ gap: 10, alignItems: 'stretch' }}>
+          <select
+            aria-describedby={state.errors?.ipId ? 'community-ip-error' : undefined}
+            aria-invalid={Boolean(state.errors?.ipId)}
+            defaultValue={defaultIpId}
+            disabled={disabled}
+            name="ipId"
+            style={{ minWidth: 160, height: 42, border: '1px solid var(--line-2)', background: 'var(--bg-2)', borderRadius: 12, padding: '0 12px', color: 'var(--text)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+          >
+            {channels.map((channel) => (
+              <option key={channel.id} value={channel.id}>{channel.title}</option>
+            ))}
+          </select>
+          <input
+            name="tag"
+            placeholder="#태그"
+            style={{ flex: 1, minWidth: 0, height: 42, border: '1px solid var(--line-2)', background: 'var(--bg-2)', borderRadius: 12, padding: '0 12px', color: 'var(--text)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+          />
+        </div>
+        <textarea
+          aria-describedby={state.errors?.text ? 'community-text-error' : undefined}
+          aria-invalid={Boolean(state.errors?.text)}
+          name="text"
+          placeholder="IP 채널에 글을 남겨보세요..."
+          rows={3}
+          style={{ width: '100%', resize: 'vertical', minHeight: 84, border: '1px solid var(--line-2)', background: 'var(--bg-2)', borderRadius: 14, padding: '12px 14px', color: 'var(--text)', fontSize: 14, fontFamily: 'inherit', outline: 'none', lineHeight: 1.5 }}
+        />
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            aria-describedby={state.errors?.image ? 'community-image-error' : undefined}
+            aria-invalid={Boolean(state.errors?.image)}
+            name="image"
+            type="file"
+            style={{ fontSize: 12.5, color: 'var(--dim)', maxWidth: '100%' }}
+          />
+        </div>
+        <ErrorText id="community-ip-error">{state.errors?.ipId}</ErrorText>
+        <ErrorText id="community-text-error">{state.errors?.text}</ErrorText>
+        <ErrorText id="community-image-error">{state.errors?.image}</ErrorText>
+        {state.errors?.form && (
+          <div role="alert" style={{ color: 'var(--pink)', fontSize: 13, fontWeight: 700 }}>
+            {state.errors.form}
+          </div>
+        )}
+      </div>
+      <SubmitButton disabled={disabled} />
+    </form>
+  );
+}
+
+function OfficialGoods({ goods }: { goods: Good[] }) {
+  const go = useGo();
+
+  return (
+    <div className="card" style={{ padding: 18, borderRadius: 'var(--r)' }}>
+      <div className="between" style={{ marginBottom: 14 }}>
+        <span style={{ fontWeight: 700, fontSize: 14 }}>공식 굿즈</span>
+        <button className="faint" style={{ fontSize: 12 }} onClick={() => go('shop')}>전체 →</button>
+      </div>
+      <div className="col" style={{ gap: 12 }}>
+        {goods.slice(0, 3).map((good) => (
+          <button key={good.id} className="row" style={{ gap: 12, textAlign: 'left' }} onClick={() => go('shop')}>
+            <div style={{ width: 46, height: 46, borderRadius: 10, background: good.img, flex: '0 0 auto' }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{good.name}</div>
+              <div className="mono faint" style={{ fontSize: 11, marginTop: 2 }}>{krw(good.price)}</div>
+            </div>
+          </button>
+        ))}
+        {!goods.length && <Empty icon="bag" text="등록된 굿즈가 아직 없습니다" />}
       </div>
     </div>
   );
 }
 
-export function Community() {
+export function Community({ snapshot }: { snapshot: CommunitySnapshot }) {
   const go = useGo();
-  const router = useRouter();
-  const [ch, setCh] = useState('전체');
+  const [channelId, setChannelId] = useState('all');
   const [sort, setSort] = useState('최신순');
-  const channels = ['전체', ...DATA.IPS.slice(0, 5).map((i) => i.title)];
-  let posts = DATA.POSTS.filter((p) => ch === '전체' || p.ipName === ch);
+  const channels = snapshot.channels;
+  const selectedChannel = channels.find((channel) => channel.id === channelId);
+  let posts = snapshot.posts.filter((post) => channelId === 'all' || post.ipId === channelId);
   if (sort === '인기순') posts = [...posts].sort((a, b) => b.likes - a.likes);
 
   return (
     <div className="screen">
       <div className="wrap community-layout" style={{ paddingTop: 40, paddingBottom: 80, display: 'grid', gridTemplateColumns: '230px 1fr 280px', gap: 28, alignItems: 'start' }}>
-        {/* left: channels */}
         <aside className="hide-mob" style={{ position: 'sticky', top: 90 }}>
           <div className="faint mono" style={{ fontSize: 11, letterSpacing: '.1em', marginBottom: 12 }}>IP 커뮤니티</div>
           <div className="col" style={{ gap: 4 }}>
-            {channels.map((c) => {
-              const ip = DATA.IPS.find((i) => i.title === c);
-              return (
-                <button
-                  key={c}
-                  onClick={() => setCh(c)}
-                  className="row"
-                  style={{
-                    gap: 10,
-                    padding: '11px 14px',
-                    borderRadius: 14,
-                    textAlign: 'left',
-                    justifyContent: 'flex-start',
-                    background: ch === c ? 'var(--surface-2)' : 'transparent',
-                    border: '1px solid',
-                    borderColor: ch === c ? 'var(--line-2)' : 'transparent',
-                    color: ch === c ? 'var(--text)' : 'var(--dim)',
-                    fontWeight: 600,
-                    fontSize: 14,
-                  }}
-                >
-                  <span style={{ width: 9, height: 9, borderRadius: 99, background: ip ? ip.v.color : 'var(--holo)' }} />
-                  {c === '전체' ? '전체 피드' : c}
-                </button>
-              );
-            })}
+            <button
+              onClick={() => setChannelId('all')}
+              className="row"
+              style={{
+                gap: 10,
+                padding: '11px 14px',
+                borderRadius: 14,
+                textAlign: 'left',
+                justifyContent: 'flex-start',
+                background: channelId === 'all' ? 'var(--surface-2)' : 'transparent',
+                border: '1px solid',
+                borderColor: channelId === 'all' ? 'var(--line-2)' : 'transparent',
+                color: channelId === 'all' ? 'var(--text)' : 'var(--dim)',
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              <span style={{ width: 9, height: 9, borderRadius: 99, background: 'var(--holo)' }} />
+              전체 피드
+            </button>
+            {channels.map((channel) => (
+              <button
+                key={channel.id}
+                onClick={() => setChannelId(channel.id)}
+                className="row"
+                style={{
+                  gap: 10,
+                  padding: '11px 14px',
+                  borderRadius: 14,
+                  textAlign: 'left',
+                  justifyContent: 'flex-start',
+                  background: channelId === channel.id ? 'var(--surface-2)' : 'transparent',
+                  border: '1px solid',
+                  borderColor: channelId === channel.id ? 'var(--line-2)' : 'transparent',
+                  color: channelId === channel.id ? 'var(--text)' : 'var(--dim)',
+                  fontWeight: 600,
+                  fontSize: 14,
+                }}
+              >
+                <span style={{ width: 9, height: 9, borderRadius: 99, background: channel.color }} />
+                {channel.title}
+              </button>
+            ))}
           </div>
         </aside>
 
-        {/* center feed */}
         <main>
-          {/* mobile channel chips */}
           <div className="only-mob wrapgap" style={{ marginBottom: 16 }}>
-            {channels.map((c) => (
-              <button key={c} className={'chip btn-sm' + (ch === c ? ' on' : '')} onClick={() => setCh(c)}>{c === '전체' ? '전체' : c}</button>
+            <button className={'chip btn-sm' + (channelId === 'all' ? ' on' : '')} onClick={() => setChannelId('all')}>전체</button>
+            {channels.map((channel) => (
+              <button key={channel.id} className={'chip btn-sm' + (channelId === channel.id ? ' on' : '')} onClick={() => setChannelId(channel.id)}>{channel.title}</button>
             ))}
           </div>
-          {/* composer */}
-          <div className="card" style={{ padding: 16, display: 'flex', gap: 14, alignItems: 'center', borderRadius: 'var(--r)' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 99, background: 'var(--holo)', flex: '0 0 auto' }} />
-            <input
-              placeholder="IP 채널에 글을 남겨보세요…"
-              style={{ flex: 1, height: 44, border: '1px solid var(--line-2)', background: 'var(--bg-2)', borderRadius: 99, padding: '0 18px', color: 'var(--text)', fontSize: 14, fontFamily: 'inherit', outline: 'none' }}
-            />
-            <button
-              className="btn btn-holo btn-sm"
-              onClick={() =>
-                router.push(
-                  `/login?next=${encodeURIComponent(
-                    nextPathWithSearch(window.location.pathname, new URLSearchParams(window.location.search)),
-                  )}`,
-                )
-              }
-            >
-              게시
-            </button>
-          </div>
-          {/* sort */}
+
+          <Composer channels={channels} />
+
           <div className="between" style={{ margin: '22px 2px 16px' }}>
-            <span style={{ fontWeight: 700, fontSize: 17 }}>{ch === '전체' ? '전체 피드' : ch}</span>
+            <span style={{ fontWeight: 700, fontSize: 17 }}>{selectedChannel?.title ?? '전체 피드'}</span>
             <div className="row" style={{ gap: 14 }}>
-              {['최신순', '인기순'].map((s) => (
-                <button key={s} onClick={() => setSort(s)} style={{ fontSize: 13.5, fontWeight: 600, color: sort === s ? 'var(--text)' : 'var(--faint)' }}>{s}</button>
+              {['최신순', '인기순'].map((value) => (
+                <button key={value} onClick={() => setSort(value)} style={{ fontSize: 13.5, fontWeight: 600, color: sort === value ? 'var(--text)' : 'var(--faint)' }}>{value}</button>
               ))}
             </div>
           </div>
           <div className="col" style={{ gap: 14 }}>
-            {posts.map((p) => <PostCard key={p.id} p={p} />)}
-            {!posts.length && <Empty icon="chat" text="아직 게시글이 없어요" sub="첫 번째 게시글을 작성해보세요" />}
+            {posts.map((post) => <PostCard key={post.id} p={post} />)}
+            {!posts.length && <Empty icon="chat" text="아직 포스트가 없어요" sub="첫 번째 포스트를 작성해보세요" />}
           </div>
         </main>
 
-        {/* right rail */}
         <aside className="hide-mob col" style={{ gap: 18, position: 'sticky', top: 90 }}>
           <div className="card" style={{ padding: 18, borderRadius: 'var(--r)' }}>
             <div className="between" style={{ marginBottom: 14 }}><span style={{ fontWeight: 700, fontSize: 14 }}>🔥 트렌딩</span></div>
-            <div className="wrapgap">{DATA.TRENDING.slice(0, 8).map((t) => <span key={t} className="chip btn-sm" style={{ cursor: 'pointer' }}>{t}</span>)}</div>
+            <div className="wrapgap">{snapshot.trending.slice(0, 8).map((tag) => <span key={tag} className="chip btn-sm" style={{ cursor: 'pointer' }}>{tag}</span>)}</div>
           </div>
-          <div className="card" style={{ padding: 18, borderRadius: 'var(--r)' }}>
-            <div className="between" style={{ marginBottom: 14 }}>
-              <span style={{ fontWeight: 700, fontSize: 14 }}>공식 굿즈</span>
-              <button className="faint" style={{ fontSize: 12 }} onClick={() => go('shop')}>전체 →</button>
-            </div>
-            <div className="col" style={{ gap: 12 }}>
-              {DATA.GOODS.slice(0, 3).map((g) => (
-                <button key={g.id} className="row" style={{ gap: 12, textAlign: 'left' }} onClick={() => go('shop')}>
-                  <div style={{ width: 46, height: 46, borderRadius: 10, background: g.img, flex: '0 0 auto' }} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</div>
-                    <div className="mono faint" style={{ fontSize: 11, marginTop: 2 }}>{DATA.krw(g.price)}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+          <OfficialGoods goods={snapshot.goods} />
           <div className="card" style={{ padding: 18, borderRadius: 'var(--r)' }}>
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>게이미피케이션</div>
-            {([['spark', '데일리 가챠', '카드 획득 & 공유', 'binder'], ['shield', '팝업 인증', '컬렉션 완성 인증', 'events']] as const).map(([ic, t, d, r]) => (
-              <button key={t} className="row" style={{ gap: 12, padding: '8px 0', textAlign: 'left', width: '100%' }} onClick={() => go(r)}>
+            {([['spark', '데일리 가챠', '카드 획득 & 공유', 'binder'], ['shield', '팝업 인증', '컬렉션 완성 인증', 'events']] as const).map(([ic, title, desc, route]) => (
+              <button key={title} className="row" style={{ gap: 12, padding: '8px 0', textAlign: 'left', width: '100%' }} onClick={() => go(route)}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--surface-2)', color: 'var(--violet-2)' }}><Icon name={ic} size={18} /></div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{t}</div>
-                  <div className="faint" style={{ fontSize: 11.5 }}>{d}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{title}</div>
+                  <div className="faint" style={{ fontSize: 11.5 }}>{desc}</div>
                 </div>
               </button>
             ))}

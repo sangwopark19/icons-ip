@@ -1,6 +1,6 @@
 # ICONS — 아키텍처
 
-> 상태: Draft · 최종 수정 2026-06-23 · 짝 문서: [`PRD.md`](./PRD.md)
+> 상태: Draft · 최종 수정 2026-06-24 · 짝 문서: [`PRD.md`](./PRD.md)
 > 이 문서는 **어떻게 만들 것인가**를 정의한다. 현재 코드베이스(프로토타입)에서 출발해 목표 아키텍처와 이전 경로를 기술한다.
 >
 > ⚠️ 이 프로젝트의 Next.js 16은 학습 데이터와 API/관례가 다를 수 있다(`AGENTS.md`). 실제 코드 작성 전 `node_modules/next/dist/docs/`를 확인한다. 본 문서가 코드 디테일과 어긋나면 코드를 따른다.
@@ -27,9 +27,9 @@
 | 화면 | 11개 라우트 ↔ screen 컴포넌트 | `app/**/page.tsx` → `components/screens/*` |
 | 셸 | Nav · MobNav · SiteFooter · CartProvider · `useGo` | `components/shell/*` |
 | 라우팅 맵 | 프로토타입 route-id ↔ 경로 | `lib/routes.ts` |
-| 데이터 | Supabase 공개 카탈로그 읽기 + mock fallback. IP 상세 커뮤니티 preview는 Supabase `posts`/`public_profiles`에서 읽음 | `lib/catalog.ts`, `lib/data.ts` |
+| 데이터 | Supabase 공개 카탈로그와 커뮤니티 visible feed 읽기 + mock fallback. IP 상세 커뮤니티 preview도 Supabase `posts`/`public_profiles`에서 읽음 | `lib/catalog.ts`, `lib/community.server.ts`, `lib/data.ts` |
 | 인증 | Supabase SSR 이메일/PW Auth, 확인 메일 callback, 온보딩 게이트, 우상단 AuthButton 상태 동기화. env 없으면 no-op/폼 비활성화 | `app/login/*`, `app/auth/callback/route.ts`, `app/onboarding/*`, `components/shell/AuthButton.tsx`, `lib/auth/*`, `lib/supabase/*`, 루트 `proxy.ts` |
-| 보호 액션 | IP 팔로우/언팔로우 server action + 온보딩 추천 IP 저장. DB 갱신은 `follow_ip`/`unfollow_ip` RPC 사용 | `app/ip/actions.ts`, `app/onboarding/actions.ts`, `lib/ip-follow*`, `supabase/migrations/20260623090001_ip_follow_rpc.sql` |
+| 보호 액션 | IP 팔로우/언팔로우 server action + 온보딩 추천 IP 저장. 커뮤니티 포스트 작성은 Server Action으로 `posts`와 `user-uploads`에 연결. IP 팔로우 DB 갱신은 `follow_ip`/`unfollow_ip` RPC 사용 | `app/ip/actions.ts`, `app/onboarding/actions.ts`, `app/community/actions.ts`, `lib/ip-follow*`, `supabase/migrations/20260623090001_ip_follow_rpc.sql` |
 | CI/CD | GitHub Actions `CI/CD Pipeline`: PR 검증 + Vercel preview 배포, merge queue 검증, `main` push production 배포. Actions 앱 빌드 Node는 26 | `.github/workflows/pipeline.yml` |
 | 배포 | PR은 Vercel prebuilt preview deploy, `main` push는 Supabase linked migration push 후 Vercel prebuilt production deploy. Vercel Git 자동 배포는 비활성화 | GitHub Secrets + `.github/workflows/pipeline.yml`, `vercel.json` |
 | Production runtime | Vercel project/runtime Node.js Version은 공식 지원 범위인 24.x 유지 | Vercel Project Settings |
@@ -82,7 +82,7 @@ Cloudflare DNS는 `iconsip.com`/`www.iconsip.com`을 Vercel로 보내고, 같은
 | 인증 | Supabase Auth: 현재 **이메일/PW** 구현, 목표 **Google + Apple + Kakao** 추가 | 소셜 버튼은 UI만 있고 아직 비활성화. 모든 가입 경로는 온보딩에서 프로필 완성 |
 | 결제 | **토스페이먼츠** 직접(결제창/위젯 + 웹훅) | 단일 PG. 굿즈·티켓·지갑 충전 공용 |
 | 검색 | **Postgres** pg_trgm + ILIKE | 외부 검색엔진 없음(v1) |
-| 미디어 | **Supabase Storage** | public(카탈로그/아트워크) + authed(업로드) |
+| 미디어 | **Supabase Storage** | public(카탈로그/아트워크) + private `user-uploads`(사용자 업로드) |
 | 무결성 | **Postgres RPC**(SECURITY DEFINER) + RLS | 가챠·티켓·주문·지갑 |
 
 ---
@@ -205,7 +205,7 @@ Production Auth 설정:
 
 - **Supabase Storage**
   - `public/` 버킷: 굿즈·카드·IP·이벤트 아트워크 (프로토타입의 그라디언트+글리프 플레이스홀더를 실제 이미지로 교체).
-  - `authed/` 버킷: 커뮤니티 업로드·프로필 이미지 (RLS·소유자 범위, 업로드 검증).
+  - `user-uploads` 버킷: 커뮤니티 업로드·프로필 이미지. 쓰기는 RLS로 본인 폴더(`<uid>/...`)에 제한하고, 공개 커뮤니티 피드는 `visible` 포스트에 연결된 작성자 본인 경로의 이미지만 signed URL로 읽는다.
 - 카탈로그 테이블은 경로(`image_path`)만 저장, 렌더 시 URL 변환. 이미지 변환/최적화 활용.
 
 ---
