@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createCommunityPostAction } from './actions';
+import {
+  createCommunityCommentAction,
+  createCommunityPostAction,
+  deleteCommunityCommentAction,
+  deleteCommunityPostAction,
+  setCommunityPostLikeAction,
+} from './actions';
 import type { CatalogSnapshot } from '@/lib/catalog';
 import type { CurrentAuthState } from '@/lib/auth/server';
 
@@ -7,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   auth: { isConfigured: true, user: null, profile: null } as CurrentAuthState,
   catalog: null as CatalogSnapshot | null,
   insert: vi.fn(),
+  rpc: vi.fn(),
   upload: vi.fn(),
   revalidatePath: vi.fn(),
 }));
@@ -21,6 +28,7 @@ vi.mock('@/lib/catalog', () => ({
 }));
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => ({
+    rpc: mocks.rpc,
     from: (table: string) => {
       if (table !== 'posts') throw new Error(`Unexpected table ${table}`);
       return {
@@ -68,11 +76,44 @@ const catalog: CatalogSnapshot = {
   events: [],
 };
 
+const postId = '11111111-1111-4111-8111-111111111111';
+const commentId = '22222222-2222-4222-8222-222222222222';
+
 function postForm() {
   const formData = new FormData();
   formData.set('text', '  팝업 후기입니다  ');
   formData.set('ipId', 'hwasan');
   formData.set('tag', '팝업');
+  formData.set('next', '/community');
+  return formData;
+}
+
+function commentForm() {
+  const formData = new FormData();
+  formData.set('postId', postId);
+  formData.set('text', '  저도 좋아요  ');
+  formData.set('next', '/community');
+  return formData;
+}
+
+function likeForm(shouldLike: boolean) {
+  const formData = new FormData();
+  formData.set('postId', postId);
+  formData.set('shouldLike', shouldLike ? '1' : '0');
+  formData.set('next', '/community');
+  return formData;
+}
+
+function deletePostForm() {
+  const formData = new FormData();
+  formData.set('postId', postId);
+  formData.set('next', '/community');
+  return formData;
+}
+
+function deleteCommentForm() {
+  const formData = new FormData();
+  formData.set('commentId', commentId);
   formData.set('next', '/community');
   return formData;
 }
@@ -92,6 +133,7 @@ describe('createCommunityPostAction', () => {
     };
     mocks.catalog = catalog;
     mocks.insert.mockReset();
+    mocks.rpc.mockReset();
     mocks.upload.mockReset();
     mocks.revalidatePath.mockReset();
     mocks.insert.mockReturnValue({
@@ -149,5 +191,105 @@ describe('createCommunityPostAction', () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');
     randomUUIDSpy.mockRestore();
+  });
+});
+
+describe('community reaction actions', () => {
+  beforeEach(() => {
+    mocks.auth = {
+      isConfigured: true,
+      user: { id: 'user-1', email: 'fan@icons.gg' },
+      profile: {
+        email: 'fan@icons.gg',
+        nickname: 'fan',
+        birth_date: '2000-01-01',
+        consents: { terms: true, privacy: true, marketing: false },
+        onboarded_at: '2026-06-23T00:00:00.000Z',
+      },
+    };
+    mocks.rpc.mockReset();
+    mocks.revalidatePath.mockReset();
+  });
+
+  it('redirects unauthenticated comment submissions to login', async () => {
+    mocks.auth = { isConfigured: true, user: null, profile: null };
+
+    await expect(createCommunityCommentAction({}, commentForm())).rejects.toThrow(
+      'NEXT_REDIRECT:/login?next=%2Fcommunity',
+    );
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it('creates a comment through the visible-post RPC and refreshes community surfaces', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan' }, error: null });
+
+    await expect(createCommunityCommentAction({}, commentForm())).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('create_post_comment', {
+      target_post_id: postId,
+      comment_text: '저도 좋아요',
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');
+  });
+
+  it('sets the requested like state instead of issuing a non-idempotent flip command', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan', liked: true }, error: null });
+
+    await expect(setCommunityPostLikeAction(likeForm(true))).rejects.toThrow('NEXT_REDIRECT:/community');
+    await expect(setCommunityPostLikeAction(likeForm(true))).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenNthCalledWith(1, 'set_post_like', {
+      target_post_id: postId,
+      should_like: true,
+    });
+    expect(mocks.rpc).toHaveBeenNthCalledWith(2, 'set_post_like', {
+      target_post_id: postId,
+      should_like: true,
+    });
+  });
+
+  it('sets unlike submissions as a requested final state', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan', liked: false }, error: null });
+
+    await expect(setCommunityPostLikeAction(likeForm(false))).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('set_post_like', {
+      target_post_id: postId,
+      should_like: false,
+    });
+  });
+
+  it('redirects unauthenticated like submissions to login', async () => {
+    mocks.auth = { isConfigured: true, user: null, profile: null };
+
+    await expect(setCommunityPostLikeAction(likeForm(true))).rejects.toThrow(
+      'NEXT_REDIRECT:/login?next=%2Fcommunity',
+    );
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it('deletes only the current author post through the delete RPC', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan' }, error: null });
+
+    await expect(deleteCommunityPostAction(deletePostForm())).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('delete_own_post', {
+      target_post_id: postId,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');
+  });
+
+  it('deletes only the current author comment through the delete RPC', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan' }, error: null });
+
+    await expect(deleteCommunityCommentAction(deleteCommentForm())).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('delete_own_comment', {
+      target_comment_id: commentId,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');
   });
 });

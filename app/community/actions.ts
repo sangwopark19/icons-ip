@@ -5,7 +5,13 @@ import { redirect } from 'next/navigation';
 import { getCatalogSnapshot } from '@/lib/catalog';
 import { isOnboarded, onboardingPath, safeNextPath } from '@/lib/auth/onboarding';
 import { getCurrentAuthState } from '@/lib/auth/server';
-import { buildCommunityUploadPath, normalizeCommunityPostForm } from '@/lib/community';
+import {
+  buildCommunityUploadPath,
+  normalizeCommunityCommentForm,
+  normalizeCommunityLikeForm,
+  normalizeCommunityPostForm,
+  normalizeCommunityUuid,
+} from '@/lib/community';
 import { createClient } from '@/lib/supabase/server';
 
 export interface CommunityPostActionState {
@@ -13,6 +19,14 @@ export interface CommunityPostActionState {
     text?: string;
     ipId?: string;
     image?: string;
+    form?: string;
+  };
+}
+
+export interface CommunityCommentActionState {
+  errors?: {
+    postId?: string;
+    text?: string;
     form?: string;
   };
 }
@@ -28,11 +42,21 @@ function loginPath(next: string) {
   return `/login?next=${encodeURIComponent(safeNextPath(next))}`;
 }
 
-export async function createCommunityPostAction(
-  _state: CommunityPostActionState,
-  formData: FormData,
-): Promise<CommunityPostActionState> {
-  const next = readNext(formData);
+function communityErrorPath(next: string) {
+  const url = new URL(safeNextPath(next), 'https://icons.local');
+  url.searchParams.set('community_error', '1');
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function readRpcIpId(data: unknown) {
+  if (!data || typeof data !== 'object') return null;
+  const candidate = Array.isArray(data) ? data[0] : data;
+  if (!candidate || typeof candidate !== 'object') return null;
+  const ipId = (candidate as { ipId?: unknown; ip_id?: unknown }).ipId ?? (candidate as { ip_id?: unknown }).ip_id;
+  return typeof ipId === 'string' && ipId.trim() ? ipId : null;
+}
+
+async function requireCommunityUser(next: string) {
   const auth = await getCurrentAuthState();
 
   if (!auth.isConfigured || !auth.user) {
@@ -42,6 +66,22 @@ export async function createCommunityPostAction(
   if (!isOnboarded(auth.profile, auth.user.email)) {
     redirect(onboardingPath(next));
   }
+
+  return auth.user;
+}
+
+function revalidateCommunitySurfaces(ipId: string | null) {
+  revalidatePath('/community');
+  revalidatePath('/');
+  if (ipId) revalidatePath(`/ip/${ipId}`);
+}
+
+export async function createCommunityPostAction(
+  _state: CommunityPostActionState,
+  formData: FormData,
+): Promise<CommunityPostActionState> {
+  const next = readNext(formData);
+  const user = await requireCommunityUser(next);
 
   const catalog = await getCatalogSnapshot();
   const normalized = normalizeCommunityPostForm(formData, new Set(catalog.ips.map((ip) => ip.id)));
@@ -54,7 +94,7 @@ export async function createCommunityPostAction(
 
   if (image) {
     imagePath = buildCommunityUploadPath({
-      userId: auth.user.id,
+      userId: user.id,
       mimeType: image.type,
       nonce: crypto.randomUUID(),
     });
@@ -74,7 +114,7 @@ export async function createCommunityPostAction(
   const { error } = await supabase
     .from('posts')
     .insert({
-      user_id: auth.user.id,
+      user_id: user.id,
       ip_id: ipId,
       text,
       tag,
@@ -91,5 +131,84 @@ export async function createCommunityPostAction(
   revalidatePath('/');
   if (ipId) revalidatePath(`/ip/${ipId}`);
 
+  redirect(next);
+}
+
+export async function createCommunityCommentAction(
+  _state: CommunityCommentActionState,
+  formData: FormData,
+): Promise<CommunityCommentActionState> {
+  const next = readNext(formData);
+  await requireCommunityUser(next);
+
+  const normalized = normalizeCommunityCommentForm(formData);
+  if (!normalized.ok) return { errors: normalized.errors };
+
+  const supabase = await createClient();
+  const { error, data } = await supabase.rpc('create_post_comment', {
+    target_post_id: normalized.value.postId,
+    comment_text: normalized.value.text,
+  });
+
+  if (error) {
+    return { errors: { form: '댓글을 저장하지 못했습니다. 다시 시도해주세요.' } };
+  }
+
+  revalidateCommunitySurfaces(readRpcIpId(data));
+  redirect(next);
+}
+
+export async function setCommunityPostLikeAction(formData: FormData) {
+  const next = readNext(formData);
+  await requireCommunityUser(next);
+
+  const normalized = normalizeCommunityLikeForm(formData);
+  if (!normalized.ok) redirect(communityErrorPath(next));
+
+  const supabase = await createClient();
+  const { error, data } = await supabase.rpc('set_post_like', {
+    target_post_id: normalized.value.postId,
+    should_like: normalized.value.shouldLike,
+  });
+
+  if (error) redirect(communityErrorPath(next));
+
+  revalidateCommunitySurfaces(readRpcIpId(data));
+  redirect(next);
+}
+
+export async function deleteCommunityPostAction(formData: FormData) {
+  const next = readNext(formData);
+  await requireCommunityUser(next);
+
+  const postId = normalizeCommunityUuid(formData.get('postId'));
+  if (!postId) redirect(communityErrorPath(next));
+
+  const supabase = await createClient();
+  const { error, data } = await supabase.rpc('delete_own_post', {
+    target_post_id: postId,
+  });
+
+  if (error) redirect(communityErrorPath(next));
+
+  revalidateCommunitySurfaces(readRpcIpId(data));
+  redirect(next);
+}
+
+export async function deleteCommunityCommentAction(formData: FormData) {
+  const next = readNext(formData);
+  await requireCommunityUser(next);
+
+  const commentId = normalizeCommunityUuid(formData.get('commentId'));
+  if (!commentId) redirect(communityErrorPath(next));
+
+  const supabase = await createClient();
+  const { error, data } = await supabase.rpc('delete_own_comment', {
+    target_comment_id: commentId,
+  });
+
+  if (error) redirect(communityErrorPath(next));
+
+  revalidateCommunitySurfaces(readRpcIpId(data));
   redirect(next);
 }

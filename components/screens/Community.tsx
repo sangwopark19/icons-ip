@@ -1,8 +1,16 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
-import { createCommunityPostAction, type CommunityPostActionState } from '@/app/community/actions';
+import {
+  createCommunityCommentAction,
+  createCommunityPostAction,
+  deleteCommunityCommentAction,
+  deleteCommunityPostAction,
+  setCommunityPostLikeAction,
+  type CommunityCommentActionState,
+  type CommunityPostActionState,
+} from '@/app/community/actions';
 import type { CommunityChannel, CommunityFeedPost, CommunitySnapshot } from '@/lib/community';
 import { krw, type Good } from '@/lib/data';
 import { Icon } from '@/components/ui/Icon';
@@ -10,6 +18,7 @@ import { Empty } from '@/components/ui/Empty';
 import { useGo } from '@/components/shell/useGo';
 
 const emptyState: CommunityPostActionState = {};
+const emptyCommentState: CommunityCommentActionState = {};
 
 function ErrorText({ children, id }: { children?: string; id: string }) {
   if (!children) return null;
@@ -17,6 +26,89 @@ function ErrorText({ children, id }: { children?: string; id: string }) {
     <span id={id} style={{ color: 'var(--pink)', fontSize: 12.5, fontWeight: 600 }}>
       {children}
     </span>
+  );
+}
+
+function ReactionButton({
+  active,
+  children,
+  label,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  label: string;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      aria-label={label}
+      aria-pressed={active}
+      className="row muted"
+      disabled={pending}
+      style={{
+        gap: 7,
+        fontSize: 13.5,
+        fontWeight: 600,
+        color: active ? 'var(--pink)' : undefined,
+        opacity: pending ? 0.6 : undefined,
+      }}
+      type="submit"
+    >
+      {children}
+    </button>
+  );
+}
+
+function DeleteButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      aria-label={label}
+      className="muted"
+      disabled={pending}
+      style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--faint)', opacity: pending ? 0.6 : undefined }}
+      type="submit"
+    >
+      삭제
+    </button>
+  );
+}
+
+function CommentSubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      aria-label="댓글 게시"
+      className="btn btn-sm"
+      disabled={pending}
+      style={{ height: 36, padding: '0 12px' }}
+      type="submit"
+    >
+      {pending ? <Icon name="clock" size={15} /> : <Icon name="arrowUp" size={15} />}
+    </button>
+  );
+}
+
+function CommentForm({ postId }: { postId: string }) {
+  const [state, action] = useActionState(createCommunityCommentAction, emptyCommentState);
+  const errorId = `comment-${postId}-error`;
+
+  return (
+    <form action={action} className="row" style={{ gap: 8, marginTop: 12, alignItems: 'start' }}>
+      <input type="hidden" name="next" value="/community" />
+      <input type="hidden" name="postId" value={postId} />
+      <div className="col" style={{ flex: 1, gap: 6 }}>
+        <input
+          aria-describedby={state.errors?.text || state.errors?.form ? errorId : undefined}
+          aria-invalid={Boolean(state.errors?.text || state.errors?.form)}
+          name="text"
+          placeholder="댓글을 남겨보세요"
+          style={{ width: '100%', height: 36, border: '1px solid var(--line-2)', background: 'var(--bg-2)', borderRadius: 10, padding: '0 11px', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+        />
+        <ErrorText id={errorId}>{state.errors?.text ?? state.errors?.form ?? state.errors?.postId}</ErrorText>
+      </div>
+      <CommentSubmitButton />
+    </form>
   );
 }
 
@@ -38,17 +130,57 @@ function PostCard({ p }: { p: CommunityFeedPost }) {
             <span className="faint mono" style={{ fontSize: 11 }}>{p.time}</span>
           </div>
         </div>
-        <span className="tag" style={{ marginLeft: 'auto', color: 'var(--violet-2)' }}>#{p.tag}</span>
+        <div className="row" style={{ marginLeft: 'auto', gap: 10, alignItems: 'center' }}>
+          <span className="tag" style={{ color: 'var(--violet-2)' }}>#{p.tag}</span>
+          {p.canDelete && (
+            <form action={deleteCommunityPostAction}>
+              <input type="hidden" name="next" value="/community" />
+              <input type="hidden" name="postId" value={p.id} />
+              <DeleteButton label="포스트 삭제" />
+            </form>
+          )}
+        </div>
       </div>
       <p style={{ marginTop: 14, fontSize: 15, lineHeight: 1.55 }}>{p.text}</p>
       {imageBackground && <div style={{ marginTop: 14, height: 220, borderRadius: 14, background: imageBackground, position: 'relative', overflow: 'hidden' }}><div className="sheen" /></div>}
       <div className="row" style={{ marginTop: 16, gap: 22 }}>
-        <span className="row muted" style={{ gap: 7, fontSize: 13.5, fontWeight: 600 }}>
-          <Icon name="heart" size={17} /> {p.likes}
-        </span>
+        <form action={setCommunityPostLikeAction}>
+          <input type="hidden" name="next" value="/community" />
+          <input type="hidden" name="postId" value={p.id} />
+          <input type="hidden" name="shouldLike" value={p.likedByViewer ? '0' : '1'} />
+          <ReactionButton active={p.likedByViewer} label={p.likedByViewer ? '좋아요 취소' : '좋아요'}>
+            <Icon name="heart" size={17} fill={p.likedByViewer} /> {p.likes}
+          </ReactionButton>
+        </form>
         <span className="row muted" style={{ gap: 7, fontSize: 13.5 }}><Icon name="chat" size={17} /> {p.comments}</span>
         <span className="row muted" style={{ gap: 7, fontSize: 13.5, marginLeft: 'auto' }}><Icon name="arrow" size={17} /> 공유</span>
       </div>
+      {(p.commentItems.length > 0 || p.comments > 0) && (
+        <div className="col" style={{ gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          {p.commentItems.map((comment) => (
+            <div key={comment.id} className="row" style={{ alignItems: 'start', gap: 10 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 99, background: 'var(--surface-2)', flex: '0 0 auto', display: 'grid', placeItems: 'center', fontWeight: 800, color: 'var(--violet-2)', fontSize: 11 }}>
+                {comment.user[0].toUpperCase()}
+              </div>
+              <div className="col" style={{ minWidth: 0, gap: 3, flex: 1 }}>
+                <div className="row" style={{ gap: 7, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700 }}>@{comment.user}</span>
+                  <span className="faint mono" style={{ fontSize: 10.5 }}>{comment.time}</span>
+                </div>
+                <p style={{ fontSize: 13.5, lineHeight: 1.45, margin: 0 }}>{comment.text}</p>
+              </div>
+              {comment.canDelete && (
+                <form action={deleteCommunityCommentAction}>
+                  <input type="hidden" name="next" value="/community" />
+                  <input type="hidden" name="commentId" value={comment.id} />
+                  <DeleteButton label="댓글 삭제" />
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <CommentForm postId={p.id} />
     </article>
   );
 }

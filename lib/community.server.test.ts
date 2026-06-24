@@ -41,7 +41,55 @@ interface RpcRecord {
 interface CreateClientOptions {
   rpcRecords?: RpcRecord[];
   signedUrlFailures?: ReadonlySet<string>;
+  rows?: Partial<TestRows>;
 }
+
+function createDefaultRows() {
+  return {
+    posts: [
+      {
+        id: 'p1',
+        user_id: 'u1',
+        ip_id: 'hwasan',
+        text: '첫 번째 포스트',
+        tag: '후기',
+        created_at: '2026-06-22T04:00:00.000Z',
+        image_path: 'u1/community/p1.png',
+        status: 'visible',
+      },
+      {
+        id: 'hidden',
+        user_id: 'u1',
+        ip_id: 'hwasan',
+        text: '숨김 포스트',
+        tag: '숨김',
+        created_at: '2026-06-22T05:00:00.000Z',
+        image_path: 'u1/community/hidden.png',
+        status: 'hidden',
+      },
+    ],
+    public_profiles: [{ id: 'u1', nickname: 'neonfan' }],
+    likes: [{ post_id: 'p1', user_id: 'u1' }, { post_id: 'p1', user_id: 'u2' }],
+    comments: [
+      {
+        id: 'c1',
+        post_id: 'p1',
+        user_id: 'u2',
+        text: '저도 다녀왔어요',
+        created_at: '2026-06-22T04:05:00.000Z',
+      },
+      {
+        id: 'c2',
+        post_id: 'p1',
+        user_id: 'u1',
+        text: '사진 더 올릴게요',
+        created_at: '2026-06-22T04:06:00.000Z',
+      },
+    ],
+  };
+}
+
+type TestRows = ReturnType<typeof createDefaultRows>;
 
 function createQuery<T extends Record<string, unknown>>(
   table: string,
@@ -100,33 +148,7 @@ function createQuery<T extends Record<string, unknown>>(
 }
 
 function createClient(records: QueryRecord[], options: CreateClientOptions = {}) {
-  const rows = {
-    posts: [
-      {
-        id: 'p1',
-        user_id: 'u1',
-        ip_id: 'hwasan',
-        text: '첫 번째 포스트',
-        tag: '후기',
-        created_at: '2026-06-22T04:00:00.000Z',
-        image_path: 'u1/community/p1.png',
-        status: 'visible',
-      },
-      {
-        id: 'hidden',
-        user_id: 'u1',
-        ip_id: 'hwasan',
-        text: '숨김 포스트',
-        tag: '숨김',
-        created_at: '2026-06-22T05:00:00.000Z',
-        image_path: 'u1/community/hidden.png',
-        status: 'hidden',
-      },
-    ],
-    public_profiles: [{ id: 'u1', nickname: 'neonfan' }],
-    likes: [{ post_id: 'p1' }, { post_id: 'p1' }],
-    comments: [{ post_id: 'p1' }],
-  };
+  const rows = { ...createDefaultRows(), ...options.rows };
 
   return {
     from(table: keyof typeof rows) {
@@ -139,8 +161,14 @@ function createClient(records: QueryRecord[], options: CreateClientOptions = {})
         return { data: null, error: { message: `Unexpected RPC: ${functionName}` } };
       }
 
+      const targetPostIds = Array.isArray(args.target_post_ids) ? args.target_post_ids : [];
+
       return {
-        data: [{ post_id: 'p1', likes_count: 2, comments_count: 1 }],
+        data: targetPostIds.map((postId) => ({
+          post_id: String(postId),
+          likes_count: rows.likes.filter((row) => row.post_id === postId).length,
+          comments_count: rows.comments.filter((row) => row.post_id === postId).length,
+        })),
         error: null,
       };
     },
@@ -189,13 +217,13 @@ const catalog: CatalogSnapshot = {
 };
 
 describe('getCommunitySnapshot', () => {
-  it('loads visible Supabase posts with safe author, reaction and signed image fields', async () => {
+  it('loads visible Supabase posts with safe author, reaction, comment and signed image fields', async () => {
     const records: QueryRecord[] = [];
     const rpcRecords: RpcRecord[] = [];
     mocks.catalog = catalog;
     mocks.client = createClient(records, { rpcRecords });
 
-    const snapshot = await getCommunitySnapshot();
+    const snapshot = await getCommunitySnapshot({ viewerId: 'u1' });
 
     expect(snapshot.posts).toEqual([
       expect.objectContaining({
@@ -207,8 +235,24 @@ describe('getCommunitySnapshot', () => {
         text: '첫 번째 포스트',
         tag: '후기',
         likes: 2,
-        comments: 1,
+        comments: 2,
         img: 'https://cdn.example/user-uploads/u1/community/p1.png?exp=3600',
+        likedByViewer: true,
+        canDelete: true,
+        commentItems: [
+          expect.objectContaining({
+            id: 'c1',
+            user: 'fan_u2',
+            text: '저도 다녀왔어요',
+            canDelete: false,
+          }),
+          expect.objectContaining({
+            id: 'c2',
+            user: 'neonfan',
+            text: '사진 더 올릴게요',
+            canDelete: true,
+          }),
+        ],
       }),
     ]);
     expect(snapshot.posts).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: 'hidden' })]));
@@ -219,11 +263,99 @@ describe('getCommunitySnapshot', () => {
       order: [['created_at', { ascending: false }]],
       limit: 30,
     });
-    expect(records.filter((record) => record.table === 'likes' || record.table === 'comments')).toEqual([]);
+    expect(records.filter((record) => record.table === 'comments')).toEqual([
+      expect.objectContaining({
+        select: 'id,post_id,user_id,text,created_at',
+        eq: [['post_id', 'p1']],
+        order: [['created_at', { ascending: true }]],
+        limit: 3,
+      }),
+    ]);
+    expect(records.filter((record) => record.table === 'likes')).toEqual([
+      expect.objectContaining({
+        select: 'post_id',
+        eq: [['user_id', 'u1']],
+        in: [['post_id', ['p1']]],
+      }),
+    ]);
     expect(rpcRecords).toEqual([{
       functionName: 'community_post_reaction_counts',
       args: { target_post_ids: ['p1'] },
     }]);
+  });
+
+  it('loads comment previews per post so busy posts do not starve other cards', async () => {
+    const records: QueryRecord[] = [];
+    mocks.catalog = catalog;
+    mocks.client = createClient(records, {
+      rows: {
+        posts: [
+          {
+            id: 'p2',
+            user_id: 'u3',
+            ip_id: 'hwasan',
+            text: '두 번째 포스트',
+            tag: '질문',
+            created_at: '2026-06-22T04:30:00.000Z',
+            image_path: null,
+            status: 'visible',
+          },
+          {
+            id: 'p1',
+            user_id: 'u1',
+            ip_id: 'hwasan',
+            text: '첫 번째 포스트',
+            tag: '후기',
+            created_at: '2026-06-22T04:00:00.000Z',
+            image_path: null,
+            status: 'visible',
+          },
+        ],
+        public_profiles: [
+          { id: 'u1', nickname: 'neonfan' },
+          { id: 'u2', nickname: null },
+          { id: 'u3', nickname: 'commenter' },
+        ],
+        likes: [],
+        comments: [
+          ...Array.from({ length: 91 }, (_, index) => ({
+            id: `p1-c${index + 1}`,
+            post_id: 'p1',
+            user_id: 'u2',
+            text: `busy comment ${index + 1}`,
+            created_at: new Date(Date.UTC(2026, 5, 22, 4, 0, index)).toISOString(),
+          })),
+          {
+            id: 'p2-c1',
+            post_id: 'p2',
+            user_id: 'u3',
+            text: '다른 포스트 댓글',
+            created_at: '2026-06-22T05:40:00.000Z',
+          },
+        ],
+      },
+    });
+
+    const snapshot = await getCommunitySnapshot();
+
+    expect(snapshot.posts.map((post) => ({
+      id: post.id,
+      comments: post.comments,
+      previewIds: post.commentItems.map((comment) => comment.id),
+    }))).toEqual([
+      { id: 'p2', comments: 1, previewIds: ['p2-c1'] },
+      { id: 'p1', comments: 91, previewIds: ['p1-c1', 'p1-c2', 'p1-c3'] },
+    ]);
+    expect(records.filter((record) => record.table === 'comments')).toEqual([
+      expect.objectContaining({
+        eq: [['post_id', 'p2']],
+        limit: 3,
+      }),
+      expect.objectContaining({
+        eq: [['post_id', 'p1']],
+        limit: 3,
+      }),
+    ]);
   });
 
   it('omits a post image when signed URL creation fails without failing the public feed', async () => {

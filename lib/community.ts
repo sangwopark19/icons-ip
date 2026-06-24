@@ -30,6 +30,14 @@ export interface CommunityChannel {
   color: string;
 }
 
+export interface CommunityFeedComment {
+  id: string;
+  user: string;
+  text: string;
+  time: string;
+  canDelete: boolean;
+}
+
 export interface CommunityFeedPost {
   id: string;
   user: string;
@@ -42,6 +50,9 @@ export interface CommunityFeedPost {
   time: string;
   tag: string;
   img?: string | null;
+  likedByViewer: boolean;
+  canDelete: boolean;
+  commentItems: CommunityFeedComment[];
 }
 
 export interface CommunitySnapshot {
@@ -76,9 +87,52 @@ export type CommunityPostFormResult =
   | { ok: true; value: CommunityPostFormValue }
   | { ok: false; errors: CommunityPostFormErrors };
 
+export interface CommunityCommentFormValue {
+  postId: string;
+  text: string;
+}
+
+export interface CommunityCommentFormErrors {
+  postId?: string;
+  text?: string;
+}
+
+export type CommunityCommentFormResult =
+  | { ok: true; value: CommunityCommentFormValue }
+  | { ok: false; errors: CommunityCommentFormErrors };
+
+export interface CommunityLikeFormValue {
+  postId: string;
+  shouldLike: boolean;
+}
+
+export interface CommunityLikeFormErrors {
+  postId?: string;
+}
+
+export type CommunityLikeFormResult =
+  | { ok: true; value: CommunityLikeFormValue }
+  | { ok: false; errors: CommunityLikeFormErrors };
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function readString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === 'string' ? value.trim() : '';
+}
+
+export function normalizeCommunityUuid(value: FormDataEntryValue | string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return UUID_PATTERN.test(normalized) ? normalized : null;
+}
+
+function readUuid(formData: FormData, key: string) {
+  return normalizeCommunityUuid(formData.get(key));
+}
+
+function readBoolean(formData: FormData, key: string) {
+  const value = readString(formData, key).toLowerCase();
+  return value === '1' || value === 'true' || value === 'on' || value === 'like';
 }
 
 function normalizeTag(value: string) {
@@ -118,6 +172,46 @@ export function normalizeCommunityPostForm(
       ipId,
       tag: normalizeTag(readString(formData, 'tag')),
       image,
+    },
+  };
+}
+
+export function normalizeCommunityCommentForm(formData: FormData): CommunityCommentFormResult {
+  const postId = readUuid(formData, 'postId');
+  const text = readString(formData, 'text');
+  const errors: CommunityCommentFormErrors = {};
+
+  if (!postId) errors.postId = '포스트를 찾을 수 없습니다.';
+  if (!text) errors.text = '댓글을 입력해주세요.';
+
+  if (!postId || !text) return { ok: false, errors };
+
+  return {
+    ok: true,
+    value: {
+      postId,
+      text,
+    },
+  };
+}
+
+export function normalizeCommunityLikeForm(formData: FormData): CommunityLikeFormResult {
+  const postId = readUuid(formData, 'postId');
+
+  if (!postId) {
+    return {
+      ok: false,
+      errors: {
+        postId: '포스트를 찾을 수 없습니다.',
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      postId,
+      shouldLike: readBoolean(formData, 'shouldLike'),
     },
   };
 }
