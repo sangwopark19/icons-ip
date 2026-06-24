@@ -183,6 +183,8 @@ as $$
 declare
   actor_id uuid := auth.uid();
   previous_ip_id text;
+  existing_pool_id uuid;
+  existing_rarity rarity;
 begin
   if actor_id is null then
     raise exception 'auth_required' using errcode = '28000';
@@ -192,7 +194,20 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  select ip_id into previous_ip_id from public.cards where id = target_id;
+  select ip_id, pool_id, rarity
+    into previous_ip_id, existing_pool_id, existing_rarity
+    from public.cards
+    where id = target_id
+    for update;
+
+  if existing_pool_id is not null
+    and (
+      previous_ip_id is distinct from target_ip_id
+      or existing_rarity is distinct from target_rarity
+    )
+  then
+    raise exception 'pooled_card_catalog_contract_locked' using errcode = '23514';
+  end if;
 
   insert into public.cards (
     id,
