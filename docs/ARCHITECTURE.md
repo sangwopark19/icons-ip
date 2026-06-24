@@ -82,7 +82,7 @@ Cloudflare DNS는 `iconsip.com`/`www.iconsip.com`을 Vercel로 보내고, 같은
 | 인증 | Supabase Auth: 현재 **이메일/PW** 구현, 목표 **Google + Apple + Kakao** 추가 | 소셜 버튼은 UI만 있고 아직 비활성화. 모든 가입 경로는 온보딩에서 프로필 완성 |
 | 결제 | **토스페이먼츠** 직접(결제창/위젯 + 웹훅) | 단일 PG. 굿즈·티켓·지갑 충전 공용 |
 | 검색 | **Postgres** pg_trgm + ILIKE | 외부 검색엔진 없음(v1) |
-| 미디어 | **Supabase Storage** | public(카탈로그/아트워크) + authed(업로드) |
+| 미디어 | **Supabase Storage** | public(카탈로그/아트워크) + private `user-uploads`(사용자 업로드) |
 | 무결성 | **Postgres RPC**(SECURITY DEFINER) + RLS | 가챠·티켓·주문·지갑 |
 
 ---
@@ -205,7 +205,7 @@ Production Auth 설정:
 
 - **Supabase Storage**
   - `public/` 버킷: 굿즈·카드·IP·이벤트 아트워크 (프로토타입의 그라디언트+글리프 플레이스홀더를 실제 이미지로 교체).
-  - `authed/` 버킷: 커뮤니티 업로드·프로필 이미지 (RLS·소유자 범위, 업로드 검증).
+  - `user-uploads` 버킷: 커뮤니티 업로드·프로필 이미지. 쓰기는 RLS로 본인 폴더(`<uid>/...`)에 제한하고, 공개 커뮤니티 피드는 `visible` 포스트에 연결된 작성자 본인 경로의 이미지만 signed URL로 읽는다.
 - 카탈로그 테이블은 경로(`image_path`)만 저장, 렌더 시 URL 변환. 이미지 변환/최적화 활용.
 
 ---
