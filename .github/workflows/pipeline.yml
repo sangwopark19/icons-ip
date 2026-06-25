@@ -60,8 +60,10 @@ jobs:
       - name: Apply local migrations
         run: supabase db reset --local
 
-      - name: Run community database smoke tests
-        run: docker exec -i supabase_db_icons-ip psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/community_comment_like_actions.sql
+      - name: Run database smoke tests
+        run: |
+          docker exec -i supabase_db_icons-ip psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/community_comment_like_actions.sql
+          docker exec -i supabase_db_icons-ip psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/search_public_content.sql
 
       - name: Lint local database
         run: supabase db lint --local --fail-on error

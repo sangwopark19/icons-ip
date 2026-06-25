@@ -194,6 +194,30 @@ select 1 / case when not exists (
     and id = '00000000-0000-4000-8000-000000000118'
 ) then 1 else 0 end as assert_hidden_post_excluded;
 
+select 1 / case when not exists (
+  select 1
+  from public.search_public_content('%', 6)
+  where id in (
+    'search-smoke-ip',
+    'search-smoke-good',
+    'search-smoke-card',
+    '00000000-0000-4000-8000-000000000117',
+    '검색스모크태그'
+  )
+) then 1 else 0 end as assert_percent_literal_not_wildcard;
+
+select 1 / case when not exists (
+  select 1
+  from public.search_public_content('_', 6)
+  where id in (
+    'search-smoke-ip',
+    'search-smoke-good',
+    'search-smoke-card',
+    '00000000-0000-4000-8000-000000000117',
+    '검색스모크태그'
+  )
+) then 1 else 0 end as assert_underscore_literal_not_wildcard;
+
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000116', true);

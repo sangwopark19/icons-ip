@@ -23,11 +23,22 @@ stable
 security definer
 set search_path = public, extensions, pg_temp
 as $$
-  with params as (
+  with raw_params as (
     select
-      nullif(btrim(search_query), '') as q,
+      nullif(left(btrim(search_query), 80), '') as q,
       greatest(1, least(coalesce(per_group_limit, 6), 20)) as result_limit,
       auth.uid() as actor_id
+  ),
+  params as (
+    select
+      raw_params.q,
+      case
+        when raw_params.q is null then null
+        else '%' || replace(replace(replace(raw_params.q, E'\\', E'\\\\'), '%', E'\\%'), '_', E'\\_') || '%'
+      end as q_like,
+      raw_params.result_limit,
+      raw_params.actor_id
+    from raw_params
   ),
   visible_posts as (
     select
@@ -65,19 +76,19 @@ as $$
       verticals.color as accent,
       greatest(
         extensions.similarity(ips.title, params.q),
-        case when ips.title ilike '%' || params.q || '%' then 1 else 0 end,
-        case when coalesce(ips.sub, '') ilike '%' || params.q || '%' then 0.7 else 0 end,
-        case when coalesce(ips.tagline, '') ilike '%' || params.q || '%' then 0.6 else 0 end,
-        case when coalesce(ips.synopsis, '') ilike '%' || params.q || '%' then 0.4 else 0 end
+        case when ips.title ilike params.q_like escape E'\\' then 1 else 0 end,
+        case when coalesce(ips.sub, '') ilike params.q_like escape E'\\' then 0.7 else 0 end,
+        case when coalesce(ips.tagline, '') ilike params.q_like escape E'\\' then 0.6 else 0 end,
+        case when coalesce(ips.synopsis, '') ilike params.q_like escape E'\\' then 0.4 else 0 end
       )::real as score,
       params.result_limit
     from params
     join public.ips on params.q is not null
     join public.verticals on verticals.key = ips.vertical_key
-    where ips.title ilike '%' || params.q || '%'
-      or coalesce(ips.sub, '') ilike '%' || params.q || '%'
-      or coalesce(ips.tagline, '') ilike '%' || params.q || '%'
-      or coalesce(ips.synopsis, '') ilike '%' || params.q || '%'
+    where ips.title ilike params.q_like escape E'\\'
+      or coalesce(ips.sub, '') ilike params.q_like escape E'\\'
+      or coalesce(ips.tagline, '') ilike params.q_like escape E'\\'
+      or coalesce(ips.synopsis, '') ilike params.q_like escape E'\\'
       or extensions.similarity(ips.title, params.q) > 0.15
 
     union all
@@ -94,20 +105,20 @@ as $$
       verticals.color as accent,
       greatest(
         extensions.similarity(goods.name, params.q),
-        case when goods.name ilike '%' || params.q || '%' then 1 else 0 end,
-        case when goods.type ilike '%' || params.q || '%' then 0.7 else 0 end,
-        case when coalesce(goods.badge, '') ilike '%' || params.q || '%' then 0.4 else 0 end,
-        case when ips.title ilike '%' || params.q || '%' then 0.35 else 0 end
+        case when goods.name ilike params.q_like escape E'\\' then 1 else 0 end,
+        case when goods.type ilike params.q_like escape E'\\' then 0.7 else 0 end,
+        case when coalesce(goods.badge, '') ilike params.q_like escape E'\\' then 0.4 else 0 end,
+        case when ips.title ilike params.q_like escape E'\\' then 0.35 else 0 end
       )::real as score,
       params.result_limit
     from params
     join public.goods on params.q is not null
     join public.ips on ips.id = goods.ip_id
     join public.verticals on verticals.key = ips.vertical_key
-    where goods.name ilike '%' || params.q || '%'
-      or goods.type ilike '%' || params.q || '%'
-      or coalesce(goods.badge, '') ilike '%' || params.q || '%'
-      or ips.title ilike '%' || params.q || '%'
+    where goods.name ilike params.q_like escape E'\\'
+      or goods.type ilike params.q_like escape E'\\'
+      or coalesce(goods.badge, '') ilike params.q_like escape E'\\'
+      or ips.title ilike params.q_like escape E'\\'
       or extensions.similarity(goods.name, params.q) > 0.15
 
     union all
@@ -124,20 +135,20 @@ as $$
       verticals.color as accent,
       greatest(
         extensions.similarity(cards.name, params.q),
-        case when cards.name ilike '%' || params.q || '%' then 1 else 0 end,
-        case when coalesce(cards.no, '') ilike '%' || params.q || '%' then 0.5 else 0 end,
-        case when cards.rarity::text ilike '%' || params.q || '%' then 0.5 else 0 end,
-        case when ips.title ilike '%' || params.q || '%' then 0.35 else 0 end
+        case when cards.name ilike params.q_like escape E'\\' then 1 else 0 end,
+        case when coalesce(cards.no, '') ilike params.q_like escape E'\\' then 0.5 else 0 end,
+        case when cards.rarity::text ilike params.q_like escape E'\\' then 0.5 else 0 end,
+        case when ips.title ilike params.q_like escape E'\\' then 0.35 else 0 end
       )::real as score,
       params.result_limit
     from params
     join public.cards on params.q is not null
     join public.ips on ips.id = cards.ip_id
     join public.verticals on verticals.key = ips.vertical_key
-    where cards.name ilike '%' || params.q || '%'
-      or coalesce(cards.no, '') ilike '%' || params.q || '%'
-      or cards.rarity::text ilike '%' || params.q || '%'
-      or ips.title ilike '%' || params.q || '%'
+    where cards.name ilike params.q_like escape E'\\'
+      or coalesce(cards.no, '') ilike params.q_like escape E'\\'
+      or cards.rarity::text ilike params.q_like escape E'\\'
+      or ips.title ilike params.q_like escape E'\\'
       or extensions.similarity(cards.name, params.q) > 0.15
 
     union all
@@ -154,16 +165,16 @@ as $$
       visible_posts.accent,
       greatest(
         extensions.similarity(visible_posts.text, params.q),
-        case when visible_posts.text ilike '%' || params.q || '%' then 1 else 0 end,
-        case when coalesce(visible_posts.tag, '') ilike '%' || params.q || '%' then 0.8 else 0 end,
-        case when coalesce(visible_posts.ip_title, '') ilike '%' || params.q || '%' then 0.35 else 0 end
+        case when visible_posts.text ilike params.q_like escape E'\\' then 1 else 0 end,
+        case when coalesce(visible_posts.tag, '') ilike params.q_like escape E'\\' then 0.8 else 0 end,
+        case when coalesce(visible_posts.ip_title, '') ilike params.q_like escape E'\\' then 0.35 else 0 end
       )::real as score,
       params.result_limit
     from params
     join visible_posts on true
-    where visible_posts.text ilike '%' || params.q || '%'
-      or coalesce(visible_posts.tag, '') ilike '%' || params.q || '%'
-      or coalesce(visible_posts.ip_title, '') ilike '%' || params.q || '%'
+    where visible_posts.text ilike params.q_like escape E'\\'
+      or coalesce(visible_posts.tag, '') ilike params.q_like escape E'\\'
+      or coalesce(visible_posts.ip_title, '') ilike params.q_like escape E'\\'
       or extensions.similarity(visible_posts.text, params.q) > 0.15
 
     union all
@@ -180,12 +191,12 @@ as $$
       max(visible_posts.accent) as accent,
       max(greatest(
         extensions.similarity(visible_posts.tag, params.q),
-        case when visible_posts.tag ilike '%' || params.q || '%' then 1 else 0 end
+        case when visible_posts.tag ilike params.q_like escape E'\\' then 1 else 0 end
       ))::real as score,
       params.result_limit
     from params
     join visible_posts on visible_posts.tag is not null
-    where visible_posts.tag ilike '%' || params.q || '%'
+    where visible_posts.tag ilike params.q_like escape E'\\'
       or extensions.similarity(visible_posts.tag, params.q) > 0.15
     group by visible_posts.tag, params.result_limit
   ),

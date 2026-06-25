@@ -28,7 +28,7 @@ export interface SearchResultGroup {
 export interface SearchSnapshot {
   source: 'supabase' | 'mock';
   query: string;
-  total: number;
+  displayedTotal: number;
   groups: SearchResultGroup[];
 }
 
@@ -107,7 +107,7 @@ function emptySnapshot(source: SearchSnapshot['source'], query: string): SearchS
   return {
     source,
     query,
-    total: 0,
+    displayedTotal: 0,
     groups: [],
   };
 }
@@ -213,7 +213,7 @@ function getMockSearchSnapshot(query: string): SearchSnapshot {
   return {
     source: 'mock',
     query,
-    total: results.length,
+    displayedTotal: results.length,
     groups: groupSearchResults(results),
   };
 }
@@ -248,7 +248,7 @@ export async function getSearchSnapshot(rawQuery: string | string[] | null | und
   return {
     source,
     query,
-    total: results.length,
+    displayedTotal: results.length,
     groups: groupSearchResults(results),
   };
 }

@@ -74,7 +74,7 @@ export function Search({ snapshot }: { snapshot: SearchSnapshot }) {
         )}
         {snapshot.query && (
           <div className="col" style={{ gap: 10, marginTop: 24 }}>
-            <div className="faint mono" style={{ fontSize: 12 }}>{snapshot.total}건의 결과</div>
+            <div className="faint mono" style={{ fontSize: 12 }}>상위 {snapshot.displayedTotal}건의 결과</div>
             {snapshot.groups.map((group) => (
               <section key={group.kind} className="col" style={{ gap: 10, marginTop: 12 }}>
                 <div className="between" style={{ padding: '0 2px' }}>
@@ -116,7 +116,7 @@ export function Search({ snapshot }: { snapshot: SearchSnapshot }) {
                 ))}
               </section>
             ))}
-            {!snapshot.total && <Empty icon="search" text={`'${snapshot.query}' 검색 결과가 없어요`} sub="다른 키워드로 검색해보세요" />}
+            {snapshot.displayedTotal === 0 && <Empty icon="search" text={`'${snapshot.query}' 검색 결과가 없어요`} sub="다른 키워드로 검색해보세요" />}
           </div>
         )}
       </div>

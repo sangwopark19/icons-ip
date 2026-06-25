@@ -37,6 +37,9 @@ describe('getSearchSnapshot', () => {
     expect(snapshot.source).toBe('mock');
     expect(snapshot.query).toBe('호시나');
     expect(snapshot.groups.map((group) => group.kind)).toEqual(['ip', 'good', 'card', 'post']);
+    expect(snapshot.displayedTotal).toBe(
+      snapshot.groups.reduce((total, group) => total + group.results.length, 0),
+    );
     expect(snapshot.groups.find((group) => group.kind === 'ip')?.results).toEqual([
       expect.objectContaining({ id: 'hoshina', label: '호시나 미오', ipId: 'hoshina' }),
     ]);
@@ -134,7 +137,7 @@ describe('getSearchSnapshot', () => {
     expect(snapshot).toEqual({
       source: 'supabase',
       query: '화산',
-      total: 5,
+      displayedTotal: 5,
       groups: [
         expect.objectContaining({ kind: 'ip', label: 'IP', results: [expect.objectContaining({ id: 'hwasan' })] }),
         expect.objectContaining({ kind: 'good', label: '굿즈', results: [expect.objectContaining({ id: 'g2' })] }),
