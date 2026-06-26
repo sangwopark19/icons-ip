@@ -51,8 +51,13 @@ interface CommunityLikeRow {
   post_id: string;
 }
 
+interface CommunityBlockRow {
+  blocked_user_id: string;
+}
+
 interface CommunitySnapshotOptions {
   viewerId?: string | null;
+  isStaff?: boolean;
 }
 
 type CommunitySupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -150,6 +155,21 @@ async function viewerLikePostIds(
   return new Set(((data ?? []) as CommunityLikeRow[]).map((row) => row.post_id));
 }
 
+async function blockedUserIds(supabase: CommunitySupabaseClient, viewerId: string | null) {
+  if (!viewerId) return new Set<string>();
+
+  const { data, error } = await supabase
+    .from('blocks')
+    .select('blocked_user_id')
+    .eq('user_id', viewerId);
+
+  if (error) {
+    throw new Error(`Failed to load blocked users: ${error.message}`);
+  }
+
+  return new Set(((data ?? []) as CommunityBlockRow[]).map((row) => row.blocked_user_id));
+}
+
 async function signedImageUrlByPath(supabase: CommunitySupabaseClient, paths: string[]) {
   const entries = await Promise.all(
     paths.map(async (path) => {
@@ -187,6 +207,7 @@ function commentItemsByPostId(
     const comments = grouped.get(row.post_id) ?? [];
     comments.push({
       id: row.id,
+      authorId: row.user_id,
       user: publicAuthorName(profilesById.get(row.user_id), row.user_id),
       text: row.text,
       time: formatPostTime(row.created_at),
@@ -215,6 +236,7 @@ function toCommunityPost(
 
   return {
     id: row.id,
+    authorId: row.user_id,
     user: publicAuthorName(profilesById.get(row.user_id), row.user_id),
     ipId: row.ip_id,
     ipName: displayIp?.title ?? '커뮤니티',
@@ -239,6 +261,7 @@ function mockPosts(ips: Ip[]): CommunityFeedPost[] {
     const ip = ipsByTitle.get(post.ipName) ?? fallbackIp;
     return {
       id: post.id,
+      authorId: '',
       user: post.user,
       ipId: ip?.id ?? null,
       ipName: post.ipName,
@@ -256,21 +279,27 @@ function mockPosts(ips: Ip[]): CommunityFeedPost[] {
   });
 }
 
-async function getSupabasePosts(ips: Ip[], viewerId: string | null) {
+async function getSupabasePosts(ips: Ip[], viewerId: string | null, isStaff: boolean) {
   const supabase = await createClient();
-  const postsResult = await supabase
+  const blockedIds = await blockedUserIds(supabase, viewerId);
+  let postsQuery = supabase
     .from('posts')
     .select('id,user_id,ip_id,text,tag,created_at,image_path,status')
-    .eq('status', 'visible')
     .order('created_at', { ascending: false })
     .limit(COMMUNITY_FEED_LIMIT);
+
+  if (blockedIds.size) {
+    postsQuery = postsQuery.not('user_id', 'in', `(${Array.from(blockedIds).join(',')})`);
+  }
+
+  const postsResult = await postsQuery;
 
   if (postsResult.error) {
     throw new Error(`Failed to load community posts: ${postsResult.error.message}`);
   }
 
   const posts = ((postsResult.data ?? []) as CommunityPostRow[]).filter((post) =>
-    canViewCommunityPost({ status: post.status, userId: post.user_id }, { viewerId: null, isStaff: false }),
+    canViewCommunityPost({ status: post.status, userId: post.user_id }, { viewerId, isStaff }),
   );
   if (!posts.length) return [];
 
@@ -317,12 +346,13 @@ async function getSupabasePosts(ips: Ip[], viewerId: string | null) {
 export async function getCommunitySnapshot(options: CommunitySnapshotOptions = {}): Promise<CommunitySnapshot> {
   const catalog = await getCatalogSnapshot();
   const viewerId = options.viewerId ?? null;
+  const isStaff = options.isStaff ?? false;
 
   return {
     source: catalog.source,
     channels: catalog.ips.map(channelFromIp),
     goods: catalog.goods,
-    posts: catalog.source === 'mock' ? mockPosts(catalog.ips) : await getSupabasePosts(catalog.ips, viewerId),
+    posts: catalog.source === 'mock' ? mockPosts(catalog.ips) : await getSupabasePosts(catalog.ips, viewerId, isStaff),
     trending: DATA.TRENDING,
   };
 }

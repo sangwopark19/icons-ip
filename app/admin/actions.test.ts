@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { upsertAdminEventAction, upsertAdminGoodAction, upsertAdminIpAction } from './actions';
+import {
+  hideCommunityPostAction,
+  updateCommunityReportStatusAction,
+  upsertAdminEventAction,
+  upsertAdminGoodAction,
+  upsertAdminIpAction,
+} from './actions';
 import type { CatalogSnapshot } from '@/lib/catalog';
 
 const mocks = vi.hoisted(() => ({
@@ -23,6 +29,7 @@ vi.mock('@/lib/auth/admin', () => ({
   getCurrentAdminAuthState: () => mocks.adminState,
 }));
 vi.mock('@/lib/admin/catalog', async () => await import('../../lib/admin/catalog'));
+vi.mock('@/lib/admin/moderation', async () => await import('../../lib/admin/moderation'));
 vi.mock('@/lib/catalog', () => ({
   getCatalogSnapshot: () => mocks.catalog,
 }));
@@ -100,6 +107,23 @@ function eventForm() {
   formData.set('endsAt', '2026-07-01T12:00');
   formData.set('location', '성수');
   formData.set('accent', '#8B5CFF');
+  return formData;
+}
+
+const reportId = '44444444-4444-4444-8444-444444444444';
+const postId = '55555555-5555-4555-8555-555555555555';
+
+function reportStatusForm() {
+  const formData = new FormData();
+  formData.set('reportId', reportId);
+  formData.set('status', 'reviewing');
+  return formData;
+}
+
+function hidePostForm() {
+  const formData = new FormData();
+  formData.set('reportId', reportId);
+  formData.set('postId', postId);
   return formData;
 }
 
@@ -218,5 +242,46 @@ describe('admin catalog actions', () => {
       target_bg: null,
       target_image_path: null,
     });
+  });
+
+  it('blocks non-staff moderation status updates without writing', async () => {
+    mocks.adminState = {
+      isConfigured: true,
+      user: { id: 'user-1', email: 'fan@icons.gg' },
+      role: 'user',
+      isStaff: false,
+    };
+
+    await expect(updateCommunityReportStatusAction({}, reportStatusForm())).resolves.toEqual({
+      errors: { form: '관리자 권한이 필요합니다.' },
+    });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it('updates report status through the admin moderation RPC', async () => {
+    await expect(updateCommunityReportStatusAction({}, reportStatusForm())).resolves.toEqual({
+      message: '신고 상태를 저장했습니다.',
+    });
+
+    expect(mocks.rpc).toHaveBeenCalledWith('admin_update_report_status', {
+      target_report_id: reportId,
+      target_status: 'reviewing',
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/admin');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
+  });
+
+  it('hides a reported post through the admin moderation RPC', async () => {
+    await expect(hideCommunityPostAction({}, hidePostForm())).resolves.toEqual({
+      message: '포스트를 숨김 처리했습니다.',
+    });
+
+    expect(mocks.rpc).toHaveBeenCalledWith('admin_hide_community_post', {
+      target_post_id: postId,
+      target_report_id: reportId,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/admin');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/search');
   });
 });

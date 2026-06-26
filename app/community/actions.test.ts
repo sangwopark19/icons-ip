@@ -4,6 +4,8 @@ import {
   createCommunityPostAction,
   deleteCommunityCommentAction,
   deleteCommunityPostAction,
+  blockCommunityUserAction,
+  reportCommunityTargetAction,
   setCommunityPostLikeAction,
 } from './actions';
 import type { CatalogSnapshot } from '@/lib/catalog';
@@ -114,6 +116,22 @@ function deletePostForm() {
 function deleteCommentForm() {
   const formData = new FormData();
   formData.set('commentId', commentId);
+  formData.set('next', '/community');
+  return formData;
+}
+
+function reportForm() {
+  const formData = new FormData();
+  formData.set('targetType', 'post');
+  formData.set('targetId', postId);
+  formData.set('reason', '  스팸성 포스트입니다  ');
+  formData.set('next', '/community');
+  return formData;
+}
+
+function blockForm() {
+  const formData = new FormData();
+  formData.set('targetUserId', '33333333-3333-4333-8333-333333333333');
   formData.set('next', '/community');
   return formData;
 }
@@ -291,5 +309,40 @@ describe('community reaction actions', () => {
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');
+  });
+
+  it('redirects unauthenticated report submissions to login', async () => {
+    mocks.auth = { isConfigured: true, user: null, profile: null };
+
+    await expect(reportCommunityTargetAction(reportForm())).rejects.toThrow(
+      'NEXT_REDIRECT:/login?next=%2Fcommunity',
+    );
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it('submits a community report through the moderation RPC', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan' }, error: null });
+
+    await expect(reportCommunityTargetAction(reportForm())).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('submit_community_report', {
+      target_type: 'post',
+      target_id: postId,
+      reason: '스팸성 포스트입니다',
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');
+  });
+
+  it('blocks a community user through an idempotent RPC', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: null });
+
+    await expect(blockCommunityUserAction(blockForm())).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('block_community_user', {
+      target_user_id: '33333333-3333-4333-8333-333333333333',
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/search');
   });
 });

@@ -3,9 +3,11 @@ import {
   MAX_COMMUNITY_IMAGE_BYTES,
   buildCommunityUploadPath,
   canViewCommunityPost,
+  normalizeCommunityBlockForm,
   normalizeCommunityCommentForm,
   normalizeCommunityLikeForm,
   normalizeCommunityPostForm,
+  normalizeCommunityReportForm,
 } from './community';
 
 describe('canViewCommunityPost', () => {
@@ -115,6 +117,65 @@ describe('normalizeCommunityLikeForm', () => {
       value: {
         postId: '11111111-1111-4111-8111-111111111111',
         shouldLike: false,
+      },
+    });
+  });
+});
+
+describe('normalizeCommunityReportForm', () => {
+  it('normalizes a post report target and optional reason text', () => {
+    const formData = new FormData();
+    formData.set('targetType', 'post');
+    formData.set('targetId', '11111111-1111-4111-8111-111111111111');
+    formData.set('reason', '  스팸성 포스트입니다  ');
+
+    expect(normalizeCommunityReportForm(formData)).toEqual({
+      ok: true,
+      value: {
+        targetType: 'post',
+        targetId: '11111111-1111-4111-8111-111111111111',
+        reason: '스팸성 포스트입니다',
+      },
+    });
+  });
+
+  it('rejects unknown report targets and invalid ids', () => {
+    const formData = new FormData();
+    formData.set('targetType', 'goods');
+    formData.set('targetId', 'not-a-uuid');
+    formData.set('reason', ' ');
+
+    expect(normalizeCommunityReportForm(formData)).toEqual({
+      ok: false,
+      errors: {
+        targetType: '신고 대상을 찾을 수 없습니다.',
+        targetId: '신고 대상을 찾을 수 없습니다.',
+      },
+    });
+  });
+});
+
+describe('normalizeCommunityBlockForm', () => {
+  it('normalizes the user id to block', () => {
+    const formData = new FormData();
+    formData.set('targetUserId', '22222222-2222-4222-8222-222222222222');
+
+    expect(normalizeCommunityBlockForm(formData)).toEqual({
+      ok: true,
+      value: {
+        targetUserId: '22222222-2222-4222-8222-222222222222',
+      },
+    });
+  });
+
+  it('rejects invalid user ids', () => {
+    const formData = new FormData();
+    formData.set('targetUserId', 'not-a-user');
+
+    expect(normalizeCommunityBlockForm(formData)).toEqual({
+      ok: false,
+      errors: {
+        targetUserId: '차단할 사용자를 찾을 수 없습니다.',
       },
     });
   });

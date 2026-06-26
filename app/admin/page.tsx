@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { Admin } from '@/components/screens/Admin';
 import { getAdminCatalogRecords } from '@/lib/admin/catalog.server';
+import { getAdminModerationRecords } from '@/lib/admin/moderation.server';
 import { getCurrentAdminAuthState } from '@/lib/auth/admin';
 import { getCatalogSnapshot } from '@/lib/catalog';
 
@@ -15,9 +16,10 @@ export default async function AdminPage() {
     notFound();
   }
 
-  const [catalog, records] = await Promise.all([
+  const [catalog, records, moderation] = await Promise.all([
     getCatalogSnapshot(),
     getAdminCatalogRecords(),
+    getAdminModerationRecords(),
   ]);
 
   return (
@@ -27,6 +29,7 @@ export default async function AdminPage() {
         role: auth.role ?? 'staff',
       }}
       catalog={catalog}
+      moderation={moderation}
       records={records}
     />
   );
