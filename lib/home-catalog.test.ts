@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CatalogSnapshot } from './catalog';
+import type { CatalogPostPreview, CatalogSnapshot } from './catalog';
 import type { Card, FandomEvent, Good, Ip, Vertical } from './data';
 import { buildHomeIpWorld, getHomeSelectableIps, MAX_HOME_PICKER_IPS } from './home-catalog';
 
@@ -58,6 +58,20 @@ function event(id: string, ipId: string | null): FandomEvent {
     loc: '서울',
     accent: '#2DE2FF',
     img: `event-${id}`,
+  };
+}
+
+function post(id: string, ipName: string): CatalogPostPreview {
+  return {
+    id,
+    user: `user-${id}`,
+    ipName,
+    avatar: '#2DE2FF',
+    text: `${id} text`,
+    likes: 10,
+    comments: 2,
+    time: '방금 전',
+    tag: '후기',
   };
 }
 
@@ -122,11 +136,15 @@ describe('buildHomeIpWorld', () => {
       goods: [good('other-good', 'lumen'), good('selected-good', 'hwasan')],
       cards: [card('other-card', 'lumen'), card('selected-card', 'hwasan')],
       events: [event('global-event', null), event('other-event', 'lumen'), event('selected-event', 'hwasan')],
-    }), 'hwasan');
+    }), 'hwasan', {
+      hwasan: post('selected-post', 'IP hwasan'),
+      lumen: post('other-post', 'IP lumen'),
+    });
 
     expect(world.representativeGood?.id).toBe('selected-good');
     expect(world.representativeCard?.id).toBe('selected-card');
     expect(world.representativeEvent?.id).toBe('selected-event');
+    expect(world.representativePost?.id).toBe('selected-post');
   });
 
   it('recovers to the default IP when the requested selection is not available', () => {
@@ -139,5 +157,16 @@ describe('buildHomeIpWorld', () => {
 
     expect(world.selectedIp?.id).toBe('featured-1');
     expect(world.representativeGood?.id).toBe('default-good');
+  });
+
+  it('uses null representative post when the selected IP has no preview', () => {
+    const world = buildHomeIpWorld(catalog({
+      ips: [ip('featured-1', true), ip('featured-2', true)],
+    }), 'featured-2', {
+      'featured-1': post('default-post', 'IP featured-1'),
+    });
+
+    expect(world.selectedIp?.id).toBe('featured-2');
+    expect(world.representativePost).toBeNull();
   });
 });
