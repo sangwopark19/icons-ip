@@ -1,6 +1,6 @@
 # ICONS — 제품 요구사항 정의서 (PRD)
 
-> 상태: Draft · 최종 수정 2026-06-24 · 작성 근거: 현재 코드베이스(프로토타입) + 설계 인터뷰
+> 상태: Draft · 최종 수정 2026-06-26 · 작성 근거: 현재 코드베이스(프로토타입) + 설계 인터뷰
 > 이 문서는 **무엇을 만들 것인가**를 정의한다. **어떻게 만들 것인가**는 [`ARCHITECTURE.md`](./ARCHITECTURE.md) 참조.
 
 ---
@@ -9,7 +9,7 @@
 
 **ICONS**는 서브컬처 팬덤을 위한 **슈퍼앱**이다. 공식 라이선스 굿즈 커머스를 척추로, 수집형 디지털 카드(가챠), 팝업/티케팅, 팬 커뮤니티, IP 허브를 하나의 "Holographic Midnight" 경험으로 묶는다.
 
-현재 리포(`/Users/sangwopark19/icons/icons-ip`)는 Claude Design 핸드오프를 옮긴 **시각적 프로토타입**에서 출발했다. 11개 화면은 App Router 라우트로 구현되어 있고, Supabase 공개 카탈로그 읽기, 이메일/PW Auth, 확인 메일 콜백, 온보딩, IP 팔로우 일부가 실제 backend에 연결되어 있다. 결제·주문 확정·가챠 RNG·티케팅 검표는 아직 실제 서비스에 연결되지 않았다. 이 PRD는 프로토타입을 **실제 출시 제품**으로 전환하기 위한 요구사항을 정의한다.
+현재 리포(`/Users/sangwopark19/icons/icons-ip`)는 Claude Design 핸드오프를 옮긴 **시각적 프로토타입**에서 출발했다. 11개 화면은 App Router 라우트로 구현되어 있고, Supabase 공개 카탈로그 읽기, 이메일/PW Auth, 확인 메일 콜백, 온보딩, IP 팔로우, 커뮤니티 작성·댓글·좋아요·신고·차단, Postgres 기반 검색, admin 카탈로그·모더레이션 최소 경로가 실제 backend에 연결되어 있다. 결제·주문 확정·가챠 RNG·티케팅 검표는 아직 실제 서비스에 연결되지 않았다. 이 PRD는 프로토타입을 **실제 출시 제품**으로 전환하기 위한 요구사항을 정의한다.
 
 ### 1.1 제품 비전
 
@@ -49,16 +49,17 @@
 
 | 영역 | 프로토타입 현황 | v1 목표 갭 |
 |---|---|---|
-| 데이터 | Supabase 환경변수가 있으면 공개 카탈로그를 DB에서 읽고, 없으면 `lib/data.ts` mock으로 fallback. P0~P3 migration과 seed가 존재 | 운영자 입력 UI, 결제/가챠/티켓 도메인별 쓰기 흐름 연결 |
+| 데이터 | Supabase 환경변수가 있으면 공개 카탈로그와 검색, 커뮤니티 피드를 DB에서 읽고, 없으면 `lib/data.ts` mock으로 fallback. P0~P3 migration과 seed가 존재 | 결제/가챠/티켓 도메인별 쓰기 흐름 연결 |
 | 인증 | 이메일/PW 가입·로그인, 확인 메일 콜백, 온보딩 게이트, 회원가입 확인 메일 재전송. Google/Kakao/Apple 버튼은 비활성 UI | 소셜 로그인 provider 연결, 계정 삭제·동의 철회 |
 | IP 팔로우 | 온보딩 추천 IP 저장과 IP 상세 팔로우/언팔로우가 Supabase RPC에 연결 | 알림 설정과 개인화 feed 확장 |
 | 장바구니 | `CartProvider` = 카운터 2 mock | 실제 카트·주문·결제 |
 | 결제 | 없음 | 토스페이먼츠 연동 |
 | 가챠/카드 | 바인더·카드 UI만, 뽑기 없음 | RNG·천장·지갑·확률 공시 |
 | 팝업 | 이벤트 목록 UI만 | 실제 티케팅(예약·결제·QR·환불) |
-| 커뮤니티 | 공개 피드와 IP 상세 preview 읽기, 로그인·온보딩 완료 사용자 포스트 작성(선택 이미지 업로드 포함)이 Supabase에 연결. posts/comments/likes/reports/blocks 스키마는 있음 | 댓글·좋아요·신고/차단 UI와 액션 |
+| 커뮤니티 | 공개 피드와 IP 상세 preview 읽기, 로그인·온보딩 완료 사용자 포스트 작성(선택 이미지 업로드 포함), 댓글, 좋아요, 작성자 삭제, 신고, 차단이 Supabase RPC에 연결 | 운영 정책 문서, 개인화 feed, 고도화된 moderation workflow |
+| 검색 | Postgres `search_public_content` RPC로 IP·굿즈·카드·visible 포스트·태그를 그룹 검색 | 최근 검색어·인기 검색어 persistence |
 | 아트워크 | 그라디언트+글리프 플레이스홀더 | 실제 이미지(Supabase Storage) |
-| 운영 | 없음 | `/admin` 백오피스 |
+| 운영 | staff/admin 게이트, 카탈로그 CRUD, 커뮤니티 신고 상태 변경과 포스트 숨김 처리 최소 경로 | 카드풀·확률 공시, 주문·티켓·환불 운영 |
 
 ---
 

@@ -1,6 +1,6 @@
 # ICONS — 아키텍처
 
-> 상태: Draft · 최종 수정 2026-06-24 · 짝 문서: [`PRD.md`](./PRD.md)
+> 상태: Draft · 최종 수정 2026-06-26 · 짝 문서: [`PRD.md`](./PRD.md)
 > 이 문서는 **어떻게 만들 것인가**를 정의한다. 현재 코드베이스(프로토타입)에서 출발해 목표 아키텍처와 이전 경로를 기술한다.
 >
 > ⚠️ 이 프로젝트의 Next.js 16은 학습 데이터와 API/관례가 다를 수 있다(`AGENTS.md`). 실제 코드 작성 전 `node_modules/next/dist/docs/`를 확인한다. 본 문서가 코드 디테일과 어긋나면 코드를 따른다.
@@ -27,9 +27,10 @@
 | 화면 | 11개 라우트 ↔ screen 컴포넌트 | `app/**/page.tsx` → `components/screens/*` |
 | 셸 | Nav · MobNav · SiteFooter · CartProvider · `useGo` | `components/shell/*` |
 | 라우팅 맵 | 프로토타입 route-id ↔ 경로 | `lib/routes.ts` |
-| 데이터 | Supabase 공개 카탈로그와 커뮤니티 visible feed 읽기 + mock fallback. IP 상세 커뮤니티 preview도 Supabase `posts`/`public_profiles`에서 읽음 | `lib/catalog.ts`, `lib/community.server.ts`, `lib/data.ts` |
+| 데이터 | Supabase 공개 카탈로그, 커뮤니티 visible feed/comment preview, Postgres 검색 읽기 + mock fallback. IP 상세 커뮤니티 preview도 Supabase `posts`/`public_profiles`에서 읽음 | `lib/catalog.ts`, `lib/community.server.ts`, `lib/search.ts`, `lib/data.ts` |
 | 인증 | Supabase SSR 이메일/PW Auth, 확인 메일 callback, 온보딩 게이트, 우상단 AuthButton 상태 동기화. env 없으면 no-op/폼 비활성화 | `app/login/*`, `app/auth/callback/route.ts`, `app/onboarding/*`, `components/shell/AuthButton.tsx`, `lib/auth/*`, `lib/supabase/*`, 루트 `proxy.ts` |
-| 보호 액션 | IP 팔로우/언팔로우 server action + 온보딩 추천 IP 저장. 커뮤니티 포스트 작성은 Server Action으로 `posts`와 `user-uploads`에 연결. IP 팔로우 DB 갱신은 `follow_ip`/`unfollow_ip` RPC 사용 | `app/ip/actions.ts`, `app/onboarding/actions.ts`, `app/community/actions.ts`, `lib/ip-follow*`, `supabase/migrations/20260623090001_ip_follow_rpc.sql` |
+| 보호 액션 | IP 팔로우/언팔로우 server action + 온보딩 추천 IP 저장. 커뮤니티 포스트 작성, 댓글, 좋아요, 작성자 삭제, 신고, 차단은 Server Action + RPC로 연결 | `app/ip/actions.ts`, `app/onboarding/actions.ts`, `app/community/actions.ts`, `lib/ip-follow*`, `supabase/migrations/20260623090001_ip_follow_rpc.sql`, `supabase/migrations/20260624103001_community_comment_like_actions.sql`, `supabase/migrations/20260626090001_community_moderation_actions.sql` |
+| 운영 | staff/admin 게이트, 카탈로그 CRUD, 감사 로그, 커뮤니티 신고 상태 변경과 포스트 숨김 처리 최소 경로 | `app/admin/*`, `lib/admin/*`, `supabase/migrations/20260624100001_admin_catalog_crud.sql`, `supabase/migrations/20260626090001_community_moderation_actions.sql` |
 | CI/CD | GitHub Actions `CI/CD Pipeline`: PR 검증 + Vercel preview 배포, merge queue 검증, `main` push production 배포. Actions 앱 빌드 Node는 26 | `.github/workflows/pipeline.yml` |
 | 배포 | PR은 Vercel prebuilt preview deploy, `main` push는 Supabase linked migration push 후 Vercel prebuilt production deploy. Vercel Git 자동 배포는 비활성화 | GitHub Secrets + `.github/workflows/pipeline.yml`, `vercel.json` |
 | Production runtime | Vercel project/runtime Node.js Version은 공식 지원 범위인 24.x 유지 | Vercel Project Settings |
