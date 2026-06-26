@@ -58,18 +58,24 @@ function readRpcIpId(data: unknown) {
   return typeof ipId === 'string' && ipId.trim() ? ipId : null;
 }
 
-async function requireCommunityUser(next: string) {
+async function requireAuthenticatedCommunityUser(next: string) {
   const auth = await getCurrentAuthState();
 
   if (!auth.isConfigured || !auth.user) {
     redirect(loginPath(next));
   }
 
-  if (!isOnboarded(auth.profile, auth.user.email)) {
+  return { auth, user: auth.user };
+}
+
+async function requireCommunityUser(next: string) {
+  const { auth, user } = await requireAuthenticatedCommunityUser(next);
+
+  if (!isOnboarded(auth.profile, user.email)) {
     redirect(onboardingPath(next));
   }
 
-  return auth.user;
+  return user;
 }
 
 function revalidateCommunitySurfaces(ipId: string | null) {
@@ -222,7 +228,7 @@ export async function deleteCommunityCommentAction(formData: FormData) {
 
 export async function reportCommunityTargetAction(formData: FormData) {
   const next = readNext(formData);
-  await requireCommunityUser(next);
+  await requireAuthenticatedCommunityUser(next);
 
   const normalized = normalizeCommunityReportForm(formData);
   if (!normalized.ok) redirect(communityErrorPath(next));
@@ -242,7 +248,7 @@ export async function reportCommunityTargetAction(formData: FormData) {
 
 export async function blockCommunityUserAction(formData: FormData) {
   const next = readNext(formData);
-  await requireCommunityUser(next);
+  await requireAuthenticatedCommunityUser(next);
 
   const normalized = normalizeCommunityBlockForm(formData);
   if (!normalized.ok) redirect(communityErrorPath(next));

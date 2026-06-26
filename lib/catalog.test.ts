@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/data', async () => await import('./data'));
+vi.mock('@/lib/community', async () => await import('./community'));
 vi.mock('@/lib/supabase/config', () => ({
   getSupabaseConfig: () => ({ isConfigured: mocks.isConfigured }),
 }));
@@ -71,6 +72,7 @@ type QueryRecord = {
   selectOptions?: { count?: string; head?: boolean };
   eq: [string, unknown][];
   in: [string, unknown[]][];
+  not: [string, string, string][];
   order: [string, { ascending?: boolean } | undefined][];
   limit?: number;
 };
@@ -85,12 +87,12 @@ function makeResult<T>(data: T[] | null, count?: number | null): QueryResult<T> 
   return { data, count, error: null };
 }
 
-function createQuery<T extends Record<string, unknown>>(
+function createQuery(
   table: string,
-  rows: T[],
+  rows: Record<string, unknown>[],
   records: QueryRecord[],
 ) {
-  const record: QueryRecord = { table, eq: [], in: [], order: [] };
+  const record: QueryRecord = { table, eq: [], in: [], not: [], order: [] };
   records.push(record);
 
   const query = {
@@ -107,6 +109,10 @@ function createQuery<T extends Record<string, unknown>>(
       record.in.push([column, value]);
       return query;
     },
+    not(column: string, operator: string, value: string) {
+      record.not.push([column, operator, value]);
+      return query;
+    },
     order(column: string, options?: { ascending?: boolean }) {
       record.order.push([column, options]);
       return query;
@@ -115,8 +121,8 @@ function createQuery<T extends Record<string, unknown>>(
       record.limit = value;
       return query;
     },
-    then<TResult1 = QueryResult<T>, TResult2 = never>(
-      onfulfilled?: ((value: QueryResult<T>) => TResult1 | PromiseLike<TResult1>) | null,
+    then<TResult1 = QueryResult<Record<string, unknown>>, TResult2 = never>(
+      onfulfilled?: ((value: QueryResult<Record<string, unknown>>) => TResult1 | PromiseLike<TResult1>) | null,
       onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
     ) {
       try {
@@ -126,6 +132,12 @@ function createQuery<T extends Record<string, unknown>>(
         }
         for (const [column, values] of record.in) {
           data = data.filter((row) => values.includes(row[column]));
+        }
+        for (const [column, operator, value] of record.not) {
+          if (operator === 'in') {
+            const excluded = value.replace(/^\(|\)$/g, '').split(',').filter(Boolean);
+            data = data.filter((row) => !excluded.includes(String(row[column])));
+          }
         }
         for (const [column, options] of record.order) {
           data = [...data].sort((a, b) => {
@@ -185,14 +197,16 @@ function createSupabaseClient(records: QueryRecord[]) {
       { post_id: 'p2' },
     ],
     comments: [
-      { post_id: 'p1' },
-      ...Array.from({ length: 1001 }, () => ({ post_id: 'p3' })),
+      { post_id: 'p1', user_id: 'u3' },
+      { post_id: 'hidden', user_id: 'u3' },
+      ...Array.from({ length: 1001 }, () => ({ post_id: 'p3', user_id: 'u3' })),
     ],
+    blocks: [{ user_id: 'viewer-1', blocked_user_id: 'u1' }],
   };
 
   return {
     from(table: keyof typeof rows) {
-      return createQuery(table, rows[table], records);
+      return createQuery(table, rows[table] as unknown as Record<string, unknown>[], records);
     },
     storage: {
       from() {
@@ -245,7 +259,7 @@ describe('getCatalogIpDetail', () => {
     expect(detail?.posts[0]).not.toHaveProperty('ipId');
     expect(detail?.posts[0]).not.toHaveProperty('image_path');
     expect(records.find((record) => record.table === 'posts')).toMatchObject({
-      select: 'id,user_id,ip_id,text,tag,created_at',
+      select: 'id,user_id,ip_id,text,tag,created_at,status',
       eq: [['ip_id', 'hwasan'], ['status', 'visible']],
       order: [['created_at', { ascending: false }]],
       limit: 3,
@@ -284,6 +298,49 @@ describe('getCatalogIpDetail', () => {
         eq: [['post_id', 'p3']],
       }),
     ]);
+
+    mocks.isConfigured = false;
+    mocks.client = null;
+  });
+
+  it('keeps hidden post previews visible to their author', async () => {
+    const records: QueryRecord[] = [];
+    mocks.isConfigured = true;
+    mocks.client = createSupabaseClient(records);
+
+    const detail = await getCatalogIpDetail('hwasan', { viewerId: 'u1' });
+
+    expect(detail?.posts.map((post) => post.id)).toEqual(['hidden', 'p1', 'p2']);
+    expect(detail?.posts[0]).toEqual(expect.objectContaining({
+      id: 'hidden',
+      comments: 1,
+      user: 'neonfan',
+    }));
+    expect(records.find((record) => record.table === 'posts')).toEqual(expect.objectContaining({
+      eq: [['ip_id', 'hwasan']],
+    }));
+
+    mocks.isConfigured = false;
+    mocks.client = null;
+  });
+
+  it('excludes blocked authors from IP detail community previews', async () => {
+    const records: QueryRecord[] = [];
+    mocks.isConfigured = true;
+    mocks.client = createSupabaseClient(records);
+
+    const detail = await getCatalogIpDetail('hwasan', { viewerId: 'viewer-1' });
+
+    expect(detail?.posts.map((post) => post.id)).toEqual(['p2']);
+    expect(records.filter((record) => record.table === 'blocks')).toEqual([
+      expect.objectContaining({
+        select: 'blocked_user_id',
+        eq: [['user_id', 'viewer-1']],
+      }),
+    ]);
+    expect(records.find((record) => record.table === 'posts')).toEqual(expect.objectContaining({
+      not: [['user_id', 'in', '(u1)']],
+    }));
 
     mocks.isConfigured = false;
     mocks.client = null;

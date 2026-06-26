@@ -272,6 +272,8 @@ describe('admin catalog actions', () => {
   });
 
   it('hides a reported post through the admin moderation RPC', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan' }, error: null });
+
     await expect(hideCommunityPostAction({}, hidePostForm())).resolves.toEqual({
       message: '포스트를 숨김 처리했습니다.',
     });
@@ -283,5 +285,6 @@ describe('admin catalog actions', () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/admin');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/search');
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');
   });
 });

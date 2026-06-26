@@ -94,9 +94,22 @@ function formatPostTime(value: string) {
   }).format(date);
 }
 
-async function reactionCountsByPostId(supabase: CommunitySupabaseClient, postIds: string[]) {
+function blockedUserIdList(blockedIds: ReadonlySet<string>) {
+  return Array.from(blockedIds);
+}
+
+function postgrestInList(values: readonly string[]) {
+  return `(${values.join(',')})`;
+}
+
+async function reactionCountsByPostId(
+  supabase: CommunitySupabaseClient,
+  postIds: string[],
+  blockedIds: ReadonlySet<string>,
+) {
   const { data, error } = await supabase.rpc('community_post_reaction_counts', {
     target_post_ids: postIds,
+    blocked_user_ids: blockedUserIdList(blockedIds),
   });
 
   if (error) {
@@ -114,15 +127,26 @@ async function reactionCountsByPostId(supabase: CommunitySupabaseClient, postIds
   return { likesByPostId, commentsByPostId };
 }
 
-async function commentsForPosts(supabase: CommunitySupabaseClient, postIds: string[]) {
+async function commentsForPosts(
+  supabase: CommunitySupabaseClient,
+  postIds: string[],
+  blockedIds: ReadonlySet<string>,
+) {
+  const blockedAuthorIds = blockedUserIdList(blockedIds);
   const results = await Promise.all(
     postIds.map(async (postId) => {
-      const { data, error } = await supabase
+      let commentsQuery = supabase
         .from('comments')
         .select('id,post_id,user_id,text,created_at')
         .eq('post_id', postId)
         .order('created_at', { ascending: true })
         .limit(COMMUNITY_COMMENT_PREVIEW_LIMIT);
+
+      if (blockedAuthorIds.length) {
+        commentsQuery = commentsQuery.not('user_id', 'in', postgrestInList(blockedAuthorIds));
+      }
+
+      const { data, error } = await commentsQuery;
 
       if (error) {
         throw new Error(`Failed to load community comments: ${error.message}`);
@@ -289,7 +313,7 @@ async function getSupabasePosts(ips: Ip[], viewerId: string | null, isStaff: boo
     .limit(COMMUNITY_FEED_LIMIT);
 
   if (blockedIds.size) {
-    postsQuery = postsQuery.not('user_id', 'in', `(${Array.from(blockedIds).join(',')})`);
+    postsQuery = postsQuery.not('user_id', 'in', postgrestInList(blockedUserIdList(blockedIds)));
   }
 
   const postsResult = await postsQuery;
@@ -307,8 +331,8 @@ async function getSupabasePosts(ips: Ip[], viewerId: string | null, isStaff: boo
   const imagePaths = Array.from(new Set(posts.map((post) => post.image_path).filter((path): path is string => Boolean(path))));
 
   const [reactionCounts, comments, likedPostIds, imageUrlByPath] = await Promise.all([
-    reactionCountsByPostId(supabase, postIds),
-    commentsForPosts(supabase, postIds),
+    reactionCountsByPostId(supabase, postIds, blockedIds),
+    commentsForPosts(supabase, postIds, blockedIds),
     viewerLikePostIds(supabase, postIds, viewerId),
     signedImageUrlByPath(supabase, imagePaths),
   ]);

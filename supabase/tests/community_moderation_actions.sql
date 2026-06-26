@@ -202,6 +202,7 @@ select 1 / case when (
 
 select public.block_community_user('00000000-0000-4000-8000-000000000201');
 select public.block_community_user('00000000-0000-4000-8000-000000000201');
+select public.set_post_like('00000000-0000-4000-8000-000000000204', true);
 
 select 1 / case when (
   select count(*)
@@ -316,6 +317,27 @@ select 1 / case when (
   where id = (select id from moderation_smoke_reports where name = 'post')
 ) = 'reviewing' then 1 else 0 end as assert_staff_can_update_status;
 
+do $$
+declare
+  mismatched_hide_succeeded boolean := false;
+begin
+  begin
+    perform public.admin_hide_community_post(
+      '00000000-0000-4000-8000-000000000204',
+      (select id from moderation_smoke_reports where name = 'user')
+    );
+    mismatched_hide_succeeded := true;
+  exception
+    when invalid_parameter_value then
+      mismatched_hide_succeeded := false;
+  end;
+
+  if mismatched_hide_succeeded then
+    raise exception 'hide should reject reports unrelated to the post';
+  end if;
+end;
+$$;
+
 select public.admin_hide_community_post(
   '00000000-0000-4000-8000-000000000204',
   (select id from moderation_smoke_reports where name = 'post')
@@ -332,6 +354,18 @@ select 1 / case when (
   from public.reports
   where id = (select id from moderation_smoke_reports where name = 'post')
 ) = 'resolved' then 1 else 0 end as assert_hide_resolves_report;
+
+select 1 / case when (
+  select likes_count
+  from public.community_post_reaction_counts(array['00000000-0000-4000-8000-000000000204'::uuid])
+  where post_id = '00000000-0000-4000-8000-000000000204'
+) = 1 then 1 else 0 end as assert_staff_can_count_hidden_post_likes;
+
+select 1 / case when (
+  select comments_count
+  from public.community_post_reaction_counts(array['00000000-0000-4000-8000-000000000204'::uuid])
+  where post_id = '00000000-0000-4000-8000-000000000204'
+) = 1 then 1 else 0 end as assert_staff_can_count_hidden_post_comments;
 
 select 1 / case when exists (
   select 1

@@ -48,10 +48,19 @@ function revalidateCatalog(paths: string[]) {
   }
 }
 
-function revalidateModeration() {
+function readRpcIpId(data: unknown) {
+  if (!data || typeof data !== 'object') return null;
+  const candidate = Array.isArray(data) ? data[0] : data;
+  if (!candidate || typeof candidate !== 'object') return null;
+  const ipId = (candidate as { ipId?: unknown; ip_id?: unknown }).ipId ?? (candidate as { ip_id?: unknown }).ip_id;
+  return typeof ipId === 'string' && ipId.trim() ? ipId : null;
+}
+
+function revalidateModeration(ipId: string | null = null) {
   for (const path of ['/admin', '/community', '/', '/search']) {
     revalidatePath(path);
   }
+  if (ipId) revalidatePath(`/ip/${ipId}`);
 }
 
 function readPreviousIpPath(formData: FormData) {
@@ -233,13 +242,13 @@ export async function hideCommunityPostAction(
   if (!result.ok) return { errors: result.errors };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc('admin_hide_community_post', {
+  const { error, data } = await supabase.rpc('admin_hide_community_post', {
     target_post_id: result.value.postId,
     target_report_id: result.value.reportId,
   });
 
   if (error) return rpcFailure('포스트를 숨김 처리하지 못했습니다. 다시 시도해주세요.');
 
-  revalidateModeration();
+  revalidateModeration(readRpcIpId(data));
   return { message: '포스트를 숨김 처리했습니다.' };
 }

@@ -45,7 +45,49 @@ interface CreateClientOptions {
   rows?: Partial<TestRows>;
 }
 
-function createDefaultRows() {
+interface TestPostRow {
+  id: string;
+  user_id: string;
+  ip_id: string | null;
+  text: string;
+  tag: string | null;
+  created_at: string;
+  image_path: string | null;
+  status: 'visible' | 'hidden';
+}
+
+interface TestProfileRow {
+  id: string;
+  nickname: string | null;
+}
+
+interface TestLikeRow {
+  post_id: string;
+  user_id: string;
+}
+
+interface TestCommentRow {
+  id: string;
+  post_id: string;
+  user_id: string;
+  text: string;
+  created_at: string;
+}
+
+interface TestBlockRow {
+  user_id: string;
+  blocked_user_id: string;
+}
+
+interface TestRows {
+  posts: TestPostRow[];
+  public_profiles: TestProfileRow[];
+  likes: TestLikeRow[];
+  comments: TestCommentRow[];
+  blocks: TestBlockRow[];
+}
+
+function createDefaultRows(): TestRows {
   return {
     posts: [
       {
@@ -94,11 +136,9 @@ function createDefaultRows() {
   };
 }
 
-type TestRows = ReturnType<typeof createDefaultRows>;
-
-function createQuery<T extends Record<string, unknown>>(
+function createQuery(
   table: string,
-  rows: T[],
+  rows: Record<string, unknown>[],
   records: QueryRecord[],
 ) {
   const record: QueryRecord = { table, eq: [], in: [], not: [], order: [] };
@@ -130,8 +170,8 @@ function createQuery<T extends Record<string, unknown>>(
       record.limit = value;
       return query;
     },
-    then<TResult1 = QueryResult<T>, TResult2 = never>(
-      onfulfilled?: ((value: QueryResult<T>) => TResult1 | PromiseLike<TResult1>) | null,
+    then<TResult1 = QueryResult<Record<string, unknown>>, TResult2 = never>(
+      onfulfilled?: ((value: QueryResult<Record<string, unknown>>) => TResult1 | PromiseLike<TResult1>) | null,
       onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
     ) {
       let data = rows;
@@ -167,7 +207,7 @@ function createClient(records: QueryRecord[], options: CreateClientOptions = {})
 
   return {
     from(table: keyof typeof rows) {
-      return createQuery(table, rows[table], records);
+      return createQuery(table, rows[table] as unknown as Record<string, unknown>[], records);
     },
     async rpc(functionName: string, args: Record<string, unknown>) {
       options.rpcRecords?.push({ functionName, args });
@@ -177,12 +217,15 @@ function createClient(records: QueryRecord[], options: CreateClientOptions = {})
       }
 
       const targetPostIds = Array.isArray(args.target_post_ids) ? args.target_post_ids : [];
+      const blockedUserIds = new Set(
+        Array.isArray(args.blocked_user_ids) ? args.blocked_user_ids.map((value) => String(value)) : [],
+      );
 
       return {
         data: targetPostIds.map((postId) => ({
           post_id: String(postId),
           likes_count: rows.likes.filter((row) => row.post_id === postId).length,
-          comments_count: rows.comments.filter((row) => row.post_id === postId).length,
+          comments_count: rows.comments.filter((row) => row.post_id === postId && !blockedUserIds.has(row.user_id)).length,
         })),
         error: null,
       };
@@ -295,7 +338,7 @@ describe('getCommunitySnapshot', () => {
     ]);
     expect(rpcRecords).toEqual([{
       functionName: 'community_post_reaction_counts',
-      args: { target_post_ids: ['p1'] },
+      args: { target_post_ids: ['p1'], blocked_user_ids: [] },
     }]);
   });
 
@@ -392,7 +435,7 @@ describe('getCommunitySnapshot', () => {
     ]);
     expect(rpcRecords).toEqual([{
       functionName: 'community_post_reaction_counts',
-      args: { target_post_ids: ['p1'] },
+      args: { target_post_ids: ['p1'], blocked_user_ids: [] },
     }]);
   });
 
@@ -426,9 +469,25 @@ describe('getCommunitySnapshot', () => {
         public_profiles: [
           { id: 'u1', nickname: 'blocked_author' },
           { id: 'u2', nickname: 'visible_author' },
+          { id: 'u3', nickname: 'allowed_commenter' },
         ],
         likes: [],
-        comments: [],
+        comments: [
+          {
+            id: 'blocked-comment',
+            post_id: 'visible-post',
+            user_id: 'u1',
+            text: '차단한 사용자의 댓글',
+            created_at: '2026-06-22T04:05:00.000Z',
+          },
+          {
+            id: 'allowed-comment',
+            post_id: 'visible-post',
+            user_id: 'u3',
+            text: '볼 수 있는 댓글',
+            created_at: '2026-06-22T04:06:00.000Z',
+          },
+        ],
         blocks: [{ user_id: 'viewer-1', blocked_user_id: 'u1' }],
       },
     });
@@ -438,8 +497,13 @@ describe('getCommunitySnapshot', () => {
     expect(snapshot.posts.map((post) => post.id)).toEqual(['visible-post']);
     expect(snapshot.posts[0]).toEqual(expect.objectContaining({
       authorId: 'u2',
+      comments: 1,
+      commentItems: [expect.objectContaining({ id: 'allowed-comment' })],
       user: 'visible_author',
     }));
+    expect(snapshot.posts[0].commentItems).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'blocked-comment' })]),
+    );
     expect(records.filter((record) => record.table === 'blocks')).toEqual([
       expect.objectContaining({
         select: 'blocked_user_id',
@@ -449,6 +513,12 @@ describe('getCommunitySnapshot', () => {
     expect(records.find((record) => record.table === 'posts')).toEqual(expect.objectContaining({
       not: [['user_id', 'in', '(u1)']],
     }));
+    expect(records.filter((record) => record.table === 'comments')).toEqual([
+      expect.objectContaining({
+        eq: [['post_id', 'visible-post']],
+        not: [['user_id', 'in', '(u1)']],
+      }),
+    ]);
   });
 
   it('keeps hidden posts visible to their author and staff while excluding public viewers', async () => {

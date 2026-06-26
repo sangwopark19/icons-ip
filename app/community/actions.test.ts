@@ -12,7 +12,7 @@ import type { CatalogSnapshot } from '@/lib/catalog';
 import type { CurrentAuthState } from '@/lib/auth/server';
 
 const mocks = vi.hoisted(() => ({
-  auth: { isConfigured: true, user: null, profile: null } as CurrentAuthState,
+  auth: { isConfigured: true, user: null, profile: null, isStaff: false } as CurrentAuthState,
   catalog: null as CatalogSnapshot | null,
   insert: vi.fn(),
   rpc: vi.fn(),
@@ -148,6 +148,7 @@ describe('createCommunityPostAction', () => {
         consents: { terms: true, privacy: true, marketing: false },
         onboarded_at: '2026-06-23T00:00:00.000Z',
       },
+      isStaff: false,
     };
     mocks.catalog = catalog;
     mocks.insert.mockReset();
@@ -163,7 +164,7 @@ describe('createCommunityPostAction', () => {
   });
 
   it('redirects unauthenticated users to login with the current community path', async () => {
-    mocks.auth = { isConfigured: true, user: null, profile: null };
+    mocks.auth = { isConfigured: true, user: null, profile: null, isStaff: false };
 
     await expect(createCommunityPostAction({}, postForm())).rejects.toThrow(
       'NEXT_REDIRECT:/login?next=%2Fcommunity',
@@ -224,13 +225,14 @@ describe('community reaction actions', () => {
         consents: { terms: true, privacy: true, marketing: false },
         onboarded_at: '2026-06-23T00:00:00.000Z',
       },
+      isStaff: false,
     };
     mocks.rpc.mockReset();
     mocks.revalidatePath.mockReset();
   });
 
   it('redirects unauthenticated comment submissions to login', async () => {
-    mocks.auth = { isConfigured: true, user: null, profile: null };
+    mocks.auth = { isConfigured: true, user: null, profile: null, isStaff: false };
 
     await expect(createCommunityCommentAction({}, commentForm())).rejects.toThrow(
       'NEXT_REDIRECT:/login?next=%2Fcommunity',
@@ -279,7 +281,7 @@ describe('community reaction actions', () => {
   });
 
   it('redirects unauthenticated like submissions to login', async () => {
-    mocks.auth = { isConfigured: true, user: null, profile: null };
+    mocks.auth = { isConfigured: true, user: null, profile: null, isStaff: false };
 
     await expect(setCommunityPostLikeAction(likeForm(true))).rejects.toThrow(
       'NEXT_REDIRECT:/login?next=%2Fcommunity',
@@ -312,7 +314,7 @@ describe('community reaction actions', () => {
   });
 
   it('redirects unauthenticated report submissions to login', async () => {
-    mocks.auth = { isConfigured: true, user: null, profile: null };
+    mocks.auth = { isConfigured: true, user: null, profile: null, isStaff: false };
 
     await expect(reportCommunityTargetAction(reportForm())).rejects.toThrow(
       'NEXT_REDIRECT:/login?next=%2Fcommunity',
@@ -334,6 +336,24 @@ describe('community reaction actions', () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');
   });
 
+  it('allows authenticated users who have not completed onboarding to report safety targets', async () => {
+    mocks.auth = {
+      isConfigured: true,
+      user: { id: 'user-1', email: 'fan@icons.gg' },
+      profile: null,
+      isStaff: false,
+    };
+    mocks.rpc.mockResolvedValue({ data: { ipId: 'hwasan' }, error: null });
+
+    await expect(reportCommunityTargetAction(reportForm())).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('submit_community_report', {
+      target_type: 'post',
+      target_id: postId,
+      reason: '스팸성 포스트입니다',
+    });
+  });
+
   it('blocks a community user through an idempotent RPC', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null });
 
@@ -344,5 +364,21 @@ describe('community reaction actions', () => {
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/community');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/search');
+  });
+
+  it('allows authenticated users who have not completed onboarding to block users', async () => {
+    mocks.auth = {
+      isConfigured: true,
+      user: { id: 'user-1', email: 'fan@icons.gg' },
+      profile: null,
+      isStaff: false,
+    };
+    mocks.rpc.mockResolvedValue({ data: null, error: null });
+
+    await expect(blockCommunityUserAction(blockForm())).rejects.toThrow('NEXT_REDIRECT:/community');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('block_community_user', {
+      target_user_id: '33333333-3333-4333-8333-333333333333',
+    });
   });
 });
