@@ -21,15 +21,18 @@ Create a GitHub issue.
 
 Run `gh issue view <number> --comments`.
 
-## Project board
+## Project boards
 
-The active execution board is GitHub Project `ICONS v1 P0 Foundation` (`https://github.com/users/sangwopark19/projects/3`).
+This repo uses GitHub Projects as execution boards. Pick the board that matches the work scope:
+
+- `ICONS v1 P0 Foundation` (`https://github.com/users/sangwopark19/projects/3`): backend-backed P0 foundation, auth, catalog, community, search, and admin operations.
+- `ICONS v1 Frontend UX` (`https://github.com/users/sangwopark19/projects/4`): launch frontend redesign, starting with the homepage and then screen-by-screen UX polish.
 
 Use the issue body as the spec source, and use the Project fields as the scheduling source:
 
 - `Status`: `Todo` → `In Progress` → `Done`.
-- `Phase`: release slice such as `P0 Foundation`.
-- `Track`: parallel work stream such as `Catalog and IP Hub`, `Auth and Onboarding`, `Community`, `Search`, or `Admin Ops`.
+- `Phase`: release slice such as `P0 Foundation` or `Launch Frontend`.
+- `Track`: parallel work stream such as `Catalog and IP Hub`, `Auth and Onboarding`, `Community`, `Search`, `Admin Ops`, `Home`, `Navigation`, or `QA`.
 - `Dependency`: startability. Pick `Unblocked` work first.
 
 Do not maintain a second dependency source with GitHub native parent/sub-issue or blocked-by relationships unless the user explicitly asks for that migration. If issue text and Project fields disagree, call out the conflict before acting.

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; }
+  @keyframes holoShift { 0%,100%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } }
+  @keyframes floaty { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-9px); } }
+  ::selection { background:#8B5CFF; color:#fff; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:#261C4D; border-radius:99px; border:3px solid #08060F; }
+</style>
+</helmet>
+
+<div style="background:#08060F; color:#F4F1FF; font-family:'Pretendard',sans-serif; min-height:100vh; position:relative; overflow-x:hidden; -webkit-font-smoothing:antialiased; line-height:1.5;">
+
+  <!-- atmospheric backdrop -->
+  <div style="position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(900px 600px at 12% -8%, rgba(139,92,255,.22), transparent 60%), radial-gradient(820px 600px at 92% 2%, rgba(255,77,157,.14), transparent 60%), radial-gradient(900px 700px at 70% 102%, rgba(45,226,255,.10), transparent 60%), #08060F;"></div>
+
+  <div style="position:relative; z-index:2;">
+
+  <!-- NAV -->
+  <nav style="position:fixed; top:0; left:0; right:0; z-index:50; height:68px; display:flex; align-items:center; background:rgba(8,6,15,.72); backdrop-filter:blur(18px) saturate(1.4); border-bottom:1px solid rgba(255,255,255,.07);">
+    <div style="max-width:1240px; margin:0 auto; padding:0 28px; width:100%; display:flex; align-items:center; gap:26px;">
+      <div style="font-family:'Space Grotesk','Pretendard',sans-serif; font-weight:700; font-size:23px; letter-spacing:-.04em; display:flex; align-items:center; gap:9px;">
+        <span style="width:9px; height:9px; border-radius:99px; background:linear-gradient(115deg,#2DE2FF,#8B5CFF 34%,#FF4D9D 66%,#FFB23D); box-shadow:0 0 14px #8B5CFF;"></span>ICONS
+      </div>
+      <div style="display:flex; gap:2px; margin-left:8px; font-size:14px;">
+        <a style="color:#A9A2CC; padding:8px 12px; border-radius:99px; cursor:pointer;">탐색</a>
+        <a style="color:#A9A2CC; padding:8px 12px; border-radius:99px; cursor:pointer;">굿즈샵</a>
+        <a style="color:#A9A2CC; padding:8px 12px; border-radius:99px; cursor:pointer;">팝업</a>
+        <a style="color:#A9A2CC; padding:8px 12px; border-radius:99px; cursor:pointer;">커뮤니티</a>
+      </div>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:14px; color:#A9A2CC; cursor:pointer;">로그인</span>
+        <button style="height:40px; padding:0 18px; border-radius:999px; font-weight:600; font-size:14px; color:#110D22; background:#F4F1FF; cursor:pointer;">가입하기</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header style="position:relative; min-height:90vh; padding-top:68px; overflow:hidden; display:flex; align-items:center;">
+    <!-- hero art (selected IP) -->
+    <div style="position:absolute; top:0; right:0; bottom:0; width:54%; z-index:0;">
+      <div style="position:absolute; inset:0; background-image:url({{ sel.art }}); background-size:cover; background-position:center; opacity:{{ dimHeroArt }}; transition:opacity .5s, background-image .5s;"></div>
+      <div style="position:absolute; inset:0; background:linear-gradient(90deg, #08060F 2%, rgba(8,6,15,.55) 30%, rgba(8,6,15,0) 70%);"></div>
+      <div style="position:absolute; inset:0; background:linear-gradient(0deg, #08060F 1%, rgba(8,6,15,0) 28%);"></div>
+      <div style="position:absolute; left:0; right:5%; bottom:7%; text-align:right;">
+        <div style="font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.18em; color:#F4F1FF; opacity:.8;">NOW SHOWING</div>
+        <div style="font-family:'Space Grotesk','Pretendard',sans-serif; font-weight:700; font-size:clamp(28px,4vw,46px); letter-spacing:-.03em; line-height:1; margin-top:6px; color:{{ sel.accent }}; text-shadow:0 4px 30px rgba(0,0,0,.6);">{{ sel.title }}</div>
+      </div>
+    </div>
+
+    <!-- hero content -->
+    <div style="position:relative; z-index:2; max-width:1240px; width:100%; margin:0 auto; padding:40px 28px 56px;">
+      <div style="max-width:620px;">
+        <div style="display:inline-flex; align-items:center; gap:9px; padding:7px 15px; border-radius:999px; border:1px solid rgba(255,255,255,.13); background:rgba(255,255,255,.03); font-size:12.5px; color:#C7C0E6;">
+          <span style="width:7px; height:7px; border-radius:99px; background:#38F0C0; box-shadow:0 0 10px #38F0C0;"></span>
+          ICONS · 공식 라이선스 서브컬처 팬덤 플랫폼
+        </div>
+        <h1 style="font-family:'Space Grotesk','Pretendard',sans-serif; font-size:clamp(52px,8vw,104px); font-weight:700; letter-spacing:-.045em; line-height:.98; margin:22px 0 0;">누구의<br>팬이세요?</h1>
+        <p style="font-size:clamp(16px,1.8vw,20px); color:#C7C0E6; margin:22px 0 0; max-width:500px;">최애를 고르면 그 세계가 통째로 열려요.<br><b style="color:#F4F1FF;">사고 · 모으고 · 만나고 · 떠들고</b> — 흩어진 덕질을 한 곳에서.</p>
+
+        <!-- picker -->
+        <div style="margin-top:36px;">
+          <div style="font-family:'Space Mono',monospace; font-size:11.5px; letter-spacing:.16em; color:#A981FF; text-transform:uppercase; margin-bottom:14px;">— 최애를 골라보세요</div>
+          <div style="display:flex; gap:14px; flex-wrap:wrap;">
+            <sc-for list="{{ ips }}" as="item" hint-placeholder-count="5">
+              <button onClick="{{ item.onClick }}" style="appearance:none; border:none; background:none; padding:0; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                <div style="width:66px; height:88px; border-radius:13px; background-image:url({{ item.art }}); background-size:cover; background-position:center; box-shadow:{{ item.ring }}; transition:box-shadow .2s, transform .2s;"></div>
+                <div style="font-size:11.5px; font-weight:600; color:#F4F1FF; opacity:{{ item.labelOpacity }}; max-width:72px; text-align:center; line-height:1.2;">{{ item.title }}</div>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- IP WORLD -->
+  <section style="padding:84px 0; position:relative;">
+    <div style="max-width:1240px; margin:0 auto; padding:0 28px;">
+      <div style="font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:#A981FF; display:inline-flex; align-items:center; gap:9px;"><span style="width:22px; height:1px; background:currentColor; opacity:.6;"></span>내 최애 · {{ sel.vertLabel }}</div>
+      <h2 style="font-size:clamp(30px,4.4vw,50px); font-weight:700; letter-spacing:-.02em; line-height:1.05; margin:16px 0 0;"><span style="color:{{ sel.accent }};">{{ sel.title }}</span>, 여기서 다 해요</h2>
+      <p style="color:#A9A2CC; margin:14px 0 0; max-width:560px; font-size:16px;">{{ sel.tagline }} — 굿즈부터 한정 카드, 팝업, 팬들까지 한 흐름으로.</p>
+
+      <div style="display:grid; grid-template-columns:0.82fr 1.18fr; gap:24px; margin-top:40px; align-items:stretch;">
+
+        <!-- feature IP card -->
+        <div style="position:relative; border-radius:26px; overflow:hidden; border:1px solid rgba(255,255,255,.09); min-height:520px; display:flex; flex-direction:column; justify-content:flex-end;">
+          <div style="position:absolute; inset:0; background-image:url({{ sel.art }}); background-size:cover; background-position:center; transition:background-image .5s;"></div>
+          <div style="position:absolute; inset:0; background:linear-gradient(0deg, rgba(8,6,15,.96) 6%, rgba(8,6,15,.4) 48%, rgba(8,6,15,.1) 100%);"></div>
+          <div style="position:relative; padding:26px;">
+            <span style="display:inline-block; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.04em; padding:4px 10px; border-radius:7px; border:1px solid {{ sel.accent }}; color:{{ sel.accent }}; background:rgba(0,0,0,.35);">{{ sel.vertLabel }}</span>
+            <div style="font-family:'Space Grotesk','Pretendard',sans-serif; font-size:34px; font-weight:700; letter-spacing:-.03em; margin-top:14px;">{{ sel.title }}</div>
+            <div style="color:#C7C0E6; font-size:15px; margin-top:6px;">{{ sel.tagline }}</div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:14px; font-family:'Space Mono',monospace; font-size:13px; color:{{ sel.accent }};">★ {{ sel.fansLabel }} 팬이 함께해요</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:22px;">
+              <button style="height:46px; padding:0 22px; border-radius:999px; font-weight:600; font-size:14.5px; color:#fff; cursor:pointer; background:linear-gradient(115deg,#2DE2FF,#8B5CFF 34%,#FF4D9D 66%,#FFB23D); background-size:180% 180%; animation:holoShift 7s ease infinite;">팬덤 가입 — 무료</button>
+              <button style="height:46px; padding:0 20px; border-radius:999px; font-weight:600; font-size:14.5px; color:#F4F1FF; cursor:pointer; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.03);">IP 허브 보기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- journey tiles 2x2 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+
+          <!-- BUY -->
+          <div style="background:linear-gradient(180deg,#15112A,#0C0A18); border:1px solid rgba(255,255,255,.07); border-radius:22px; padding:20px; display:flex; flex-direction:column;">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.12em; color:#FFB23D; text-transform:uppercase;">사요 · 공식 굿즈</div>
+            <div style="display:flex; gap:14px; margin-top:16px; align-items:center;">
+              <div style="width:72px; height:72px; border-radius:14px; flex:0 0 auto; background-image:url({{ sel.goods.art }}); background-size:cover; background-position:center; border:1px solid rgba(255,255,255,.1);"></div>
+              <div style="min-width:0;">
+                <div style="font-size:14px; font-weight:600; line-height:1.3;">{{ sel.goods.name }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:15px; color:#F4F1FF; margin-top:6px;">{{ sel.goods.price }}</div>
+              </div>
+            </div>
+            <div style="margin-top:auto; padding-top:16px;"><button style="width:100%; height:42px; border-radius:999px; font-size:13.5px; font-weight:600; color:#110D22; background:#F4F1FF; cursor:pointer;">장바구니 담기</button></div>
+          </div>
+
+          <!-- COLLECT -->
+          <div style="background:linear-gradient(180deg,#15112A,#0C0A18); border:1px solid rgba(255,255,255,.07); border-radius:22px; padding:20px; display:flex; flex-direction:column;">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.12em; color:#A981FF; text-transform:uppercase;">모아요 · 수집 카드</div>
+            <div style="display:flex; gap:14px; margin-top:16px; align-items:center;">
+              <div style="width:60px; height:82px; border-radius:11px; flex:0 0 auto; position:relative; background-image:url({{ sel.card.art }}); background-size:cover; background-position:center; box-shadow:0 8px 22px -8px rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.12);">
+                <span style="position:absolute; top:5px; left:5px; font-family:'Space Mono',monospace; font-size:9px; font-weight:700; padding:2px 6px; border-radius:5px; background:{{ sel.card.rarBg }}; color:{{ sel.card.rarFg }};">{{ sel.card.rarity }}</span>
+              </div>
+              <div style="min-width:0;">
+                <div style="font-size:14px; font-weight:600; line-height:1.3;">{{ sel.card.name }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:12px; color:#6F688F; margin-top:6px;">No. {{ sel.card.no }}</div>
+              </div>
+            </div>
+            <div style="margin-top:auto; padding-top:16px;"><button style="width:100%; height:42px; border-radius:999px; font-size:13.5px; font-weight:600; color:#fff; cursor:pointer; background:linear-gradient(115deg,#2DE2FF,#8B5CFF 34%,#FF4D9D 66%,#FFB23D); background-size:180% 180%; animation:holoShift 7s ease infinite;">지금 뽑기</button></div>
+          </div>
+
+          <!-- MEET -->
+          <div style="background:linear-gradient(180deg,#15112A,#0C0A18); border:1px solid rgba(255,255,255,.07); border-radius:22px; padding:20px; display:flex; flex-direction:column;">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.12em; color:#38F0C0; text-transform:uppercase;">만나요 · 팝업·팬미팅</div>
+            <div style="margin-top:16px;">
+              <div style="font-family:'Space Grotesk',monospace; font-size:20px; font-weight:700; color:#F4F1FF;">{{ sel.event.date }}</div>
+              <div style="font-size:14px; font-weight:600; line-height:1.3; margin-top:8px;">{{ sel.event.title }}</div>
+              <div style="font-size:12.5px; color:#A9A2CC; margin-top:6px;">{{ sel.event.place }} · {{ sel.event.mode }}</div>
+            </div>
+            <div style="margin-top:auto; padding-top:16px;"><button style="width:100%; height:42px; border-radius:999px; font-size:13.5px; font-weight:600; color:#F4F1FF; cursor:pointer; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.03);">예매하기</button></div>
+          </div>
+
+          <!-- TALK -->
+          <div style="background:linear-gradient(180deg,#15112A,#0C0A18); border:1px solid rgba(255,255,255,.07); border-radius:22px; padding:20px; display:flex; flex-direction:column;">
+            <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.12em; color:#FF4D9D; text-transform:uppercase;">떠들어요 · 팬 커뮤니티</div>
+            <div style="margin-top:16px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:26px; height:26px; border-radius:99px; background:{{ sel.post.avatar }};"></span>
+                <span style="font-size:13px; font-weight:600; color:#C7C0E6;">@{{ sel.post.user }}</span>
+              </div>
+              <div style="font-size:13.5px; line-height:1.45; color:#E6E2F7; margin-top:10px;">{{ sel.post.text }}</div>
+              <div style="font-family:'Space Mono',monospace; font-size:12px; color:#FF4D9D; margin-top:10px;">♥ {{ sel.post.likes }}</div>
+            </div>
+            <div style="margin-top:auto; padding-top:16px;"><button style="width:100%; height:42px; border-radius:999px; font-size:13.5px; font-weight:600; color:#F4F1FF; cursor:pointer; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.03);">팬덤 들어가기</button></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BREADTH / TRUST -->
+  <sc-if value="{{ showBreadth }}" hint-placeholder-val="{{ true }}">
+  <section style="padding:64px 0 30px; border-top:1px solid rgba(255,255,255,.07); background:#0C0A18;">
+    <div style="max-width:1240px; margin:0 auto; padding:0 28px;">
+      <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:20px;">
+        <div>
+          <h3 style="font-size:clamp(22px,2.6vw,30px); font-weight:700; letter-spacing:-.02em; line-height:1.15; margin:0;">{{ sel.title }} 말고도,<br><span style="color:#A981FF;">89개 공식 IP</span>가 ICONS에 있어요</h3>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:20px;">
+            <span style="display:inline-flex; align-items:center; height:34px; padding:0 15px; border-radius:999px; font-size:13px; color:#A9A2CC; border:1px solid rgba(255,255,255,.13);">BL/GL</span>
+            <span style="display:inline-flex; align-items:center; height:34px; padding:0 15px; border-radius:999px; font-size:13px; color:#A9A2CC; border:1px solid rgba(255,255,255,.13);">로맨스판타지</span>
+            <span style="display:inline-flex; align-items:center; height:34px; padding:0 15px; border-radius:999px; font-size:13px; color:#A9A2CC; border:1px solid rgba(255,255,255,.13);">글로벌 IP</span>
+            <span style="display:inline-flex; align-items:center; height:34px; padding:0 15px; border-radius:999px; font-size:13px; color:#A9A2CC; border:1px solid rgba(255,255,255,.13);">버튜버</span>
+            <span style="display:inline-flex; align-items:center; height:34px; padding:0 15px; border-radius:999px; font-size:13px; color:#A9A2CC; border:1px solid rgba(255,255,255,.13);">스트리머</span>
+          </div>
+        </div>
+        <button style="height:50px; padding:0 26px; border-radius:999px; font-weight:600; font-size:15px; color:#fff; cursor:pointer; background:linear-gradient(115deg,#2DE2FF,#8B5CFF 34%,#FF4D9D 66%,#FFB23D); background-size:180% 180%; animation:holoShift 7s ease infinite;">가입하고 내 덕질 시작하기</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:42px;">
+        <div style="display:flex; gap:12px; align-items:flex-start;"><span style="font-size:20px;">✓</span><div><div style="font-weight:600; font-size:15px;">공식 라이선스 정품</div><div style="color:#6F688F; font-size:13px; margin-top:3px;">IP 파트너와 직접 계약한 정품만 입점해요.</div></div></div>
+        <div style="display:flex; gap:12px; align-items:flex-start;"><span style="font-size:20px;">✓</span><div><div style="font-weight:600; font-size:15px;">한 곳에서 다</div><div style="color:#6F688F; font-size:13px; margin-top:3px;">굿즈·카드·티켓·커뮤니티를 앱 하나에서.</div></div></div>
+        <div style="display:flex; gap:12px; align-items:flex-start;"><span style="font-size:20px;">✓</span><div><div style="font-weight:600; font-size:15px;">안전한 결제</div><div style="color:#6F688F; font-size:13px; margin-top:3px;">토스페이먼츠 결제로 빠르고 안전하게.</div></div></div>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <!-- FOOTER -->
+  <footer style="border-top:1px solid rgba(255,255,255,.07); padding:34px 0;">
+    <div style="max-width:1240px; margin:0 auto; padding:0 28px; display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;">
+      <div style="font-family:'Space Grotesk','Pretendard',sans-serif; font-weight:700; font-size:18px; letter-spacing:-.03em; display:flex; align-items:center; gap:8px;"><span style="width:8px; height:8px; border-radius:99px; background:linear-gradient(115deg,#2DE2FF,#8B5CFF,#FF4D9D);"></span>ICONS</div>
+      <div style="font-size:12.5px; color:#6F688F;">서브컬처 팬덤 슈퍼앱 · 공식 라이선스 · © 2026 ICONS</div>
+    </div>
+  </footer>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultIp&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;hwasan&quot;,&quot;lumen&quot;,&quot;cheong&quot;,&quot;nocturne&quot;],&quot;default&quot;:&quot;hwasan&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showBreadthBand&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;dimHeroArt&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0.55,&quot;min&quot;:0.1,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  state = { sel: this.props.defaultIp || 'hwasan' };
+
+  select = (id) => this.setState({ sel: id });
+
+  getData() {
+    const holo = 'linear-gradient(115deg,#2DE2FF,#8B5CFF 34%,#FF4D9D 66%,#FFB23D)';
+    const RAR = {
+      HOLO: { bg: holo, fg: '#0A0813' },
+      SSR:  { bg: '#FFB23D', fg: '#0A0813' },
+      SR:   { bg: 'rgba(169,129,255,0.22)', fg: '#C7B3FF' },
+      R:    { bg: 'rgba(45,226,255,0.18)', fg: '#8FE9FF' },
+      N:    { bg: 'rgba(255,255,255,0.08)', fg: '#A9A2CC' },
+    };
+    const mk = (o) => ({ ...o, card: { ...o.card, rarBg: RAR[o.card.rarity].bg, rarFg: RAR[o.card.rarity].fg } });
+    return {
+      hwasan: mk({ title: '화산강림', vertLabel: '로맨스판타지', accent: '#8B5CFF', tagline: '백번 죽어도 화산의 검을 든다', fansLabel: '4.2만', art: 'assets/ip/hwasan.png',
+        goods: { name: '화산강림 매화검 레플리카', price: '₩128,000', art: 'assets/goods/g9.png' },
+        card: { name: '청명 · 매화 일섬', no: '001 / 120', rarity: 'HOLO', art: 'assets/cards/c1.png' },
+        event: { date: '6.02 – 6.16', title: '화산강림 매화 특별전', place: '강남 ICONS 플래그십', mode: '오프라인 · 예정' },
+        post: { user: 'maehwa_', avatar: '#8B5CFF', text: '매화검 레플리카 실물 보고 바로 결제함... 디테일 미쳤다 🔥', likes: 342 } }),
+      lumen: mk({ title: 'LUMEN', vertLabel: '글로벌 IP', accent: '#2DE2FF', tagline: 'The light never sleeps', fansLabel: '8.9만', art: 'assets/ip/lumen.png',
+        goods: { name: 'LUMEN 홀로그램 포토카드 12종', price: '₩18,000', art: 'assets/goods/g11.png' },
+        card: { name: 'LUMEN · Dawn', no: '027 / 200', rarity: 'SR', art: 'assets/cards/c4.png' },
+        event: { date: '6.20 21:00', title: 'LUMEN 시즌2 글로벌 카운트다운', place: 'ICONS Live', mode: '온라인 · 예정' },
+        post: { user: 'lumen_kr', avatar: '#2DE2FF', text: '시즌2 피규어 예약 오픈! 디테일 실화? 프리뷰 봤는데 지름신 강림', likes: 189 } }),
+      hoshina: mk({ title: '호시나 미오', vertLabel: '버튜버', accent: '#38F0C0', tagline: '오늘도 별을 줍는 중', fansLabel: '3.5만', art: 'assets/ip/hoshina.png',
+        goods: { name: '호시나 미오 1st 포토카드 세트', price: '₩15,000', art: 'assets/goods/g3.png' },
+        card: { name: '호시나 · 스타라이트', no: '055 / 088', rarity: 'HOLO', art: 'assets/cards/c9.png' },
+        event: { date: '5.17 20:00', title: '호시나 미오 1주년 온라인 팬미팅', place: 'ICONS Live', mode: '온라인 · 예매중' },
+        post: { user: 'hoshi_kr_fan', avatar: '#38F0C0', text: '미오 1주년 생일 카드 HOLO 떴습니다... 손떨려요 인생 가챠 ✨', likes: 503 } }),
+      cheong: mk({ title: '청명', vertLabel: '로맨스판타지', accent: '#A981FF', tagline: '매화는 다시 핀다', fansLabel: '3.2만', art: 'assets/ip/cheong.png',
+        goods: { name: '청명 매화 향수 한정판', price: '₩38,000', art: 'assets/goods/g1.png' },
+        card: { name: '청명 · 봄밤', no: '041 / 090', rarity: 'R', art: 'assets/cards/c5.png' },
+        event: { date: '6.02 – 6.16', title: '청명 매화 시리즈 향수 팝업', place: '더현대 서울', mode: '오프라인 · 예정' },
+        post: { user: 'cheong_', avatar: '#A981FF', text: '향수 한정판 재입고됐어요!! 매화 노트 진짜 좋음 강추합니다', likes: 156 } }),
+      nocturne: mk({ title: '녹턴 클럽', vertLabel: 'BL/GL', accent: '#FF4D9D', tagline: '밤은 우리 편', fansLabel: '2.8만', art: 'assets/ip/nocturne.png',
+        goods: { name: '녹턴 클럽 멤버 키링 6종', price: '₩12,000', art: 'assets/goods/g5.png' },
+        card: { name: '녹턴 · 무대', no: '009 / 070', rarity: 'SR', art: 'assets/cards/c6.png' },
+        event: { date: '6.28 18:00', title: '녹턴 클럽 단독 쇼케이스', place: '홍대 무브홀', mode: '오프라인 · 예매중' },
+        post: { user: 'nocturne_live', avatar: '#FF4D9D', text: '키링 6종 다 모았다!! 무대 카드 SSR 교환 원하시는 분 댓글 💜', likes: 218 } }),
+    };
+  }
+
+  renderVals() {
+    const D = this.getData();
+    const order = ['hwasan', 'lumen', 'cheong', 'nocturne'];
+    const selId = D[this.state.sel] ? this.state.sel : 'hwasan';
+    const sel = D[selId];
+    const ips = order.map((id) => {
+      const d = D[id];
+      const active = id === selId;
+      return {
+        id, art: d.art, title: d.title,
+        onClick: () => this.select(id),
+        ring: active ? ('0 0 0 2px ' + d.accent + ', 0 12px 32px -8px ' + d.accent) : '0 0 0 1px rgba(255,255,255,0.10)',
+        labelOpacity: active ? 1 : 0.5,
+      };
+    });
+    return {
+      ips,
+      sel,
+      dimHeroArt: this.props.dimHeroArt ?? 0.55,
+      showBreadth: this.props.showBreadthBand !== false,
+    };
+  }
+}
+</script>
+</body>
+</html>
