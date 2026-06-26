@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "docs/claude-design/project/support.js",
+    "docs/claude-design/project/assets/**",
     "next-env.d.ts",
   ]),
 ]);
