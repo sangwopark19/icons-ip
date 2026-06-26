@@ -1,6 +1,8 @@
 import type { Good } from './data';
 
 export type CommunityPostStatus = 'visible' | 'hidden';
+export type CommunityReportTarget = 'post' | 'comment' | 'user';
+export type CommunityReportStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed';
 
 export const MAX_COMMUNITY_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -32,6 +34,7 @@ export interface CommunityChannel {
 
 export interface CommunityFeedComment {
   id: string;
+  authorId: string;
   user: string;
   text: string;
   time: string;
@@ -40,6 +43,7 @@ export interface CommunityFeedComment {
 
 export interface CommunityFeedPost {
   id: string;
+  authorId: string;
   user: string;
   ipId: string | null;
   ipName: string;
@@ -114,6 +118,33 @@ export type CommunityLikeFormResult =
   | { ok: true; value: CommunityLikeFormValue }
   | { ok: false; errors: CommunityLikeFormErrors };
 
+export interface CommunityReportFormValue {
+  targetType: CommunityReportTarget;
+  targetId: string;
+  reason: string | null;
+}
+
+export interface CommunityReportFormErrors {
+  targetType?: string;
+  targetId?: string;
+}
+
+export type CommunityReportFormResult =
+  | { ok: true; value: CommunityReportFormValue }
+  | { ok: false; errors: CommunityReportFormErrors };
+
+export interface CommunityBlockFormValue {
+  targetUserId: string;
+}
+
+export interface CommunityBlockFormErrors {
+  targetUserId?: string;
+}
+
+export type CommunityBlockFormResult =
+  | { ok: true; value: CommunityBlockFormValue }
+  | { ok: false; errors: CommunityBlockFormErrors };
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function readString(formData: FormData, key: string) {
@@ -138,6 +169,10 @@ function readBoolean(formData: FormData, key: string) {
 function normalizeTag(value: string) {
   const normalized = value.replace(/^#+/, '').replace(/[^\p{L}\p{N}_-]+/gu, '').trim();
   return normalized || null;
+}
+
+function isCommunityReportTarget(value: string): value is CommunityReportTarget {
+  return value === 'post' || value === 'comment' || value === 'user';
 }
 
 function imageFromFormData(value: FormDataEntryValue | null) {
@@ -212,6 +247,46 @@ export function normalizeCommunityLikeForm(formData: FormData): CommunityLikeFor
     value: {
       postId,
       shouldLike: readBoolean(formData, 'shouldLike'),
+    },
+  };
+}
+
+export function normalizeCommunityReportForm(formData: FormData): CommunityReportFormResult {
+  const targetType = readString(formData, 'targetType');
+  const targetId = readUuid(formData, 'targetId');
+  const errors: CommunityReportFormErrors = {};
+
+  if (!isCommunityReportTarget(targetType)) errors.targetType = '신고 대상을 찾을 수 없습니다.';
+  if (!targetId) errors.targetId = '신고 대상을 찾을 수 없습니다.';
+
+  if (!isCommunityReportTarget(targetType) || !targetId) return { ok: false, errors };
+
+  return {
+    ok: true,
+    value: {
+      targetType,
+      targetId,
+      reason: readString(formData, 'reason') || null,
+    },
+  };
+}
+
+export function normalizeCommunityBlockForm(formData: FormData): CommunityBlockFormResult {
+  const targetUserId = readUuid(formData, 'targetUserId');
+
+  if (!targetUserId) {
+    return {
+      ok: false,
+      errors: {
+        targetUserId: '차단할 사용자를 찾을 수 없습니다.',
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      targetUserId,
     },
   };
 }

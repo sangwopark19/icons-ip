@@ -7,9 +7,11 @@ import { isOnboarded, onboardingPath, safeNextPath } from '@/lib/auth/onboarding
 import { getCurrentAuthState } from '@/lib/auth/server';
 import {
   buildCommunityUploadPath,
+  normalizeCommunityBlockForm,
   normalizeCommunityCommentForm,
   normalizeCommunityLikeForm,
   normalizeCommunityPostForm,
+  normalizeCommunityReportForm,
   normalizeCommunityUuid,
 } from '@/lib/community';
 import { createClient } from '@/lib/supabase/server';
@@ -56,24 +58,35 @@ function readRpcIpId(data: unknown) {
   return typeof ipId === 'string' && ipId.trim() ? ipId : null;
 }
 
-async function requireCommunityUser(next: string) {
+async function requireAuthenticatedCommunityUser(next: string) {
   const auth = await getCurrentAuthState();
 
   if (!auth.isConfigured || !auth.user) {
     redirect(loginPath(next));
   }
 
-  if (!isOnboarded(auth.profile, auth.user.email)) {
+  return { auth, user: auth.user };
+}
+
+async function requireCommunityUser(next: string) {
+  const { auth, user } = await requireAuthenticatedCommunityUser(next);
+
+  if (!isOnboarded(auth.profile, user.email)) {
     redirect(onboardingPath(next));
   }
 
-  return auth.user;
+  return user;
 }
 
 function revalidateCommunitySurfaces(ipId: string | null) {
   revalidatePath('/community');
   revalidatePath('/');
   if (ipId) revalidatePath(`/ip/${ipId}`);
+}
+
+function revalidateCommunityModerationSurfaces(ipId: string | null) {
+  revalidateCommunitySurfaces(ipId);
+  revalidatePath('/search');
 }
 
 export async function createCommunityPostAction(
@@ -210,5 +223,43 @@ export async function deleteCommunityCommentAction(formData: FormData) {
   if (error) redirect(communityErrorPath(next));
 
   revalidateCommunitySurfaces(readRpcIpId(data));
+  redirect(next);
+}
+
+export async function reportCommunityTargetAction(formData: FormData) {
+  const next = readNext(formData);
+  await requireAuthenticatedCommunityUser(next);
+
+  const normalized = normalizeCommunityReportForm(formData);
+  if (!normalized.ok) redirect(communityErrorPath(next));
+
+  const supabase = await createClient();
+  const { error, data } = await supabase.rpc('submit_community_report', {
+    target_type: normalized.value.targetType,
+    target_id: normalized.value.targetId,
+    reason: normalized.value.reason,
+  });
+
+  if (error) redirect(communityErrorPath(next));
+
+  revalidateCommunitySurfaces(readRpcIpId(data));
+  redirect(next);
+}
+
+export async function blockCommunityUserAction(formData: FormData) {
+  const next = readNext(formData);
+  await requireAuthenticatedCommunityUser(next);
+
+  const normalized = normalizeCommunityBlockForm(formData);
+  if (!normalized.ok) redirect(communityErrorPath(next));
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('block_community_user', {
+    target_user_id: normalized.value.targetUserId,
+  });
+
+  if (error) redirect(communityErrorPath(next));
+
+  revalidateCommunityModerationSurfaces(null);
   redirect(next);
 }

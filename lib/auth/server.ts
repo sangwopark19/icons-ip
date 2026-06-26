@@ -12,6 +12,7 @@ interface ProfileRow {
   birth_date: string | null;
   consents: OnboardingConsents | null;
   onboarded_at: string | null;
+  role: 'user' | 'staff' | 'admin' | null;
 }
 
 export interface CurrentAuthState {
@@ -21,12 +22,13 @@ export interface CurrentAuthState {
     email: string | null;
   } | null;
   profile: ProfileForOnboarding | null;
+  isStaff: boolean;
 }
 
 export async function getProfileForUser(supabase: SupabaseServerClient, userId: string): Promise<ProfileForOnboarding | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('email,nickname,birth_date,consents,onboarded_at')
+    .select('email,nickname,birth_date,consents,onboarded_at,role')
     .eq('id', userId)
     .maybeSingle<ProfileRow>();
 
@@ -36,13 +38,15 @@ export async function getProfileForUser(supabase: SupabaseServerClient, userId: 
 
 export async function getCurrentAuthState(): Promise<CurrentAuthState> {
   const { isConfigured } = getSupabaseConfig();
-  if (!isConfigured) return { isConfigured: false, user: null, profile: null };
+  if (!isConfigured) return { isConfigured: false, user: null, profile: null, isStaff: false };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   const user = data.user;
 
-  if (error || !user) return { isConfigured: true, user: null, profile: null };
+  if (error || !user) return { isConfigured: true, user: null, profile: null, isStaff: false };
+
+  const profile = await getProfileForUser(supabase, user.id);
 
   return {
     isConfigured: true,
@@ -50,6 +54,7 @@ export async function getCurrentAuthState(): Promise<CurrentAuthState> {
       id: user.id,
       email: user.email ?? null,
     },
-    profile: await getProfileForUser(supabase, user.id),
+    profile,
+    isStaff: profile?.role === 'staff' || profile?.role === 'admin',
   };
 }

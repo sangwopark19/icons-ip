@@ -10,6 +10,10 @@ import {
   normalizeAdminIpForm,
   type AdminFieldErrors,
 } from '@/lib/admin/catalog';
+import {
+  normalizeAdminHidePostForm,
+  normalizeAdminReportStatusForm,
+} from '@/lib/admin/moderation';
 import { getCurrentAdminAuthState } from '@/lib/auth/admin';
 import { getCatalogSnapshot } from '@/lib/catalog';
 import { createClient } from '@/lib/supabase/server';
@@ -42,6 +46,21 @@ function revalidateCatalog(paths: string[]) {
   for (const path of [...defaults, ...paths]) {
     revalidatePath(path);
   }
+}
+
+function readRpcIpId(data: unknown) {
+  if (!data || typeof data !== 'object') return null;
+  const candidate = Array.isArray(data) ? data[0] : data;
+  if (!candidate || typeof candidate !== 'object') return null;
+  const ipId = (candidate as { ipId?: unknown; ip_id?: unknown }).ipId ?? (candidate as { ip_id?: unknown }).ip_id;
+  return typeof ipId === 'string' && ipId.trim() ? ipId : null;
+}
+
+function revalidateModeration(ipId: string | null = null) {
+  for (const path of ['/admin', '/community', '/', '/search']) {
+    revalidatePath(path);
+  }
+  if (ipId) revalidatePath(`/ip/${ipId}`);
 }
 
 function readPreviousIpPath(formData: FormData) {
@@ -188,4 +207,48 @@ export async function upsertAdminEventAction(
 
   revalidateCatalog(relatedIpPaths(value.ipId, previousIpPath));
   return { message: '이벤트를 저장했습니다.' };
+}
+
+export async function updateCommunityReportStatusAction(
+  _state: AdminCatalogActionState,
+  formData: FormData,
+): Promise<AdminCatalogActionState> {
+  const authError = await requireStaffAction();
+  if (authError) return authError;
+
+  const result = normalizeAdminReportStatusForm(formData);
+  if (!result.ok) return { errors: result.errors };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_update_report_status', {
+    target_report_id: result.value.reportId,
+    target_status: result.value.status,
+  });
+
+  if (error) return rpcFailure('신고 상태를 저장하지 못했습니다. 다시 시도해주세요.');
+
+  revalidateModeration();
+  return { message: '신고 상태를 저장했습니다.' };
+}
+
+export async function hideCommunityPostAction(
+  _state: AdminCatalogActionState,
+  formData: FormData,
+): Promise<AdminCatalogActionState> {
+  const authError = await requireStaffAction();
+  if (authError) return authError;
+
+  const result = normalizeAdminHidePostForm(formData);
+  if (!result.ok) return { errors: result.errors };
+
+  const supabase = await createClient();
+  const { error, data } = await supabase.rpc('admin_hide_community_post', {
+    target_post_id: result.value.postId,
+    target_report_id: result.value.reportId,
+  });
+
+  if (error) return rpcFailure('포스트를 숨김 처리하지 못했습니다. 다시 시도해주세요.');
+
+  revalidateModeration(readRpcIpId(data));
+  return { message: '포스트를 숨김 처리했습니다.' };
 }

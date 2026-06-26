@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { IpDetail } from '@/components/screens/IpDetail';
+import { getCurrentAuthState } from '@/lib/auth/server';
 import { getCatalogIpDetail } from '@/lib/catalog';
 import { getIpFollowState } from '@/lib/ip-follow.server';
 
@@ -14,8 +15,9 @@ function firstParam(value: string | string[] | undefined) {
 
 export default async function Page({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const auth = await getCurrentAuthState();
   const [detail, followState] = await Promise.all([
-    getCatalogIpDetail(id),
+    getCatalogIpDetail(id, { viewerId: auth.user?.id ?? null, isStaff: auth.isStaff }),
     getIpFollowState(id),
   ]);
 

@@ -51,8 +51,13 @@ interface CommunityLikeRow {
   post_id: string;
 }
 
+interface CommunityBlockRow {
+  blocked_user_id: string;
+}
+
 interface CommunitySnapshotOptions {
   viewerId?: string | null;
+  isStaff?: boolean;
 }
 
 type CommunitySupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -89,9 +94,22 @@ function formatPostTime(value: string) {
   }).format(date);
 }
 
-async function reactionCountsByPostId(supabase: CommunitySupabaseClient, postIds: string[]) {
+function blockedUserIdList(blockedIds: ReadonlySet<string>) {
+  return Array.from(blockedIds);
+}
+
+function postgrestInList(values: readonly string[]) {
+  return `(${values.join(',')})`;
+}
+
+async function reactionCountsByPostId(
+  supabase: CommunitySupabaseClient,
+  postIds: string[],
+  blockedIds: ReadonlySet<string>,
+) {
   const { data, error } = await supabase.rpc('community_post_reaction_counts', {
     target_post_ids: postIds,
+    blocked_user_ids: blockedUserIdList(blockedIds),
   });
 
   if (error) {
@@ -109,15 +127,26 @@ async function reactionCountsByPostId(supabase: CommunitySupabaseClient, postIds
   return { likesByPostId, commentsByPostId };
 }
 
-async function commentsForPosts(supabase: CommunitySupabaseClient, postIds: string[]) {
+async function commentsForPosts(
+  supabase: CommunitySupabaseClient,
+  postIds: string[],
+  blockedIds: ReadonlySet<string>,
+) {
+  const blockedAuthorIds = blockedUserIdList(blockedIds);
   const results = await Promise.all(
     postIds.map(async (postId) => {
-      const { data, error } = await supabase
+      let commentsQuery = supabase
         .from('comments')
         .select('id,post_id,user_id,text,created_at')
         .eq('post_id', postId)
         .order('created_at', { ascending: true })
         .limit(COMMUNITY_COMMENT_PREVIEW_LIMIT);
+
+      if (blockedAuthorIds.length) {
+        commentsQuery = commentsQuery.not('user_id', 'in', postgrestInList(blockedAuthorIds));
+      }
+
+      const { data, error } = await commentsQuery;
 
       if (error) {
         throw new Error(`Failed to load community comments: ${error.message}`);
@@ -148,6 +177,21 @@ async function viewerLikePostIds(
   }
 
   return new Set(((data ?? []) as CommunityLikeRow[]).map((row) => row.post_id));
+}
+
+async function blockedUserIds(supabase: CommunitySupabaseClient, viewerId: string | null) {
+  if (!viewerId) return new Set<string>();
+
+  const { data, error } = await supabase
+    .from('blocks')
+    .select('blocked_user_id')
+    .eq('user_id', viewerId);
+
+  if (error) {
+    throw new Error(`Failed to load blocked users: ${error.message}`);
+  }
+
+  return new Set(((data ?? []) as CommunityBlockRow[]).map((row) => row.blocked_user_id));
 }
 
 async function signedImageUrlByPath(supabase: CommunitySupabaseClient, paths: string[]) {
@@ -187,6 +231,7 @@ function commentItemsByPostId(
     const comments = grouped.get(row.post_id) ?? [];
     comments.push({
       id: row.id,
+      authorId: row.user_id,
       user: publicAuthorName(profilesById.get(row.user_id), row.user_id),
       text: row.text,
       time: formatPostTime(row.created_at),
@@ -215,6 +260,7 @@ function toCommunityPost(
 
   return {
     id: row.id,
+    authorId: row.user_id,
     user: publicAuthorName(profilesById.get(row.user_id), row.user_id),
     ipId: row.ip_id,
     ipName: displayIp?.title ?? '커뮤니티',
@@ -239,6 +285,7 @@ function mockPosts(ips: Ip[]): CommunityFeedPost[] {
     const ip = ipsByTitle.get(post.ipName) ?? fallbackIp;
     return {
       id: post.id,
+      authorId: '',
       user: post.user,
       ipId: ip?.id ?? null,
       ipName: post.ipName,
@@ -256,21 +303,27 @@ function mockPosts(ips: Ip[]): CommunityFeedPost[] {
   });
 }
 
-async function getSupabasePosts(ips: Ip[], viewerId: string | null) {
+async function getSupabasePosts(ips: Ip[], viewerId: string | null, isStaff: boolean) {
   const supabase = await createClient();
-  const postsResult = await supabase
+  const blockedIds = await blockedUserIds(supabase, viewerId);
+  let postsQuery = supabase
     .from('posts')
     .select('id,user_id,ip_id,text,tag,created_at,image_path,status')
-    .eq('status', 'visible')
     .order('created_at', { ascending: false })
     .limit(COMMUNITY_FEED_LIMIT);
+
+  if (blockedIds.size) {
+    postsQuery = postsQuery.not('user_id', 'in', postgrestInList(blockedUserIdList(blockedIds)));
+  }
+
+  const postsResult = await postsQuery;
 
   if (postsResult.error) {
     throw new Error(`Failed to load community posts: ${postsResult.error.message}`);
   }
 
   const posts = ((postsResult.data ?? []) as CommunityPostRow[]).filter((post) =>
-    canViewCommunityPost({ status: post.status, userId: post.user_id }, { viewerId: null, isStaff: false }),
+    canViewCommunityPost({ status: post.status, userId: post.user_id }, { viewerId, isStaff }),
   );
   if (!posts.length) return [];
 
@@ -278,8 +331,8 @@ async function getSupabasePosts(ips: Ip[], viewerId: string | null) {
   const imagePaths = Array.from(new Set(posts.map((post) => post.image_path).filter((path): path is string => Boolean(path))));
 
   const [reactionCounts, comments, likedPostIds, imageUrlByPath] = await Promise.all([
-    reactionCountsByPostId(supabase, postIds),
-    commentsForPosts(supabase, postIds),
+    reactionCountsByPostId(supabase, postIds, blockedIds),
+    commentsForPosts(supabase, postIds, blockedIds),
     viewerLikePostIds(supabase, postIds, viewerId),
     signedImageUrlByPath(supabase, imagePaths),
   ]);
@@ -317,12 +370,13 @@ async function getSupabasePosts(ips: Ip[], viewerId: string | null) {
 export async function getCommunitySnapshot(options: CommunitySnapshotOptions = {}): Promise<CommunitySnapshot> {
   const catalog = await getCatalogSnapshot();
   const viewerId = options.viewerId ?? null;
+  const isStaff = options.isStaff ?? false;
 
   return {
     source: catalog.source,
     channels: catalog.ips.map(channelFromIp),
     goods: catalog.goods,
-    posts: catalog.source === 'mock' ? mockPosts(catalog.ips) : await getSupabasePosts(catalog.ips, viewerId),
+    posts: catalog.source === 'mock' ? mockPosts(catalog.ips) : await getSupabasePosts(catalog.ips, viewerId, isStaff),
     trending: DATA.TRENDING,
   };
 }

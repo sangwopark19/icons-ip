@@ -23,6 +23,7 @@ type QueryRecord = {
   selectOptions?: { count?: string; head?: boolean };
   eq: [string, unknown][];
   in: [string, unknown[]][];
+  not: [string, string, string][];
   order: [string, { ascending?: boolean } | undefined][];
   limit?: number;
 };
@@ -44,7 +45,49 @@ interface CreateClientOptions {
   rows?: Partial<TestRows>;
 }
 
-function createDefaultRows() {
+interface TestPostRow {
+  id: string;
+  user_id: string;
+  ip_id: string | null;
+  text: string;
+  tag: string | null;
+  created_at: string;
+  image_path: string | null;
+  status: 'visible' | 'hidden';
+}
+
+interface TestProfileRow {
+  id: string;
+  nickname: string | null;
+}
+
+interface TestLikeRow {
+  post_id: string;
+  user_id: string;
+}
+
+interface TestCommentRow {
+  id: string;
+  post_id: string;
+  user_id: string;
+  text: string;
+  created_at: string;
+}
+
+interface TestBlockRow {
+  user_id: string;
+  blocked_user_id: string;
+}
+
+interface TestRows {
+  posts: TestPostRow[];
+  public_profiles: TestProfileRow[];
+  likes: TestLikeRow[];
+  comments: TestCommentRow[];
+  blocks: TestBlockRow[];
+}
+
+function createDefaultRows(): TestRows {
   return {
     posts: [
       {
@@ -59,7 +102,7 @@ function createDefaultRows() {
       },
       {
         id: 'hidden',
-        user_id: 'u1',
+        user_id: 'hidden-author',
         ip_id: 'hwasan',
         text: '숨김 포스트',
         tag: '숨김',
@@ -68,7 +111,10 @@ function createDefaultRows() {
         status: 'hidden',
       },
     ],
-    public_profiles: [{ id: 'u1', nickname: 'neonfan' }],
+    public_profiles: [
+      { id: 'u1', nickname: 'neonfan' },
+      { id: 'hidden-author', nickname: 'hidden_author' },
+    ],
     likes: [{ post_id: 'p1', user_id: 'u1' }, { post_id: 'p1', user_id: 'u2' }],
     comments: [
       {
@@ -86,17 +132,16 @@ function createDefaultRows() {
         created_at: '2026-06-22T04:06:00.000Z',
       },
     ],
+    blocks: [],
   };
 }
 
-type TestRows = ReturnType<typeof createDefaultRows>;
-
-function createQuery<T extends Record<string, unknown>>(
+function createQuery(
   table: string,
-  rows: T[],
+  rows: Record<string, unknown>[],
   records: QueryRecord[],
 ) {
-  const record: QueryRecord = { table, eq: [], in: [], order: [] };
+  const record: QueryRecord = { table, eq: [], in: [], not: [], order: [] };
   records.push(record);
 
   const query = {
@@ -113,6 +158,10 @@ function createQuery<T extends Record<string, unknown>>(
       record.in.push([column, value]);
       return query;
     },
+    not(column: string, operator: string, value: string) {
+      record.not.push([column, operator, value]);
+      return query;
+    },
     order(column: string, options?: { ascending?: boolean }) {
       record.order.push([column, options]);
       return query;
@@ -121,13 +170,19 @@ function createQuery<T extends Record<string, unknown>>(
       record.limit = value;
       return query;
     },
-    then<TResult1 = QueryResult<T>, TResult2 = never>(
-      onfulfilled?: ((value: QueryResult<T>) => TResult1 | PromiseLike<TResult1>) | null,
+    then<TResult1 = QueryResult<Record<string, unknown>>, TResult2 = never>(
+      onfulfilled?: ((value: QueryResult<Record<string, unknown>>) => TResult1 | PromiseLike<TResult1>) | null,
       onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
     ) {
       let data = rows;
       for (const [column, value] of record.eq) data = data.filter((row) => row[column] === value);
       for (const [column, values] of record.in) data = data.filter((row) => values.includes(row[column]));
+      for (const [column, operator, value] of record.not) {
+        if (operator === 'in') {
+          const excluded = value.replace(/^\(|\)$/g, '').split(',').filter(Boolean);
+          data = data.filter((row) => !excluded.includes(String(row[column])));
+        }
+      }
       for (const [column, options] of record.order) {
         data = [...data].sort((a, b) => {
           const left = String(a[column] ?? '');
@@ -152,7 +207,7 @@ function createClient(records: QueryRecord[], options: CreateClientOptions = {})
 
   return {
     from(table: keyof typeof rows) {
-      return createQuery(table, rows[table], records);
+      return createQuery(table, rows[table] as unknown as Record<string, unknown>[], records);
     },
     async rpc(functionName: string, args: Record<string, unknown>) {
       options.rpcRecords?.push({ functionName, args });
@@ -162,12 +217,15 @@ function createClient(records: QueryRecord[], options: CreateClientOptions = {})
       }
 
       const targetPostIds = Array.isArray(args.target_post_ids) ? args.target_post_ids : [];
+      const blockedUserIds = new Set(
+        Array.isArray(args.blocked_user_ids) ? args.blocked_user_ids.map((value) => String(value)) : [],
+      );
 
       return {
         data: targetPostIds.map((postId) => ({
           post_id: String(postId),
           likes_count: rows.likes.filter((row) => row.post_id === postId).length,
-          comments_count: rows.comments.filter((row) => row.post_id === postId).length,
+          comments_count: rows.comments.filter((row) => row.post_id === postId && !blockedUserIds.has(row.user_id)).length,
         })),
         error: null,
       };
@@ -259,7 +317,7 @@ describe('getCommunitySnapshot', () => {
     expect(snapshot.posts[0]).not.toHaveProperty('image_path');
     expect(records.find((record) => record.table === 'posts')).toMatchObject({
       select: 'id,user_id,ip_id,text,tag,created_at,image_path,status',
-      eq: [['status', 'visible']],
+      eq: [],
       order: [['created_at', { ascending: false }]],
       limit: 30,
     });
@@ -280,7 +338,7 @@ describe('getCommunitySnapshot', () => {
     ]);
     expect(rpcRecords).toEqual([{
       functionName: 'community_post_reaction_counts',
-      args: { target_post_ids: ['p1'] },
+      args: { target_post_ids: ['p1'], blocked_user_ids: [] },
     }]);
   });
 
@@ -377,7 +435,124 @@ describe('getCommunitySnapshot', () => {
     ]);
     expect(rpcRecords).toEqual([{
       functionName: 'community_post_reaction_counts',
-      args: { target_post_ids: ['p1'] },
+      args: { target_post_ids: ['p1'], blocked_user_ids: [] },
     }]);
+  });
+
+  it('excludes posts from authors blocked by the viewer', async () => {
+    const records: QueryRecord[] = [];
+    mocks.catalog = catalog;
+    mocks.client = createClient(records, {
+      rows: {
+        posts: [
+          {
+            id: 'blocked-post',
+            user_id: 'u1',
+            ip_id: 'hwasan',
+            text: '차단한 작성자의 포스트',
+            tag: '차단',
+            created_at: '2026-06-22T05:00:00.000Z',
+            image_path: null,
+            status: 'visible',
+          },
+          {
+            id: 'visible-post',
+            user_id: 'u2',
+            ip_id: 'hwasan',
+            text: '볼 수 있는 포스트',
+            tag: '후기',
+            created_at: '2026-06-22T04:00:00.000Z',
+            image_path: null,
+            status: 'visible',
+          },
+        ],
+        public_profiles: [
+          { id: 'u1', nickname: 'blocked_author' },
+          { id: 'u2', nickname: 'visible_author' },
+          { id: 'u3', nickname: 'allowed_commenter' },
+        ],
+        likes: [],
+        comments: [
+          {
+            id: 'blocked-comment',
+            post_id: 'visible-post',
+            user_id: 'u1',
+            text: '차단한 사용자의 댓글',
+            created_at: '2026-06-22T04:05:00.000Z',
+          },
+          {
+            id: 'allowed-comment',
+            post_id: 'visible-post',
+            user_id: 'u3',
+            text: '볼 수 있는 댓글',
+            created_at: '2026-06-22T04:06:00.000Z',
+          },
+        ],
+        blocks: [{ user_id: 'viewer-1', blocked_user_id: 'u1' }],
+      },
+    });
+
+    const snapshot = await getCommunitySnapshot({ viewerId: 'viewer-1' });
+
+    expect(snapshot.posts.map((post) => post.id)).toEqual(['visible-post']);
+    expect(snapshot.posts[0]).toEqual(expect.objectContaining({
+      authorId: 'u2',
+      comments: 1,
+      commentItems: [expect.objectContaining({ id: 'allowed-comment' })],
+      user: 'visible_author',
+    }));
+    expect(snapshot.posts[0].commentItems).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'blocked-comment' })]),
+    );
+    expect(records.filter((record) => record.table === 'blocks')).toEqual([
+      expect.objectContaining({
+        select: 'blocked_user_id',
+        eq: [['user_id', 'viewer-1']],
+      }),
+    ]);
+    expect(records.find((record) => record.table === 'posts')).toEqual(expect.objectContaining({
+      not: [['user_id', 'in', '(u1)']],
+    }));
+    expect(records.filter((record) => record.table === 'comments')).toEqual([
+      expect.objectContaining({
+        eq: [['post_id', 'visible-post']],
+        not: [['user_id', 'in', '(u1)']],
+      }),
+    ]);
+  });
+
+  it('keeps hidden posts visible to their author and staff while excluding public viewers', async () => {
+    const records: QueryRecord[] = [];
+    mocks.catalog = catalog;
+    mocks.client = createClient(records, {
+      rows: {
+        posts: [
+          {
+            id: 'hidden-own-post',
+            user_id: 'author-1',
+            ip_id: 'hwasan',
+            text: '작성자에게 보이는 숨김 포스트',
+            tag: '숨김',
+            created_at: '2026-06-22T05:00:00.000Z',
+            image_path: null,
+            status: 'hidden',
+          },
+        ],
+        public_profiles: [{ id: 'author-1', nickname: 'author' }],
+        likes: [],
+        comments: [],
+        blocks: [],
+      },
+    });
+
+    await expect(getCommunitySnapshot()).resolves.toEqual(expect.objectContaining({
+      posts: [],
+    }));
+    await expect(getCommunitySnapshot({ viewerId: 'author-1' })).resolves.toEqual(expect.objectContaining({
+      posts: [expect.objectContaining({ id: 'hidden-own-post' })],
+    }));
+    await expect(getCommunitySnapshot({ viewerId: 'staff-1', isStaff: true })).resolves.toEqual(expect.objectContaining({
+      posts: [expect.objectContaining({ id: 'hidden-own-post' })],
+    }));
   });
 });

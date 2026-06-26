@@ -3,15 +3,17 @@
 import { useActionState, useState, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
+  blockCommunityUserAction,
   createCommunityCommentAction,
   createCommunityPostAction,
   deleteCommunityCommentAction,
   deleteCommunityPostAction,
+  reportCommunityTargetAction,
   setCommunityPostLikeAction,
   type CommunityCommentActionState,
   type CommunityPostActionState,
 } from '@/app/community/actions';
-import type { CommunityChannel, CommunityFeedPost, CommunitySnapshot } from '@/lib/community';
+import type { CommunityChannel, CommunityFeedPost, CommunityReportTarget, CommunitySnapshot } from '@/lib/community';
 import { krw, type Good } from '@/lib/data';
 import { Icon } from '@/components/ui/Icon';
 import { Empty } from '@/components/ui/Empty';
@@ -19,6 +21,7 @@ import { useGo } from '@/components/shell/useGo';
 
 const emptyState: CommunityPostActionState = {};
 const emptyCommentState: CommunityCommentActionState = {};
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function ErrorText({ children, id }: { children?: string; id: string }) {
   if (!children) return null;
@@ -71,6 +74,58 @@ function DeleteButton({ label }: { label: string }) {
     >
       삭제
     </button>
+  );
+}
+
+function SmallActionButton({ children, label }: { children: ReactNode; label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      aria-label={label}
+      className="muted"
+      disabled={pending}
+      style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--faint)', opacity: pending ? 0.6 : undefined }}
+      type="submit"
+    >
+      {children}
+    </button>
+  );
+}
+
+function isUuid(value: string | null | undefined) {
+  return typeof value === 'string' && UUID_PATTERN.test(value);
+}
+
+function ReportForm({
+  label,
+  targetId,
+  targetType,
+}: {
+  label: string;
+  targetId: string;
+  targetType: CommunityReportTarget;
+}) {
+  if (!isUuid(targetId)) return null;
+
+  return (
+    <form action={reportCommunityTargetAction}>
+      <input type="hidden" name="next" value="/community" />
+      <input type="hidden" name="targetType" value={targetType} />
+      <input type="hidden" name="targetId" value={targetId} />
+      <SmallActionButton label={label}>신고</SmallActionButton>
+    </form>
+  );
+}
+
+function BlockUserForm({ authorId }: { authorId: string }) {
+  if (!isUuid(authorId)) return null;
+
+  return (
+    <form action={blockCommunityUserAction}>
+      <input type="hidden" name="next" value="/community" />
+      <input type="hidden" name="targetUserId" value={authorId} />
+      <SmallActionButton label="사용자 차단">차단</SmallActionButton>
+    </form>
   );
 }
 
@@ -132,6 +187,13 @@ function PostCard({ p }: { p: CommunityFeedPost }) {
         </div>
         <div className="row" style={{ marginLeft: 'auto', gap: 10, alignItems: 'center' }}>
           <span className="tag" style={{ color: 'var(--violet-2)' }}>#{p.tag}</span>
+          <ReportForm label="포스트 신고" targetId={p.id} targetType="post" />
+          {!p.canDelete && (
+            <>
+              <ReportForm label="사용자 신고" targetId={p.authorId} targetType="user" />
+              <BlockUserForm authorId={p.authorId} />
+            </>
+          )}
           {p.canDelete && (
             <form action={deleteCommunityPostAction}>
               <input type="hidden" name="next" value="/community" />
@@ -175,6 +237,13 @@ function PostCard({ p }: { p: CommunityFeedPost }) {
                   <input type="hidden" name="commentId" value={comment.id} />
                   <DeleteButton label="댓글 삭제" />
                 </form>
+              )}
+              <ReportForm label="댓글 신고" targetId={comment.id} targetType="comment" />
+              {!comment.canDelete && (
+                <>
+                  <ReportForm label="사용자 신고" targetId={comment.authorId} targetType="user" />
+                  <BlockUserForm authorId={comment.authorId} />
+                </>
               )}
             </div>
           ))}

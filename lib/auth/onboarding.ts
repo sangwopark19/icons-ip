@@ -10,6 +10,7 @@ export interface ProfileForOnboarding {
   birth_date?: string | null;
   consents?: OnboardingConsents | null;
   onboarded_at?: string | null;
+  role?: 'user' | 'staff' | 'admin' | null;
 }
 
 interface AuthErrorLike {

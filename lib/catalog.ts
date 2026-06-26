@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { canViewCommunityPost, type CommunityPostStatus } from '@/lib/community';
 import { DATA, type Card, type FandomEvent, type Good, type Ip, type RarityKey, type Stock, type Vertical } from '@/lib/data';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -32,6 +33,11 @@ export interface CatalogIpDetail {
   cards: Card[];
   events: FandomEvent[];
   posts: CatalogPostPreview[];
+}
+
+export interface CatalogIpDetailOptions {
+  viewerId?: string | null;
+  isStaff?: boolean;
 }
 
 interface VerticalRow {
@@ -99,11 +105,16 @@ interface PostRow {
   text: string;
   tag: string | null;
   created_at: string;
+  status: CommunityPostStatus;
 }
 
 interface PublicProfileRow {
   id: string;
   nickname: string | null;
+}
+
+interface BlockRow {
+  blocked_user_id: string;
 }
 
 const PUBLIC_MEDIA_BUCKET = 'public-media';
@@ -168,6 +179,14 @@ function normalizePublicMediaPath(path: string) {
   return normalizedPath.startsWith(PUBLIC_MEDIA_PREFIX)
     ? normalizedPath.slice(PUBLIC_MEDIA_PREFIX.length)
     : normalizedPath;
+}
+
+function blockedUserIdList(blockedIds: ReadonlySet<string>) {
+  return Array.from(blockedIds);
+}
+
+function postgrestInList(values: readonly string[]) {
+  return `(${values.join(',')})`;
 }
 
 function toIp(row: IpRow, verticalsByKey: Map<string, Vertical>, imageUrlForPath: (path: string) => string): Ip {
@@ -311,13 +330,21 @@ async function countReactionsByPostId(
   table: 'likes' | 'comments',
   postIds: string[],
   label: 'likes' | 'comments',
+  blockedIds: ReadonlySet<string> = new Set(),
 ) {
+  const blockedAuthorIds = blockedUserIdList(blockedIds);
   const entries = await Promise.all(
     postIds.map(async (postId) => {
-      const result = await supabase
+      let query = supabase
         .from(table)
         .select('post_id', { count: 'exact', head: true })
         .eq('post_id', postId);
+
+      if (table === 'comments' && blockedAuthorIds.length) {
+        query = query.not('user_id', 'in', postgrestInList(blockedAuthorIds));
+      }
+
+      const result = await query;
 
       if (result.error) {
         throw new Error(`Failed to load post ${label}: ${result.error.message}`);
@@ -328,6 +355,21 @@ async function countReactionsByPostId(
   );
 
   return new Map(entries);
+}
+
+async function blockedUserIds(supabase: CatalogSupabaseClient, viewerId: string | null) {
+  if (!viewerId) return new Set<string>();
+
+  const { data, error } = await supabase
+    .from('blocks')
+    .select('blocked_user_id')
+    .eq('user_id', viewerId);
+
+  if (error) {
+    throw new Error(`Failed to load blocked users: ${error.message}`);
+  }
+
+  return new Set(((data ?? []) as BlockRow[]).map((row) => row.blocked_user_id));
 }
 
 export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
@@ -434,21 +476,40 @@ export function buildCatalogIpDetail(
   };
 }
 
-async function getCatalogPostPreviewsForIp(id: string, ip: Ip): Promise<CatalogPostPreview[]> {
+async function getCatalogPostPreviewsForIp(
+  id: string,
+  ip: Ip,
+  options: CatalogIpDetailOptions = {},
+): Promise<CatalogPostPreview[]> {
   const supabase = await createClient();
-  const postsResult = await supabase
+  const viewerId = options.viewerId ?? null;
+  const isStaff = options.isStaff ?? false;
+  const blockedIds = await blockedUserIds(supabase, viewerId);
+  const blockedAuthorIds = blockedUserIdList(blockedIds);
+  let postsQuery = supabase
     .from('posts')
-    .select('id,user_id,ip_id,text,tag,created_at')
+    .select('id,user_id,ip_id,text,tag,created_at,status')
     .eq('ip_id', id)
-    .eq('status', 'visible')
     .order('created_at', { ascending: false })
     .limit(3);
+
+  if (!viewerId && !isStaff) {
+    postsQuery = postsQuery.eq('status', 'visible');
+  }
+
+  if (blockedAuthorIds.length) {
+    postsQuery = postsQuery.not('user_id', 'in', postgrestInList(blockedAuthorIds));
+  }
+
+  const postsResult = await postsQuery;
 
   if (postsResult.error) {
     throw new Error(`Failed to load catalog posts: ${postsResult.error.message}`);
   }
 
-  const posts = (postsResult.data ?? []) as PostRow[];
+  const posts = ((postsResult.data ?? []) as PostRow[]).filter((post) =>
+    canViewCommunityPost({ status: post.status, userId: post.user_id }, { viewerId, isStaff }),
+  );
   if (!posts.length) return [];
 
   const postIds = posts.map((post) => post.id);
@@ -456,7 +517,7 @@ async function getCatalogPostPreviewsForIp(id: string, ip: Ip): Promise<CatalogP
   const [profilesResult, likesByPostId, commentsByPostId] = await Promise.all([
     supabase.from('public_profiles').select('id,nickname').in('id', userIds),
     countReactionsByPostId(supabase, 'likes', postIds, 'likes'),
-    countReactionsByPostId(supabase, 'comments', postIds, 'comments'),
+    countReactionsByPostId(supabase, 'comments', postIds, 'comments', blockedIds),
   ]);
 
   if (profilesResult.error) {
@@ -468,11 +529,14 @@ async function getCatalogPostPreviewsForIp(id: string, ip: Ip): Promise<CatalogP
   return posts.map((post) => toPostPreview(post, ip, profilesById, likesByPostId, commentsByPostId));
 }
 
-export async function getCatalogIpDetail(id: string): Promise<CatalogIpDetail | null> {
+export async function getCatalogIpDetail(
+  id: string,
+  options: CatalogIpDetailOptions = {},
+): Promise<CatalogIpDetail | null> {
   const catalog = await getCatalogSnapshot();
   const ip = catalog.ips.find((item) => item.id === id);
   if (!ip) return null;
 
-  const posts = catalog.source === 'mock' ? mockPostPreviews() : await getCatalogPostPreviewsForIp(id, ip);
+  const posts = catalog.source === 'mock' ? mockPostPreviews() : await getCatalogPostPreviewsForIp(id, ip, options);
   return buildCatalogIpDetail(catalog, id, posts);
 }
