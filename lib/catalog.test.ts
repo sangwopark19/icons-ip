@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildCatalogIpDetail, getCatalogIpDetail, getHomeSnapshot, type CatalogPostPreview, type CatalogSnapshot } from './catalog';
+import { getHomeSelectableIps } from './home-catalog';
 import type { Ip } from './data';
 
 const mocks = vi.hoisted(() => ({
@@ -436,5 +437,18 @@ describe('getHomeSnapshot', () => {
 
     mocks.isConfigured = false;
     mocks.client = null;
+  });
+
+  it('provides a home community post for every selectable IP in mock mode', async () => {
+    mocks.isConfigured = false;
+    mocks.client = null;
+
+    const snapshot = await getHomeSnapshot();
+    const selectable = getHomeSelectableIps(snapshot.catalog);
+
+    expect(selectable.length).toBeGreaterThan(0);
+    for (const ip of selectable) {
+      expect(snapshot.postPreviewByIpId[ip.id], `${ip.title} 홈 팬덤 채널 포스트 누락`).not.toBeNull();
+    }
   });
 });
