@@ -565,6 +565,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   .foil,
   .home-hero-art-bg,
   .home-ip-feature-bg,

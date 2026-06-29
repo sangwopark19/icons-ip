@@ -86,7 +86,7 @@ function WorldSection({
       <div className="wrap">
         <div className="between" style={{ gap: 14, flexWrap: 'wrap' }}>
           <div className="row" style={{ gap: 12, alignItems: 'baseline' }}>
-            <span className="eyebrow" style={{ color }}>{eyebrow}</span>
+            <span className="mono" style={{ fontSize: 11, letterSpacing: '.12em', color, textTransform: 'uppercase' }}>{eyebrow}</span>
             {count > 0 && <span className="faint mono" style={{ fontSize: 13 }}>{count}</span>}
           </div>
           {cta}
