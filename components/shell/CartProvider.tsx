@@ -10,7 +10,7 @@ interface CartCtx {
 const Ctx = createContext<CartCtx>({ count: 0, add: () => {} });
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [count, setCount] = useState(2);
+  const [count, setCount] = useState(0);
   return <Ctx.Provider value={{ count, add: () => setCount((c) => c + 1) }}>{children}</Ctx.Provider>;
 }
 
