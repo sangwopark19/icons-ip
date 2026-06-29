@@ -537,6 +537,53 @@
     border-top: 1px solid var(--line);
   }
   .ip-world-section:first-of-type { border-top: 0; }
+
+  /* shop — 사요 · 공식 굿즈 월드 */
+  .shop-toolbar {
+    position: sticky;
+    top: var(--nav-h);
+    z-index: 30;
+    margin-top: 28px;
+    background: rgba(8,6,15,.72);
+    backdrop-filter: blur(18px) saturate(1.4);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .shop-toolbar-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0;
+  }
+  .shop-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .shop-toolbar-row::-webkit-scrollbar { display: none; }
+  .shop-toolbar-row > * { flex: 0 0 auto; }
+  .shop-rail {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    padding-bottom: 4px;
+  }
+  .shop-rail::-webkit-scrollbar { display: none; }
+  .shop-rail > * {
+    flex: 0 0 clamp(208px, 62vw, 248px);
+    scroll-snap-align: start;
+  }
+  .shop-section {
+    padding: 34px 0;
+    border-top: 1px solid var(--line);
+  }
+  .shop-section:first-of-type { border-top: 0; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
