@@ -269,9 +269,9 @@ function Composer({ channels }: { channels: CommunityChannel[] }) {
   const disabled = !defaultIpId;
 
   return (
-    <form action={action} className="card" style={{ padding: 16, display: 'grid', gridTemplateColumns: '42px 1fr auto', gap: 14, alignItems: 'start', borderRadius: 'var(--r)' }}>
+    <form action={action} className="card community-composer" style={{ padding: 16, display: 'grid', gridTemplateColumns: '42px 1fr auto', gap: 14, alignItems: 'start', borderRadius: 'var(--r)' }}>
       <input type="hidden" name="next" value="/community" />
-      <div style={{ width: 42, height: 42, borderRadius: 99, background: 'var(--holo)', flex: '0 0 auto' }} />
+      <div className="community-composer-avatar" style={{ width: 42, height: 42, borderRadius: 99, background: 'var(--holo)', flex: '0 0 auto' }} />
       <div className="col" style={{ gap: 10 }}>
         <div className="row" style={{ gap: 10, alignItems: 'stretch' }}>
           <select
@@ -349,6 +349,39 @@ function OfficialGoods({ goods }: { goods: Good[] }) {
   );
 }
 
+function ChannelHero({ channel, postCount }: { channel: CommunityChannel | undefined; postCount: number }) {
+  const accent = channel?.color ?? '#FF4D9D';
+
+  return (
+    <header className="community-hero">
+      <span
+        className="community-hero-glow"
+        aria-hidden="true"
+        style={{ background: `radial-gradient(130% 130% at 100% 0%, ${accent}38, transparent 62%)` }}
+      />
+      <span className="eyebrow community-hero-kicker">떠들어요 · 팬 커뮤니티</span>
+      {channel ? (
+        <>
+          <h1 className="h-lg community-hero-title">
+            <span style={{ color: accent }}>{channel.title}</span> 팬덤 채널
+          </h1>
+          <p className="muted community-hero-sub">{channel.sub} — 같은 최애를 둔 팬들과 떠들어요.</p>
+        </>
+      ) : (
+        <>
+          <h1 className="h-lg community-hero-title">
+            모든 팬덤의 <span className="holo-text">이야기</span>
+          </h1>
+          <p className="muted community-hero-sub">관심 가는 채널을 골라, 같은 최애를 둔 팬들과 떠들어보세요.</p>
+        </>
+      )}
+      <div className="community-hero-meta mono">
+        {postCount > 0 ? `지금 이야기 ${postCount}개` : '아직 첫 이야기를 기다려요'}
+      </div>
+    </header>
+  );
+}
+
 export function Community({ snapshot, initialChannelId }: { snapshot: CommunitySnapshot; initialChannelId?: string }) {
   const go = useGo();
   const [channelId, setChannelId] = useState(initialChannelId ?? 'all');
@@ -362,49 +395,32 @@ export function Community({ snapshot, initialChannelId }: { snapshot: CommunityS
     <div className="screen">
       <div className="wrap community-layout" style={{ paddingTop: 40, paddingBottom: 80, display: 'grid', gridTemplateColumns: '230px 1fr 280px', gap: 28, alignItems: 'start' }}>
         <aside className="hide-mob" style={{ position: 'sticky', top: 90 }}>
-          <div className="faint mono" style={{ fontSize: 11, letterSpacing: '.1em', marginBottom: 12 }}>IP 커뮤니티</div>
-          <div className="col" style={{ gap: 4 }}>
+          <div className="community-rail-label mono">내 팬덤 채널</div>
+          <div className="col" role="group" aria-label="팬덤 채널" style={{ gap: 4 }}>
             <button
               onClick={() => setChannelId('all')}
-              className="row"
-              style={{
-                gap: 10,
-                padding: '11px 14px',
-                borderRadius: 14,
-                textAlign: 'left',
-                justifyContent: 'flex-start',
-                background: channelId === 'all' ? 'var(--surface-2)' : 'transparent',
-                border: '1px solid',
-                borderColor: channelId === 'all' ? 'var(--line-2)' : 'transparent',
-                color: channelId === 'all' ? 'var(--text)' : 'var(--dim)',
-                fontWeight: 600,
-                fontSize: 14,
-              }}
+              className={'community-channel' + (channelId === 'all' ? ' is-active' : '')}
+              aria-pressed={channelId === 'all'}
             >
-              <span style={{ width: 9, height: 9, borderRadius: 99, background: 'var(--holo)' }} />
-              전체 피드
+              <span className="community-channel-dot" style={{ background: 'var(--holo)' }} />
+              <span className="community-channel-text">
+                <span className="community-channel-title">전체 피드</span>
+                <span className="community-channel-sub">모든 팬덤의 이야기</span>
+              </span>
             </button>
             {channels.map((channel) => (
               <button
                 key={channel.id}
                 onClick={() => setChannelId(channel.id)}
-                className="row"
-                style={{
-                  gap: 10,
-                  padding: '11px 14px',
-                  borderRadius: 14,
-                  textAlign: 'left',
-                  justifyContent: 'flex-start',
-                  background: channelId === channel.id ? 'var(--surface-2)' : 'transparent',
-                  border: '1px solid',
-                  borderColor: channelId === channel.id ? 'var(--line-2)' : 'transparent',
-                  color: channelId === channel.id ? 'var(--text)' : 'var(--dim)',
-                  fontWeight: 600,
-                  fontSize: 14,
-                }}
+                className={'community-channel' + (channelId === channel.id ? ' is-active' : '')}
+                aria-pressed={channelId === channel.id}
+                style={channelId === channel.id ? { borderColor: `${channel.color}66` } : undefined}
               >
-                <span style={{ width: 9, height: 9, borderRadius: 99, background: channel.color }} />
-                {channel.title}
+                <span className="community-channel-dot" style={{ background: channel.color }} />
+                <span className="community-channel-text">
+                  <span className="community-channel-title">{channel.title}</span>
+                  <span className="community-channel-sub">{channel.sub}</span>
+                </span>
               </button>
             ))}
           </div>
@@ -412,25 +428,35 @@ export function Community({ snapshot, initialChannelId }: { snapshot: CommunityS
 
         <main>
           <div className="only-mob wrapgap" style={{ marginBottom: 16 }}>
-            <button className={'chip btn-sm' + (channelId === 'all' ? ' on' : '')} onClick={() => setChannelId('all')}>전체</button>
+            <button className={'chip btn-sm' + (channelId === 'all' ? ' on' : '')} aria-pressed={channelId === 'all'} onClick={() => setChannelId('all')}>전체</button>
             {channels.map((channel) => (
-              <button key={channel.id} className={'chip btn-sm' + (channelId === channel.id ? ' on' : '')} onClick={() => setChannelId(channel.id)}>{channel.title}</button>
+              <button key={channel.id} className={'chip btn-sm' + (channelId === channel.id ? ' on' : '')} aria-pressed={channelId === channel.id} onClick={() => setChannelId(channel.id)}>{channel.title}</button>
             ))}
           </div>
 
-          <Composer channels={channels} />
+          <ChannelHero channel={selectedChannel} postCount={posts.length} />
+
+          <div style={{ marginTop: 18 }}>
+            <Composer channels={channels} />
+          </div>
 
           <div className="between" style={{ margin: '22px 2px 16px' }}>
-            <span style={{ fontWeight: 700, fontSize: 17 }}>{selectedChannel?.title ?? '전체 피드'}</span>
+            <span style={{ fontWeight: 700, fontSize: 15 }}>최근 이야기</span>
             <div className="row" style={{ gap: 14 }}>
               {['최신순', '인기순'].map((value) => (
-                <button key={value} onClick={() => setSort(value)} style={{ fontSize: 13.5, fontWeight: 600, color: sort === value ? 'var(--text)' : 'var(--faint)' }}>{value}</button>
+                <button key={value} onClick={() => setSort(value)} aria-pressed={sort === value} style={{ fontSize: 13.5, fontWeight: 600, color: sort === value ? 'var(--text)' : 'var(--faint)' }}>{value}</button>
               ))}
             </div>
           </div>
           <div className="col" style={{ gap: 14 }}>
             {posts.map((post) => <PostCard key={post.id} p={post} />)}
-            {!posts.length && <Empty icon="chat" text="아직 포스트가 없어요" sub="첫 번째 포스트를 작성해보세요" />}
+            {!posts.length && (
+              <Empty
+                icon="chat"
+                text={selectedChannel ? `${selectedChannel.title} 채널의 첫 이야기를 남겨보세요` : '아직 포스트가 없어요'}
+                sub={selectedChannel ? undefined : '첫 번째 포스트를 작성해보세요'}
+              />
+            )}
           </div>
         </main>
 
