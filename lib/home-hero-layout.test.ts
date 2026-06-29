@@ -18,9 +18,9 @@ describe('home hero layout source contract', () => {
     expect(homeSource).not.toContain('home-stat-row');
     expect(homeSource).not.toContain('home-hero-art"');
 
-    expect(cssSource).toMatch(/\.home-hero\s*{[^}]*position:\s*relative[^}]*overflow:\s*hidden[^}]*display:\s*flex/s);
-    expect(cssSource).toMatch(/\.home-hero-art-layer\s*{[^}]*position:\s*absolute[^}]*top:\s*0[^}]*right:\s*0[^}]*bottom:\s*0[^}]*width:\s*54%/s);
-    expect(cssSource).not.toMatch(/\.home-hero-art\s*{[^}]*border:/s);
+    expect(cssSource).toMatch(/\.home-hero\s*{[^}]*position:\s*relative[^}]*overflow:\s*hidden[^}]*display:\s*flex/);
+    expect(cssSource).toMatch(/\.home-hero-art-layer\s*{[^}]*position:\s*absolute[^}]*top:\s*0[^}]*right:\s*0[^}]*bottom:\s*0[^}]*width:\s*54%/);
+    expect(cssSource).not.toMatch(/\.home-hero-art\s*{[^}]*border:/);
   });
 
   it('transitions IP selection as a layered opacity crossfade, not a remount scale-pop', () => {
@@ -35,7 +35,7 @@ describe('home hero layout source contract', () => {
     // the scale-pop entrance is gone; layers fade in via a mount-time keyframe
     expect(cssSource).not.toContain('homeArtIn');
     expect(cssSource).toContain('@keyframes homeArtCrossfade');
-    expect(cssSource).toMatch(/\.home-hero-art-bg,\s*\.home-ip-feature-bg\s*{[^}]*animation:\s*homeArtCrossfade/s);
+    expect(cssSource).toMatch(/\.home-hero-art-bg,\s*\.home-ip-feature-bg\s*{[^}]*animation:\s*homeArtCrossfade/);
   });
 
   it('keeps the lower home body aligned to the original favorite-first design', () => {
