@@ -332,7 +332,7 @@ function CommunityTile({ ip, post }: { ip: Ip; post: CatalogPostPreview | null }
       title="팬덤 채널"
       color="var(--pink)"
       cta={
-        <Link className="btn btn-ghost" href={hrefFor('community')} style={{ width: '100%' }}>
+        <Link className="btn btn-ghost" href={`${hrefFor('community')}?ip=${ip.id}`} style={{ width: '100%' }}>
           팬덤 들어가기 <Icon name="chat" size={16} />
         </Link>
       }
