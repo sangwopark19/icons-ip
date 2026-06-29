@@ -510,6 +510,33 @@
 
   /* entrance — never animate opacity (capture envs can freeze the clock at frame 0) */
   .rise { opacity: 1; }
+
+  /* ip detail — favorite-world hub */
+  .ip-anchor-nav {
+    position: sticky;
+    top: var(--nav-h);
+    z-index: 30;
+    background: rgba(8,6,15,.72);
+    backdrop-filter: blur(18px) saturate(1.4);
+    border-bottom: 1px solid var(--line);
+  }
+  .ip-anchor-nav-inner {
+    display: flex;
+    gap: 10px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .ip-anchor-nav-inner::-webkit-scrollbar { display: none; }
+  .ip-anchor-nav .chip { flex: 0 0 auto; }
+  .ip-world-section {
+    padding: 40px 0;
+    scroll-margin-top: calc(var(--nav-h) + 72px);
+    border-top: 1px solid var(--line);
+  }
+  .ip-world-section:first-of-type { border-top: 0; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

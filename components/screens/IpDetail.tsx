@@ -1,17 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import { toggleIpFollowAction } from '@/app/ip/actions';
 import type { CatalogIpDetail } from '@/lib/catalog';
 import type { FandomEvent } from '@/lib/data';
 import type { IpFollowState } from '@/lib/ip-follow';
+import { hrefFor } from '@/lib/routes';
 import { Icon } from '@/components/ui/Icon';
 import { Collectible } from '@/components/ui/Collectible';
 import { GoodsCard } from '@/components/ui/GoodsCard';
 import { FeedPreview } from '@/components/ui/FeedPreview';
 import { Empty } from '@/components/ui/Empty';
 import { useGo, type Go } from '@/components/shell/useGo';
+
+const ANCHORS: { id: string; label: string; color: string }[] = [
+  { id: 'ip-goods', label: '사요 · 굿즈', color: 'var(--amber)' },
+  { id: 'ip-cards', label: '모아요 · 카드', color: 'var(--violet-2)' },
+  { id: 'ip-events', label: '만나요 · 팝업', color: 'var(--mint)' },
+  { id: 'ip-community', label: '떠들어요 · 커뮤니티', color: 'var(--pink)' },
+];
 
 function EventRow({ e, go }: { e: FandomEvent; go: Go }) {
   return (
@@ -57,6 +66,37 @@ function FollowForm({ followState, ipId }: { followState: IpFollowState; ipId: s
   );
 }
 
+function WorldSection({
+  id,
+  eyebrow,
+  color,
+  count,
+  cta,
+  children,
+}: {
+  id: string;
+  eyebrow: string;
+  color: string;
+  count: number;
+  cta: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section id={id} className="ip-world-section">
+      <div className="wrap">
+        <div className="between" style={{ gap: 14, flexWrap: 'wrap' }}>
+          <div className="row" style={{ gap: 12, alignItems: 'baseline' }}>
+            <span className="eyebrow" style={{ color }}>{eyebrow}</span>
+            {count > 0 && <span className="faint mono" style={{ fontSize: 13 }}>{count}</span>}
+          </div>
+          {cta}
+        </div>
+        <div style={{ marginTop: 22 }}>{children}</div>
+      </div>
+    </section>
+  );
+}
+
 export function IpDetail({
   detail,
   followError,
@@ -68,8 +108,6 @@ export function IpDetail({
 }) {
   const go = useGo();
   const { ip, goods, cards, events, posts } = detail;
-  const [tab, setTab] = useState('굿즈');
-  const tabs: [string, number | ''][] = [['굿즈', goods.length], ['카드', cards.length], ['팝업', events.length], ['커뮤니티', posts.length]];
 
   return (
     <div className="screen">
@@ -79,7 +117,7 @@ export function IpDetail({
         <div className="sheen" />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 30%, var(--bg) 96%)' }} />
       </div>
-      <div className="wrap" style={{ marginTop: -110, position: 'relative', zIndex: 3, paddingBottom: 80 }}>
+      <div className="wrap" style={{ marginTop: -110, position: 'relative', zIndex: 3, paddingBottom: 36 }}>
         <button className="btn btn-ghost btn-sm" onClick={() => go('iphub')} style={{ marginBottom: 20 }}>
           <Icon name="arrow" size={14} style={{ transform: 'rotate(180deg)' }} /> IP 허브
         </button>
@@ -108,45 +146,99 @@ export function IpDetail({
             </div>
           ))}
         </div>
+      </div>
 
-        <div className="wrapgap" style={{ margin: '36px 0 26px', borderBottom: '1px solid var(--line)', paddingBottom: 0, gap: 4 }}>
-          {tabs.map(([t, n]) => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: '12px 18px', fontWeight: 600, fontSize: 15, position: 'relative', color: tab === t ? 'var(--text)' : 'var(--dim)' }}>
-              {t} {n !== '' && <span className="mono faint" style={{ fontSize: 12 }}>{n}</span>}
-              {tab === t && <span style={{ position: 'absolute', left: 14, right: 14, bottom: -1, height: 2, background: 'var(--holo)' }} />}
-            </button>
+      {/* world navigation — jump to each section */}
+      <nav className="ip-anchor-nav" aria-label="IP 세계관 섹션">
+        <div className="wrap ip-anchor-nav-inner">
+          {ANCHORS.map((a) => (
+            <a key={a.id} href={`#${a.id}`} className="chip">
+              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 99, background: a.color }} />
+              {a.label}
+            </a>
           ))}
         </div>
+      </nav>
 
-        {tab === '굿즈' && (
-          goods.length ? (
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-              {goods.map((g) => <GoodsCard key={g.id} g={g} ip={ip} />)}
-            </div>
-          ) : (
-            <Empty icon="bag" text="등록된 굿즈가 아직 없습니다" />
-          )
-        )}
-        {tab === '카드' && (
-          cards.length ? (
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', justifyItems: 'center' }}>
-              {cards.map((c) => <Collectible key={c.id} card={c} ip={ip} onClick={() => go('binder')} />)}
-            </div>
-          ) : (
-            <Empty icon="card" text="등록된 카드가 아직 없습니다" />
-          )
-        )}
-        {tab === '팝업' && (
-          <div className="col" style={{ gap: 14 }}>
-            {events.length ? events.map((e) => <EventRow key={e.id} e={e} go={go} />) : <Empty icon="event" text="예정된 이벤트가 없어요" />}
+      <WorldSection
+        id="ip-goods"
+        eyebrow="사요 · 공식 굿즈"
+        color="var(--amber)"
+        count={goods.length}
+        cta={
+          <Link className="btn btn-ghost btn-sm" href={hrefFor('shop')}>
+            굿즈샵 더보기 <Icon name="arrow" size={14} />
+          </Link>
+        }
+      >
+        {goods.length ? (
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 18 }}>
+            {goods.map((g) => <GoodsCard key={g.id} g={g} ip={ip} />)}
           </div>
+        ) : (
+          <Empty icon="bag" text="등록된 굿즈가 아직 없습니다" />
         )}
-        {tab === '커뮤니티' && (
-          <div className="col" style={{ gap: 14 }}>
-            {posts.length ? posts.map((p) => <FeedPreview key={p.id} p={p} />) : <Empty icon="chat" text="아직 포스트가 없어요" sub="공개 포스트가 등록되면 이 IP 탭에 표시됩니다." />}
+      </WorldSection>
+
+      <WorldSection
+        id="ip-cards"
+        eyebrow="모아요 · 수집 카드"
+        color="var(--violet-2)"
+        count={cards.length}
+        cta={
+          <Link className="btn btn-ghost btn-sm" href={hrefFor('binder')}>
+            지금 뽑기 <Icon name="spark" size={14} />
+          </Link>
+        }
+      >
+        {cards.length ? (
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 18, justifyItems: 'center' }}>
+            {cards.map((c) => <Collectible key={c.id} card={c} ip={ip} onClick={() => go('binder')} />)}
           </div>
+        ) : (
+          <Empty icon="card" text="등록된 카드가 아직 없습니다" />
         )}
-      </div>
+      </WorldSection>
+
+      <WorldSection
+        id="ip-events"
+        eyebrow="만나요 · 팝업·팬미팅"
+        color="var(--mint)"
+        count={events.length}
+        cta={
+          <Link className="btn btn-ghost btn-sm" href={hrefFor('events')}>
+            예매하기 <Icon name="event" size={14} />
+          </Link>
+        }
+      >
+        {events.length ? (
+          <div className="col" style={{ gap: 14 }}>
+            {events.map((e) => <EventRow key={e.id} e={e} go={go} />)}
+          </div>
+        ) : (
+          <Empty icon="event" text="예정된 이벤트가 없어요" />
+        )}
+      </WorldSection>
+
+      <WorldSection
+        id="ip-community"
+        eyebrow="떠들어요 · 팬 커뮤니티"
+        color="var(--pink)"
+        count={posts.length}
+        cta={
+          <Link className="btn btn-ghost btn-sm" href={`${hrefFor('community')}?ip=${ip.id}`}>
+            팬덤 들어가기 <Icon name="chat" size={14} />
+          </Link>
+        }
+      >
+        {posts.length ? (
+          <div className="col" style={{ gap: 14 }}>
+            {posts.map((p) => <FeedPreview key={p.id} p={p} />)}
+          </div>
+        ) : (
+          <Empty icon="chat" text="아직 포스트가 없어요" sub="공개 포스트가 등록되면 이 IP 채널에 표시됩니다." />
+        )}
+      </WorldSection>
     </div>
   );
 }
