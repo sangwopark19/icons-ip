@@ -178,6 +178,8 @@ const POSTS: Post[] = [
   { id: 'p2', user: 'semail_love', ipName: '녹턴 클럽', avatar: '#8B5CFF', text: '녹턴 클럽 키링 6종 다 모았다!! 무대 카드 SSR 떴는데 교환 원하시는 분 댓글 주세요', likes: 218, comments: 33, time: '41분 전', tag: '카드교환', img: null },
   { id: 'p3', user: 'hoshi_kr_fan', ipName: '호시나 미오', avatar: '#38F0C0', text: '미오 1주년 생일 카드 HOLO 떴습니다... 손떨려요 인생 가챠 ✨ 다들 봐주세요', likes: 503, comments: 91, time: '1시간 전', tag: '가챠', img: grad('#0c5e4a', '#38F0C0', '#2DE2FF') },
   { id: 'p4', user: 'naruto_otaku', ipName: 'LUMEN', avatar: '#2DE2FF', text: 'LUMEN 시즌2 피규어 예약 오픈했네요. 디테일 실화? 프리뷰 사진 첨부합니다', likes: 189, comments: 27, time: '2시간 전', tag: '한정굿즈', img: grad('#0c4a5e', '#2DE2FF', '#38F0C0') },
+  { id: 'p5', user: 'maehwa_geom', ipName: '화산강림', avatar: '#8B5CFF', text: '화산강림 매화검 레플리카 드디어 입수… 검신 각인 디테일 실화냐 ㅠㅠ 공식 정품 퀄 인정합니다', likes: 421, comments: 57, time: '34분 전', tag: '굿즈인증', img: grad('#3a1d6e', '#8B5CFF', '#FF4D9D') },
+  { id: 'p6', user: 'cheong_spring', ipName: '청명', avatar: '#2D6FDB', text: '청명 봄밤 카드 떴어요!! R인데도 일러 너무 고와서 대만족… 매화 향수 한정판이랑 같이 질렀습니다', likes: 287, comments: 39, time: '1시간 전', tag: '카드자랑', img: null },
 ];
 
 const EXCHANGES: Exchange[] = [

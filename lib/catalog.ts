@@ -4,6 +4,7 @@ import { canViewCommunityPost, type CommunityPostStatus } from '@/lib/community'
 import { DATA, type Card, type FandomEvent, type Good, type Ip, type RarityKey, type Stock, type Vertical } from '@/lib/data';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+import { getHomeSelectableIps, type HomePostPreviewByIpId } from './home-catalog';
 
 export interface CatalogSnapshot {
   source: 'supabase' | 'mock';
@@ -33,6 +34,11 @@ export interface CatalogIpDetail {
   cards: Card[];
   events: FandomEvent[];
   posts: CatalogPostPreview[];
+}
+
+export interface HomeSnapshot {
+  catalog: CatalogSnapshot;
+  postPreviewByIpId: HomePostPreviewByIpId;
 }
 
 export interface CatalogIpDetailOptions {
@@ -539,4 +545,31 @@ export async function getCatalogIpDetail(
 
   const posts = catalog.source === 'mock' ? mockPostPreviews() : await getCatalogPostPreviewsForIp(id, ip, options);
   return buildCatalogIpDetail(catalog, id, posts);
+}
+
+export async function getHomeSnapshot(): Promise<HomeSnapshot> {
+  const catalog = await getCatalogSnapshot();
+  const selectableIps = getHomeSelectableIps(catalog);
+
+  if (catalog.source === 'mock') {
+    const mockPosts = mockPostPreviews();
+    return {
+      catalog,
+      postPreviewByIpId: Object.fromEntries(
+        selectableIps.map((ip) => [ip.id, mockPosts.find((post) => post.ipName === ip.title) ?? null]),
+      ),
+    };
+  }
+
+  const postEntries = await Promise.all(
+    selectableIps.map(async (ip) => {
+      const posts = await getCatalogPostPreviewsForIp(ip.id, ip);
+      return [ip.id, posts[0] ?? null] as const;
+    }),
+  );
+
+  return {
+    catalog,
+    postPreviewByIpId: Object.fromEntries(postEntries),
+  };
 }

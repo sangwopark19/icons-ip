@@ -349,9 +349,9 @@ function OfficialGoods({ goods }: { goods: Good[] }) {
   );
 }
 
-export function Community({ snapshot }: { snapshot: CommunitySnapshot }) {
+export function Community({ snapshot, initialChannelId }: { snapshot: CommunitySnapshot; initialChannelId?: string }) {
   const go = useGo();
-  const [channelId, setChannelId] = useState('all');
+  const [channelId, setChannelId] = useState(initialChannelId ?? 'all');
   const [sort, setSort] = useState('최신순');
   const channels = snapshot.channels;
   const selectedChannel = channels.find((channel) => channel.id === channelId);

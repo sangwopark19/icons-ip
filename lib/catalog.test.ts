@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildCatalogIpDetail, getCatalogIpDetail, type CatalogPostPreview, type CatalogSnapshot } from './catalog';
+import { buildCatalogIpDetail, getCatalogIpDetail, getHomeSnapshot, type CatalogPostPreview, type CatalogSnapshot } from './catalog';
+import { getHomeSelectableIps } from './home-catalog';
 import type { Ip } from './data';
 
 const mocks = vi.hoisted(() => ({
@@ -83,6 +84,11 @@ type QueryResult<T> = {
   error: null;
 };
 
+type SupabaseRows = Record<
+  'verticals' | 'ips' | 'goods' | 'cards' | 'events' | 'posts' | 'public_profiles' | 'likes' | 'comments' | 'blocks',
+  Record<string, unknown>[]
+>;
+
 function makeResult<T>(data: T[] | null, count?: number | null): QueryResult<T> {
   return { data, count, error: null };
 }
@@ -159,8 +165,8 @@ function createQuery(
   return query;
 }
 
-function createSupabaseClient(records: QueryRecord[]) {
-  const rows = {
+function defaultSupabaseRows(): SupabaseRows {
+  return {
     verticals: [vertical],
     ips: [{
       id: 'hwasan',
@@ -203,9 +209,16 @@ function createSupabaseClient(records: QueryRecord[]) {
     ],
     blocks: [{ user_id: 'viewer-1', blocked_user_id: 'u1' }],
   };
+}
+
+function createSupabaseClient(records: QueryRecord[], overrides: Partial<SupabaseRows> = {}) {
+  const rows: SupabaseRows = {
+    ...defaultSupabaseRows(),
+    ...overrides,
+  };
 
   return {
-    from(table: keyof typeof rows) {
+    from(table: keyof SupabaseRows) {
       return createQuery(table, rows[table] as unknown as Record<string, unknown>[], records);
     },
     storage: {
@@ -344,5 +357,98 @@ describe('getCatalogIpDetail', () => {
 
     mocks.isConfigured = false;
     mocks.client = null;
+  });
+});
+
+describe('getHomeSnapshot', () => {
+  it('loads first visible post previews for selectable IPs only', async () => {
+    const records: QueryRecord[] = [];
+    mocks.isConfigured = true;
+    mocks.client = createSupabaseClient(records, {
+      ips: [
+        {
+          id: 'hwasan',
+          title: '화산강림',
+          sub: '리디 · 로판',
+          vertical_key: 'rofan',
+          tagline: '매화는 다시 핀다',
+          synopsis: '화산파의 부활',
+          glyph: '화산',
+          bg: 'linear-gradient(#111, #222)',
+          image_path: null,
+          featured: true,
+          fans_count: 1200,
+          goods_count: 1,
+          cards_count: 1,
+        },
+        {
+          id: 'lumen',
+          title: 'LUMEN',
+          sub: 'Global Anime',
+          vertical_key: 'rofan',
+          tagline: 'The light never sleeps',
+          synopsis: '글로벌 애니메이션',
+          glyph: 'LUMEN',
+          bg: 'linear-gradient(#123, #456)',
+          image_path: null,
+          featured: true,
+          fans_count: 900,
+          goods_count: 1,
+          cards_count: 1,
+        },
+        {
+          id: 'regular',
+          title: 'REGULAR',
+          sub: 'Not featured',
+          vertical_key: 'rofan',
+          tagline: '일반 IP',
+          synopsis: '선택기에 없는 IP',
+          glyph: 'REG',
+          bg: 'linear-gradient(#333, #555)',
+          image_path: null,
+          featured: false,
+          fans_count: 5000,
+          goods_count: 1,
+          cards_count: 1,
+        },
+      ],
+      posts: [
+        { id: 'hidden-latest', user_id: 'u1', ip_id: 'hwasan', text: '숨김 최신', tag: '숨김', created_at: '2026-06-22T07:00:00.000Z', status: 'hidden' },
+        { id: 'hwasan-latest', user_id: 'u1', ip_id: 'hwasan', text: '화산 최신', tag: '후기', created_at: '2026-06-22T06:00:00.000Z', status: 'visible' },
+        { id: 'hwasan-old', user_id: 'u2', ip_id: 'hwasan', text: '화산 예전', tag: '후기', created_at: '2026-06-22T05:00:00.000Z', status: 'visible' },
+        { id: 'lumen-latest', user_id: 'u2', ip_id: 'lumen', text: '루멘 최신', tag: '한정굿즈', created_at: '2026-06-22T04:00:00.000Z', status: 'visible' },
+        { id: 'regular-latest', user_id: 'u1', ip_id: 'regular', text: '일반 IP', tag: '제외', created_at: '2026-06-22T08:00:00.000Z', status: 'visible' },
+      ],
+    });
+
+    const snapshot = await getHomeSnapshot();
+
+    expect(snapshot.postPreviewByIpId).toEqual({
+      hwasan: expect.objectContaining({ id: 'hwasan-latest', user: 'neonfan', tag: '후기' }),
+      lumen: expect.objectContaining({ id: 'lumen-latest', user: 'fan_u2', tag: '한정굿즈' }),
+    });
+    expect(snapshot.postPreviewByIpId).not.toHaveProperty('regular');
+    expect(records.filter((record) => record.table === 'posts').map((record) => record.eq)).toEqual(
+      expect.arrayContaining([
+        [['ip_id', 'hwasan'], ['status', 'visible']],
+        [['ip_id', 'lumen'], ['status', 'visible']],
+      ]),
+    );
+
+    mocks.isConfigured = false;
+    mocks.client = null;
+  });
+
+  it('provides a home community post for every selectable IP in mock mode', async () => {
+    mocks.isConfigured = false;
+    mocks.client = null;
+
+    const snapshot = await getHomeSnapshot();
+    const selectable = getHomeSelectableIps(snapshot.catalog);
+
+    expect(selectable.length).toBeGreaterThan(0);
+    for (const ip of selectable) {
+      expect(snapshot.postPreviewByIpId[ip.id], `${ip.title} 홈 팬덤 채널 포스트 누락`).not.toBeNull();
+    }
   });
 });

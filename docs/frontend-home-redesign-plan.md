@@ -9,7 +9,7 @@ ICONS 홈을 개발자 관점의 기능 나열 화면에서 사용자 관점의 
 - Handoff bundle: `docs/claude-design/`
 - Primary design: `docs/claude-design/project/ICONS 첫 페이지 (최애 중심).dc.html`
 
-이 시안은 픽셀 퍼펙트 복제 대상이 아니라 UX 방향과 시각 언어의 기준이다.
+이 시안은 홈 본문에서는 구조, 밀도, 전환 모션의 기준이다. 단, production 렌더링은 Claude Design의 정적 asset/mock 데이터를 복사하지 않고 현재 카탈로그/Supabase 데이터와 공개 커뮤니티 preview를 사용한다.
 
 ## GitHub Tracking
 
@@ -37,6 +37,9 @@ Issue breakdown:
 - 홈 렌더링은 `CatalogSnapshot`에서 선택 IP, 굿즈, 카드, 이벤트, 커뮤니티 표시 모델을 파생한다.
 - Claude Design assets는 시각 레퍼런스로만 사용한다.
 - production 홈 이미지는 현재 catalog image source를 우선한다.
+- 홈 본문은 원본 시안의 IP WORLD, journey tile, breadth/trust band 구조를 따른다.
+- IP 선택 전환은 CSS 기반 모션으로 처리하고 `prefers-reduced-motion`을 존중한다.
+- 커뮤니티 tile은 선택 IP의 실제 공개 포스트 preview를 우선 노출하고, 없으면 fake 사용자/좋아요 없이 empty teaser를 보여준다.
 - 버튼 문구는 출시 기준 실제 액션처럼 둔다.
 - 이번 홈 PR에서는 새 결제, 가챠, 예매 backend를 만들지 않는다.
 - 아직 없는 액션은 현재 존재하는 route/action까지만 연결하고, 최종 동작 계약은 후속 작업으로 남긴다.
@@ -101,10 +104,10 @@ Issue breakdown:
 
 ## Community Preview Scope
 
-- 첫 홈 PR에서는 `getCommunitySnapshot()` 또는 별도 커뮤니티 feed loader를 추가하지 않는다.
-- 커뮤니티 tile은 선택 IP와 catalog 정보 기반의 문구와 CTA로 구성한다.
+- 첫 홈 PR에서는 전체 커뮤니티 feed를 붙이지 않는다.
+- 커뮤니티 tile은 홈 snapshot에 포함된 IP별 첫 공개 포스트 preview만 사용한다.
 - `팬덤 들어가기`는 현재 존재하는 `/community` 경로로 연결한다.
-- 실제 IP별 커뮤니티 preview는 후속 PR에서 별도 loader와 실패 경로를 설계한 뒤 연결한다.
+- IP별 커뮤니티 상세 preview 확장은 후속 PR에서 별도 loader와 실패 경로를 설계한 뒤 연결한다.
 
 ## Verification
 
