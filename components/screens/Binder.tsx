@@ -164,15 +164,6 @@ function PackOpen({ card, ip, onClose }: { card: Card; ip?: Ip; onClose: () => v
 /** 등급이 높을수록 희귀 — N→R→SR→SSR→HOLO 시각 위계. SSR·HOLO는 포일. */
 const RARITY_ORDER = Object.entries(RARITY_META) as [RarityKey, Rarity][];
 
-/** 예시 확률 공시 — 실제 값은 가챠 연동(카드풀 확률 공시) 시 대체된다. */
-const GACHA_SAMPLE_ODDS: Record<RarityKey, string> = {
-  N: '50%',
-  R: '30%',
-  SR: '14%',
-  SSR: '5%',
-  HOLO: '1%',
-};
-
 function RarityLadder() {
   return (
     <section style={{ marginTop: 34 }}>
@@ -231,30 +222,9 @@ function GachaEntry({ canDraw, mockMode, onDraw }: { canDraw: boolean; mockMode:
         <span className="tag" style={{ color: 'var(--amber)', borderColor: 'var(--amber)', whiteSpace: 'nowrap' }}>가챠 연동 준비 중 · 데모</span>
       </div>
 
-      {/* 등급 구성 미리보기 — 실제 확률 공시는 가챠 backend의 DB 값으로 대체 */}
-      <div style={{ marginTop: 18 }}>
-        <div className="faint mono" style={{ fontSize: 10.5, letterSpacing: '.04em' }}>등급 구성 미리보기 · 실제 확률 공시는 가챠 연동 시 적용</div>
-        <div className="wrapgap" style={{ marginTop: 10 }}>
-          {RARITY_ORDER.map(([key, info]) => (
-            <span
-              key={key}
-              className="mono"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 11.5,
-                padding: '5px 10px',
-                borderRadius: 99,
-                border: `1px solid ${info.color}66`,
-                color: 'var(--text)',
-              }}
-            >
-              <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 99, background: info.color }} />
-              {info.label} <span className="faint">{GACHA_SAMPLE_ODDS[key]}</span>
-            </span>
-          ))}
-        </div>
+      {/* 확률 공시는 DB(pool_odds)가 원천 — 카드풀 오픈 전까지 수치를 노출하지 않는다 */}
+      <div className="faint mono" style={{ fontSize: 10.5, letterSpacing: '.04em', marginTop: 18 }}>
+        등급별 확률 공시는 가챠 카드풀이 열릴 때 공개됩니다
       </div>
 
       <div className="row" style={{ gap: 12, marginTop: 20, flexWrap: 'wrap', alignItems: 'center' }}>
