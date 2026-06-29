@@ -118,7 +118,7 @@ function PackOpen({ card, ip, onClose }: { card: Card; ip?: Ip; onClose: () => v
               <div style={{ fontFamily: 'var(--ff-display)', fontWeight: 700, fontSize: 26, color: '#fff', textShadow: '0 2px 14px rgba(0,0,0,.4)' }}>ICONS<br />PACK</div>
             </div>
             <h2 className="h-lg" style={{ marginTop: 24 }}>데일리 카드 팩</h2>
-            <p className="muted" style={{ marginTop: 8 }}>SR 이상 확정 · HOLO 확률 3%</p>
+            <p className="muted" style={{ marginTop: 8 }}>데모 팩 · 실제 충전금은 소비되지 않아요</p>
             <button className="btn btn-holo" style={{ marginTop: 20 }} onClick={open}><Icon name="spark" size={16} fill /> 팩 열기</button>
           </div>
         )}
@@ -208,7 +208,7 @@ function RarityLadder() {
   );
 }
 
-function GachaEntry({ canDraw, onDraw }: { canDraw: boolean; onDraw: () => void }) {
+function GachaEntry({ canDraw, mockMode, onDraw }: { canDraw: boolean; mockMode: boolean; onDraw: () => void }) {
   return (
     <section
       className="card"
@@ -231,9 +231,9 @@ function GachaEntry({ canDraw, onDraw }: { canDraw: boolean; onDraw: () => void 
         <span className="tag" style={{ color: 'var(--amber)', borderColor: 'var(--amber)', whiteSpace: 'nowrap' }}>가챠 연동 준비 중 · 데모</span>
       </div>
 
-      {/* 예시 확률 공시 */}
+      {/* 등급 구성 미리보기 — 실제 확률 공시는 가챠 backend의 DB 값으로 대체 */}
       <div style={{ marginTop: 18 }}>
-        <div className="faint mono" style={{ fontSize: 10.5, letterSpacing: '.04em' }}>예시 확률 공시 · 실제 값은 가챠 연동 시 적용</div>
+        <div className="faint mono" style={{ fontSize: 10.5, letterSpacing: '.04em' }}>등급 구성 미리보기 · 실제 확률 공시는 가챠 연동 시 적용</div>
         <div className="wrapgap" style={{ marginTop: 10 }}>
           {RARITY_ORDER.map(([key, info]) => (
             <span
@@ -261,7 +261,7 @@ function GachaEntry({ canDraw, onDraw }: { canDraw: boolean; onDraw: () => void 
         {canDraw ? (
           <button className="btn btn-holo" onClick={onDraw}><Icon name="spark" size={16} fill /> 가챠 미리보기</button>
         ) : (
-          <button className="btn btn-ghost" disabled>로그인 후 가챠</button>
+          <button className="btn btn-ghost" disabled>{mockMode ? '카드 등록 후 가챠' : '로그인 후 가챠'}</button>
         )}
         <span className="faint mono" style={{ fontSize: 11 }}>
           {canDraw ? '데일리 팩 데모 1회 · 실제 충전금은 소비되지 않아요' : '카드풀 공개 탐색은 로그인 없이 가능해요'}
@@ -291,6 +291,8 @@ export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'source' | 
   const pct = isMockCatalog && total ? Math.round((owned / total) * 100) : 0;
   const ipCount = new Set(catalog.cards.map((c) => c.ip)).size;
   const holoCount = catalog.cards.filter((c) => c.rarity === 'HOLO').length;
+  const ownedIpCount = isMockCatalog ? new Set(catalog.cards.filter((c) => c.owned).map((c) => c.ip)).size : 0;
+  const ownedHoloCount = isMockCatalog ? catalog.cards.filter((c) => c.owned && c.rarity === 'HOLO').length : 0;
   const ownershipFilters = isMockCatalog
     ? ([['all', '전체'], ['owned', '보유'], ['wish', '미보유']] as const)
     : ([['all', '전체']] as const);
@@ -299,8 +301,8 @@ export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'source' | 
     ? [
         [owned, '보유 카드'],
         [total - owned, '미보유'],
-        [ipCount, '보유 IP'],
-        [holoCount, 'HOLO'],
+        [ownedIpCount, '보유 IP'],
+        [ownedHoloCount, 'HOLO'],
       ]
     : [
         [total, '등록 카드'],
@@ -316,20 +318,13 @@ export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'source' | 
       <div className="wrap" style={{ paddingTop: 48, paddingBottom: 80 }}>
         {/* 세계관 헤더 — 모아요 · 수집 카드 */}
         <div className="eyebrow" style={{ marginBottom: 14 }}>모아요 · 수집 카드</div>
-        <div className="between" style={{ flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-          <div>
-            <h1 className="h-xl">{isMockCatalog ? '카드' : '카드 탐색'}</h1>
-            <p className="muted" style={{ marginTop: 10, maxWidth: 540 }}>
-              {isMockCatalog
-                ? '가챠로 모은 수집형 디지털 카드를 바인더에 담으세요. 컬렉션을 완성하면 한정 보상이 열립니다.'
-                : '공개 카드풀에 등록된 IP 기념 디지털 카드를 둘러보세요. 가챠와 보유 연동은 로그인 후 이용할 수 있어요.'}
-            </p>
-          </div>
-          {canDraw ? (
-            <button className="btn btn-holo" onClick={() => setPackOpen(true)}><Icon name="spark" size={16} fill /> 가챠 미리보기</button>
-          ) : (
-            <button className="btn btn-ghost" disabled>{isMockCatalog ? '카드 등록 후 가챠' : '로그인 후 가챠'}</button>
-          )}
+        <div>
+          <h1 className="h-xl">{isMockCatalog ? '카드' : '카드 탐색'}</h1>
+          <p className="muted" style={{ marginTop: 10, maxWidth: 540 }}>
+            {isMockCatalog
+              ? '가챠로 모은 수집형 디지털 카드를 바인더에 담으세요. 컬렉션을 완성하면 한정 보상이 열립니다.'
+              : '공개 카드풀에 등록된 IP 기념 디지털 카드를 둘러보세요. 가챠와 보유 연동은 로그인 후 이용할 수 있어요.'}
+          </p>
         </div>
 
         {/* stat strip */}
@@ -343,7 +338,7 @@ export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'source' | 
         </div>
 
         {/* 가챠 진입 — 획득(가챠)을 보관(바인더)과 분리 */}
-        <GachaEntry canDraw={canDraw} onDraw={() => setPackOpen(true)} />
+        <GachaEntry canDraw={canDraw} mockMode={isMockCatalog} onDraw={() => setPackOpen(true)} />
 
         {/* 등급 위계 */}
         <RarityLadder />
