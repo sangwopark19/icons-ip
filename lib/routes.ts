@@ -7,22 +7,17 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: '홈' },
-  { id: 'iphub', label: 'IP' },
+  { id: 'iphub', label: '탐색' },
   { id: 'shop', label: '굿즈샵' },
-  { id: 'binder', label: '카드' },
   { id: 'events', label: '팝업' },
   { id: 'community', label: '커뮤니티' },
-  { id: 'exchange', label: '교환' },
-  { id: 'market', label: '마켓' },
 ];
 
 export const MOB_ITEMS: NavItem[] = [
-  { id: 'home', label: '홈', icon: 'home' },
-  { id: 'iphub', label: 'IP', icon: 'ip' },
-  { id: 'binder', label: '카드', icon: 'card' },
-  { id: 'community', label: '피드', icon: 'chat' },
-  { id: 'shop', label: '굿즈', icon: 'bag' },
+  { id: 'iphub', label: '탐색', icon: 'ip' },
+  { id: 'shop', label: '굿즈샵', icon: 'bag' },
+  { id: 'events', label: '팝업', icon: 'event' },
+  { id: 'community', label: '커뮤니티', icon: 'chat' },
 ];
 
 const PATHS: Record<string, string> = {

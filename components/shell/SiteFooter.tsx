@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useGo } from './useGo';
 
 const cols: { h: string; items: [string, string | null][] }[] = [
-  { h: '서비스', items: [['굿즈샵', 'shop'], ['IP 허브', 'iphub'], ['팝업·티케팅', 'events'], ['커뮤니티', 'community']] },
+  { h: '서비스', items: [['굿즈샵', 'shop'], ['탐색', 'iphub'], ['팝업·티케팅', 'events'], ['커뮤니티', 'community']] },
   { h: '카드', items: [['수집 바인더', 'binder'], ['카드 교환', 'exchange'], ['애프터마켓', 'market']] },
   { h: '회사', items: [['이용약관', null], ['개인정보처리방침', null], ['문의하기', null]] },
 ];
