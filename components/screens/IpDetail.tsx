@@ -206,7 +206,7 @@ export function IpDetail({
         color="var(--mint)"
         count={events.length}
         cta={
-          <Link className="btn btn-ghost btn-sm" href={hrefFor('events')}>
+          <Link className="btn btn-ghost btn-sm" href={events.length ? `${hrefFor('events')}?ip=${ip.id}` : hrefFor('events')}>
             예매하기 <Icon name="event" size={14} />
           </Link>
         }

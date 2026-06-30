@@ -300,14 +300,14 @@ function CardTile({ card, ip }: { card: Card | null; ip: Ip }) {
   );
 }
 
-function EventTile({ event }: { event: FandomEvent | null }) {
+function EventTile({ ip, event }: { ip: Ip; event: FandomEvent | null }) {
   return (
     <ActionTile
       eyebrow="만나요 · 팝업·팬미팅"
       title="대표 이벤트"
       color="var(--mint)"
       cta={
-        <Link className="btn btn-ghost" href={hrefFor('events')} style={{ width: '100%' }}>
+        <Link className="btn btn-ghost" href={event ? `${hrefFor('events')}?ip=${ip.id}` : hrefFor('events')} style={{ width: '100%' }}>
           예매하기 <Icon name="event" size={16} />
         </Link>
       }
@@ -459,7 +459,7 @@ export function Home({
             <div className="home-action-grid">
               <GoodsTile good={world.representativeGood} added={addedGoodId === world.representativeGood?.id} onAdd={onAddGood} />
               <CardTile card={world.representativeCard} ip={selectedIp} />
-              <EventTile event={world.representativeEvent} />
+              <EventTile ip={selectedIp} event={world.representativeEvent} />
               <CommunityTile ip={selectedIp} post={world.representativePost} />
             </div>
           </div>
