@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { CatalogSnapshot } from '@/lib/catalog';
 import type { FandomEvent, Ip } from '@/lib/data';
-import { ALL_IPS, ALL_STATUSES, eventStatusOptions, selectFandomEvents } from '@/lib/events-catalog';
+import { ALL_IPS, ALL_MODES, ALL_STATUSES, eventModeOptions, eventStatusOptions, selectFandomEvents } from '@/lib/events-catalog';
 import { Icon } from '@/components/ui/Icon';
 import { Poster } from '@/components/ui/Poster';
 import { Empty } from '@/components/ui/Empty';
@@ -66,13 +66,15 @@ export function Events({
   initialIpId?: string;
 }) {
   const [ipF, setIpF] = useState(initialIpId ?? ALL_IPS);
+  const [modeF, setModeF] = useState(ALL_MODES);
   const [statusF, setStatusF] = useState(ALL_STATUSES);
 
   const ipsById = new Map(catalog.ips.map((ip) => [ip.id, ip]));
   const ipsWithEvents = catalog.ips.filter((ip) => catalog.events.some((e) => e.ip === ip.id));
+  const modes = eventModeOptions(catalog.events);
   const statuses = eventStatusOptions(catalog.events);
 
-  const list = selectFandomEvents(catalog.events, { ipId: ipF, status: statusF });
+  const list = selectFandomEvents(catalog.events, { ipId: ipF, mode: modeF, status: statusF });
   const featured = list[0];
   const rest = list.slice(1);
   const contextIp = ipF !== ALL_IPS ? ipsById.get(ipF) ?? null : null;
@@ -118,6 +120,14 @@ export function Events({
               <button className={'chip btn-sm' + (statusF === ALL_STATUSES ? ' on' : '')} aria-pressed={statusF === ALL_STATUSES} onClick={() => setStatusF(ALL_STATUSES)}>전체 상태</button>
               {statuses.map((s) => (
                 <button key={s} className={'chip btn-sm' + (statusF === s ? ' on' : '')} aria-pressed={statusF === s} onClick={() => setStatusF(s)}>{s}</button>
+              ))}
+            </div>
+          )}
+          {modes.length > 0 && (
+            <div className="wrapgap">
+              <button className={'chip btn-sm' + (modeF === ALL_MODES ? ' on' : '')} aria-pressed={modeF === ALL_MODES} onClick={() => setModeF(ALL_MODES)}>전체 모드</button>
+              {modes.map((m) => (
+                <button key={m} className={'chip btn-sm' + (modeF === m ? ' on' : '')} aria-pressed={modeF === m} onClick={() => setModeF(m)}>{m}</button>
               ))}
             </div>
           )}

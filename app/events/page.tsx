@@ -5,6 +5,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ i
   const catalog = await getCatalogSnapshot();
   const ipParam = (await searchParams).ip;
   const requestedIp = Array.isArray(ipParam) ? ipParam[0] : ipParam;
-  const initialIpId = catalog.ips.some((ip) => ip.id === requestedIp) ? requestedIp : undefined;
+  const initialIpId = catalog.events.some((event) => event.ip === requestedIp) ? requestedIp : undefined;
   return <Events catalog={catalog} initialIpId={initialIpId} />;
 }
