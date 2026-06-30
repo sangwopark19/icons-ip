@@ -75,6 +75,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `main`에 push하거나 PR을 merge하는 작업은 production 배포 경로를 시작할 수 있으므로, 단순 Git 정리로 취급하지 말고 사용자 요청/확인 범위 안에서만 수행한다.
 - GitHub Actions 앱 빌드는 Node 26을 사용하지만, Vercel project/runtime Node.js Version은 공식 production Functions 지원 범위인 24.x로 유지한다.
 - 사용자 변경으로 보이는 파일은 되돌리지 않는다. 같은 파일을 수정해야 하면 현재 내용을 기준으로 필요한 부분만 좁게 편집한다.
+- PR 본문과 커밋 메시지에 Claude/Claude Code 출처 표기(`🤖 Generated with [Claude Code]...`, `Co-Authored-By: Claude ...`)를 넣지 않는다. 커밋의 `Co-Authored-By`는 사용자 글로벌 훅이 이미 제거하지만, PR 본문은 직접 생략한다.
 
 ## 문서 운영
 
