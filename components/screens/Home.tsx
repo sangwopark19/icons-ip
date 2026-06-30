@@ -307,7 +307,7 @@ function EventTile({ ip, event }: { ip: Ip; event: FandomEvent | null }) {
       title="대표 이벤트"
       color="var(--mint)"
       cta={
-        <Link className="btn btn-ghost" href={`${hrefFor('events')}?ip=${ip.id}`} style={{ width: '100%' }}>
+        <Link className="btn btn-ghost" href={event ? `${hrefFor('events')}?ip=${ip.id}` : hrefFor('events')} style={{ width: '100%' }}>
           예매하기 <Icon name="event" size={16} />
         </Link>
       }
