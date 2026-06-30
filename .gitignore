@@ -28,6 +28,10 @@ docs/claude-design/project/support.js
 docs/claude-design/project/assets/
 *.pem
 
+# local research / working docs (repo에 커밋하지 않는 로컬 작업 문서)
+docs/online-popup/
+docs/research/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
