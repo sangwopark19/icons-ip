@@ -202,7 +202,7 @@ export function IpDetail({
 
       <WorldSection
         id="ip-events"
-        eyebrow="만나요 · 팝업·팬미팅"
+        eyebrow="만나요 · 팝업"
         color="var(--mint)"
         count={events.length}
         cta={

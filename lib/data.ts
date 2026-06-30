@@ -167,10 +167,10 @@ const CARDS: Card[] = [
 
 const EVENTS: FandomEvent[] = [
   { id: 'e1', title: '귀멸의칼날 × ICONS 팝업스토어', ip: null, mode: '오프라인', status: '진행중', date: '5.10 – 5.28', loc: '성수 갤러리아 포레', accent: '#FF4D9D', img: grad('#5e0c3a', '#FF4D9D', '#FFB23D') },
-  { id: 'e2', title: '호시나 미오 1주년 온라인 팬미팅', ip: 'hoshina', mode: '온라인', status: '예매중', date: '5.17 20:00', loc: 'ICONS Live', accent: '#38F0C0', img: grad('#0c5e4a', '#38F0C0', '#2DE2FF') },
-  { id: 'e3', title: '화산강림 매화 특별전', ip: 'hwasan', mode: '오프라인', status: '예정', date: '6.02 – 6.16', loc: '강남 ICONS 플래그십', accent: '#8B5CFF', img: grad('#3a1d6e', '#8B5CFF', '#FF4D9D') },
-  { id: 'e4', title: 'LUMEN 시즌2 글로벌 카운트다운', ip: 'lumen', mode: '온라인', status: '예정', date: '6.20 21:00', loc: 'ICONS Live', accent: '#2DE2FF', img: grad('#0c4a5e', '#2DE2FF', '#38F0C0') },
-  { id: 'e5', title: '녹턴 클럽 단독 쇼케이스', ip: 'nocturne', mode: '오프라인', status: '예매중', date: '6.28 18:00', loc: '홍대 무브홀', accent: '#FF4D9D', img: grad('#5e0c3a', '#FF4D9D', '#8B5CFF') },
+  { id: 'e2', title: '호시나 미오 1주년 온라인 팝업', ip: 'hoshina', mode: '온라인', status: '예매중', date: '5.17 20:00', loc: 'ICONS Live', accent: '#38F0C0', img: grad('#0c5e4a', '#38F0C0', '#2DE2FF') },
+  { id: 'e3', title: '화산강림 매화 팝업스토어', ip: 'hwasan', mode: '오프라인', status: '예정', date: '6.02 – 6.16', loc: '강남 ICONS 플래그십', accent: '#8B5CFF', img: grad('#3a1d6e', '#8B5CFF', '#FF4D9D') },
+  { id: 'e4', title: 'LUMEN 시즌2 온라인 팝업', ip: 'lumen', mode: '온라인', status: '예정', date: '6.20 21:00', loc: 'ICONS Live', accent: '#2DE2FF', img: grad('#0c4a5e', '#2DE2FF', '#38F0C0') },
+  { id: 'e5', title: '녹턴 클럽 팝업스토어', ip: 'nocturne', mode: '오프라인', status: '예매중', date: '6.28 18:00', loc: '홍대 무브홀', accent: '#FF4D9D', img: grad('#5e0c3a', '#FF4D9D', '#8B5CFF') },
 ];
 
 const POSTS: Post[] = [

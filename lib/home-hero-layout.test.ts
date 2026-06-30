@@ -46,7 +46,7 @@ describe('home hero layout source contract', () => {
     expect(homeSource).toContain('representativePost');
     expect(homeSource).toContain('사요 · 공식 굿즈');
     expect(homeSource).toContain('모아요 · 수집 카드');
-    expect(homeSource).toContain('만나요 · 팝업·팬미팅');
+    expect(homeSource).toContain('만나요 · 팝업');
     expect(homeSource).toContain('떠들어요 · 팬 커뮤니티');
     expect(homeSource).toContain('가입하고 내 덕질 시작하기');
     expect(homeSource).toContain('공식 라이선스 정품');

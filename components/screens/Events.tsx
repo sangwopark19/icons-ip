@@ -95,8 +95,8 @@ export function Events({
           </h1>
           <p className="muted" style={{ marginTop: 10 }}>
             {contextIp
-              ? `${contextIp.title}의 팝업스토어 · 팬미팅 · 쇼케이스. 티켓 예매부터 현장 입장까지.`
-              : '공식 팝업스토어 · 팬미팅 · 쇼케이스. 온·오프라인 이벤트를 발견하고 예매로 진입하세요.'}
+              ? `${contextIp.title}의 온·오프라인 팝업스토어. 티켓 예매부터 현장 입장까지.`
+              : '공식 온·오프라인 팝업스토어를 발견하고 예매로 진입하세요.'}
           </p>
         </div>
 
