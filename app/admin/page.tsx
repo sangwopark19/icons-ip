@@ -17,7 +17,7 @@ export default async function AdminPage() {
   }
 
   const [catalog, records, moderation] = await Promise.all([
-    getCatalogSnapshot(),
+    getCatalogSnapshot({ previewDefaultSource: 'supabase' }),
     getAdminCatalogRecords(),
     getAdminModerationRecords(),
   ]);

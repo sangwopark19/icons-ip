@@ -4,6 +4,7 @@ import { canViewCommunityPost, type CommunityPostStatus } from '@/lib/community'
 import { DATA, type Card, type FandomEvent, type Good, type Ip, type RarityKey, type Stock, type Vertical } from '@/lib/data';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+import { resolveCatalogSource, type CatalogSource } from './catalog-source';
 import { getHomeSelectableIps, type HomePostPreviewByIpId } from './home-catalog';
 
 export interface CatalogSnapshot {
@@ -13,6 +14,10 @@ export interface CatalogSnapshot {
   goods: Good[];
   cards: Card[];
   events: FandomEvent[];
+}
+
+export interface CatalogSnapshotOptions {
+  previewDefaultSource?: CatalogSource;
 }
 
 export interface CatalogPostPreview {
@@ -378,8 +383,12 @@ async function blockedUserIds(supabase: CatalogSupabaseClient, viewerId: string 
   return new Set(((data ?? []) as BlockRow[]).map((row) => row.blocked_user_id));
 }
 
-export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
-  if (!getSupabaseConfig().isConfigured) return mockSnapshot();
+export async function getCatalogSnapshot(options: CatalogSnapshotOptions = {}): Promise<CatalogSnapshot> {
+  const source = resolveCatalogSource({
+    isSupabaseConfigured: getSupabaseConfig().isConfigured,
+    previewDefaultSource: options.previewDefaultSource,
+  });
+  if (source === 'mock') return mockSnapshot();
 
   const supabase = await createClient();
 

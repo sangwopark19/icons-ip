@@ -81,6 +81,10 @@ function rpcFailure(message: string): AdminCatalogActionState {
   return { errors: { form: message } };
 }
 
+function getAdminValidationCatalog() {
+  return getCatalogSnapshot({ previewDefaultSource: 'supabase' });
+}
+
 export async function upsertAdminIpAction(
   _state: AdminCatalogActionState,
   formData: FormData,
@@ -88,7 +92,7 @@ export async function upsertAdminIpAction(
   const authError = await requireStaffAction();
   if (authError) return authError;
 
-  const catalog = await getCatalogSnapshot();
+  const catalog = await getAdminValidationCatalog();
   const result = normalizeAdminIpForm(formData, catalogContextFromSnapshot(catalog));
   if (!result.ok) return { errors: result.errors };
 
@@ -120,7 +124,7 @@ export async function upsertAdminGoodAction(
   const authError = await requireStaffAction();
   if (authError) return authError;
 
-  const catalog = await getCatalogSnapshot();
+  const catalog = await getAdminValidationCatalog();
   const result = normalizeAdminGoodForm(formData, catalogContextFromSnapshot(catalog));
   if (!result.ok) return { errors: result.errors };
 
@@ -152,7 +156,7 @@ export async function upsertAdminCardAction(
   const authError = await requireStaffAction();
   if (authError) return authError;
 
-  const catalog = await getCatalogSnapshot();
+  const catalog = await getAdminValidationCatalog();
   const result = normalizeAdminCardForm(formData, catalogContextFromSnapshot(catalog));
   if (!result.ok) return { errors: result.errors };
 
@@ -182,7 +186,7 @@ export async function upsertAdminEventAction(
   const authError = await requireStaffAction();
   if (authError) return authError;
 
-  const catalog = await getCatalogSnapshot();
+  const catalog = await getAdminValidationCatalog();
   const result = normalizeAdminEventForm(formData, catalogContextFromSnapshot(catalog));
   if (!result.ok) return { errors: result.errors };
 

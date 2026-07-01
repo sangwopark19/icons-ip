@@ -107,7 +107,7 @@ values (
   'moderation-smoke-ip',
   '모더레이션스모크IP',
   'moderation smoke vertical',
-  'rofan',
+  'character',
   'moderation smoke tagline',
   'moderation smoke synopsis',
   '모더',

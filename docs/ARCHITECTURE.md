@@ -27,7 +27,7 @@
 | 화면 | 11개 라우트 ↔ screen 컴포넌트 | `app/**/page.tsx` → `components/screens/*` |
 | 셸 | Nav · MobNav · SiteFooter · CartProvider · `useGo` | `components/shell/*` |
 | 라우팅 맵 | 프로토타입 route-id ↔ 경로 | `lib/routes.ts` |
-| 데이터 | Supabase 공개 카탈로그, 커뮤니티 visible feed/comment preview, Postgres 검색 읽기 + mock fallback. IP 상세 커뮤니티 preview도 Supabase `posts`/`public_profiles`에서 읽음 | `lib/catalog.ts`, `lib/community.server.ts`, `lib/search.ts`, `lib/data.ts` |
+| 데이터 | Supabase 공개 카탈로그, 커뮤니티 visible feed/comment preview, Postgres 검색 읽기 + mock fallback. Vercel Preview는 static mock catalog를 기본 사용. IP 상세 커뮤니티 preview도 Supabase `posts`/`public_profiles`에서 읽음 | `lib/catalog.ts`, `lib/catalog-source.ts`, `lib/community.server.ts`, `lib/search.ts`, `lib/data.ts` |
 | 인증 | Supabase SSR 이메일/PW Auth, 확인 메일 callback, 온보딩 게이트, 우상단 AuthButton 상태 동기화. env 없으면 no-op/폼 비활성화 | `app/login/*`, `app/auth/callback/route.ts`, `app/onboarding/*`, `components/shell/AuthButton.tsx`, `lib/auth/*`, `lib/supabase/*`, 루트 `proxy.ts` |
 | 보호 액션 | IP 팔로우/언팔로우 server action + 온보딩 추천 IP 저장. 커뮤니티 포스트 작성, 댓글, 좋아요, 작성자 삭제, 신고, 차단은 Server Action + RPC로 연결 | `app/ip/actions.ts`, `app/onboarding/actions.ts`, `app/community/actions.ts`, `lib/ip-follow*`, `supabase/migrations/20260623090001_ip_follow_rpc.sql`, `supabase/migrations/20260624103001_community_comment_like_actions.sql`, `supabase/migrations/20260626090001_community_moderation_actions.sql` |
 | 운영 | staff/admin 게이트, 카탈로그 CRUD, 감사 로그, 커뮤니티 신고 상태 변경과 포스트 숨김 처리 최소 경로 | `app/admin/*`, `lib/admin/*`, `supabase/migrations/20260624100001_admin_catalog_crud.sql`, `supabase/migrations/20260626090001_community_moderation_actions.sql` |
@@ -97,7 +97,7 @@ Cloudflare DNS는 `iconsip.com`/`www.iconsip.com`을 Vercel로 보내고, 같은
 - `ip_follows` (user_id, ip_id) — 관심 IP
 
 ### 5.2 카탈로그 (공개 읽기)
-- `verticals` (key, label, color) — BL/GL·로판·글로벌·버튜버·스트리머
+- `verticals` (key, label, color) — 캐릭터 IP·게임·애니메이션
 - `ips` (id, title, sub, vertical_key, glyph, bg, tagline, synopsis, featured, fans/goods/cards 집계)
 - `goods` (id, ip_id, name, type, price, badge, stock, image_path)
 - `events` (id, ip_id?, title, mode, status, starts_at, ends_at, location, accent, image_path)

@@ -25,7 +25,7 @@ export function Search({ snapshot }: { snapshot: SearchSnapshot }) {
   const go = useGo();
   const router = useRouter();
   const [q, setQ] = useState(snapshot.query);
-  const popular = ['화산강림', '한정굿즈', '호시나 미오', 'LUMEN', '포토카드', '버튜버'];
+  const popular = ['리락쿠마', '메이플스토리', '담곰이', '카카오프렌즈', '리바이', '한정굿즈'];
 
   const openResult = (result: SearchResult) => {
     if (result.kind === 'ip') return go('ip', result.ipId ?? result.id);

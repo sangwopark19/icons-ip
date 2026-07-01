@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
     isStaff: boolean;
   },
   catalog: null as CatalogSnapshot | null,
+  getCatalogSnapshot: vi.fn(),
   rpc: vi.fn(),
   revalidatePath: vi.fn(),
 }));
@@ -31,7 +32,7 @@ vi.mock('@/lib/auth/admin', () => ({
 vi.mock('@/lib/admin/catalog', async () => await import('../../lib/admin/catalog'));
 vi.mock('@/lib/admin/moderation', async () => await import('../../lib/admin/moderation'));
 vi.mock('@/lib/catalog', () => ({
-  getCatalogSnapshot: () => mocks.catalog,
+  getCatalogSnapshot: mocks.getCatalogSnapshot,
 }));
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => ({
@@ -136,6 +137,8 @@ describe('admin catalog actions', () => {
       isStaff: true,
     };
     mocks.catalog = catalog;
+    mocks.getCatalogSnapshot.mockReset();
+    mocks.getCatalogSnapshot.mockResolvedValue(catalog);
     mocks.rpc.mockReset();
     mocks.revalidatePath.mockReset();
     mocks.rpc.mockResolvedValue({ data: null, error: null });
@@ -216,6 +219,7 @@ describe('admin catalog actions', () => {
       target_bg: null,
       target_image_path: null,
     });
+    expect(mocks.getCatalogSnapshot).toHaveBeenCalledWith({ previewDefaultSource: 'supabase' });
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/ip/hwasan');

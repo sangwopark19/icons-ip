@@ -56,7 +56,7 @@ insert into public.posts (id, user_id, ip_id, text, tag, status)
 values (
   '00000000-0000-4000-8000-000000000016',
   '00000000-0000-4000-8000-000000000014',
-  'hwasan',
+  'rilakkuma',
   'community smoke post',
   'smoke',
   'visible'
