@@ -223,7 +223,7 @@ function GachaEntry({ canDraw, mockMode, onDraw }: { canDraw: boolean; mockMode:
       </div>
 
       {/* 확률 공시는 DB(pool_odds)가 원천 — 카드풀 오픈 전까지 수치를 노출하지 않는다 */}
-      <div className="faint mono" style={{ fontSize: 10.5, letterSpacing: '.04em', marginTop: 18 }}>
+      <div className="money-caption" style={{ marginTop: 18 }}>
         등급별 확률 공시는 가챠 카드풀이 열릴 때 공개됩니다
       </div>
 
