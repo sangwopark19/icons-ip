@@ -365,7 +365,7 @@ export function Binder({ catalog }: { catalog: Pick<CatalogSnapshot, 'source' | 
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', marginTop: 24, justifyItems: 'center', rowGap: 26 }}>
             {cards.map((c) => <Collectible key={c.id} card={isMockCatalog ? c : { ...c, owned: true }} ip={ipsById.get(c.ip)} onClick={() => setDetail(c)} />)}
           </div>
-          {!cards.length && <Empty icon="card" text={catalog.cards.length ? '조건에 맞는 카드가 없어요' : '등록된 카드가 아직 없습니다'} sub={catalog.cards.length ? undefined : 'Supabase 카탈로그 seed 또는 admin 등록 후 바인더 탐색에 공개됩니다.'} />}
+          {!cards.length && <Empty icon="card" text={catalog.cards.length ? '조건에 맞는 카드가 없어요' : '등록된 카드가 아직 없습니다'} sub={catalog.cards.length ? undefined : '카드가 공개되면 이곳에서 바로 탐색할 수 있어요.'} />}
         </section>
 
         {isMockCatalog && (

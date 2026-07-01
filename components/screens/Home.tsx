@@ -429,7 +429,7 @@ export function Home({
     return (
       <div className="screen">
         <div className="wrap" style={{ paddingTop: 48, paddingBottom: 80 }}>
-          <Empty icon="ip" text="등록된 IP가 아직 없습니다" sub="Supabase 카탈로그 seed 또는 admin 등록 후 홈에 공개됩니다." />
+          <Empty icon="ip" text="등록된 IP가 아직 없습니다" sub="곧 새로운 IP가 공개될 예정이에요." />
         </div>
       </div>
     );
