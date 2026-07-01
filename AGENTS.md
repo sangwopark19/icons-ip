@@ -52,6 +52,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Next.js 16, React 19, Tailwind v4 기준으로 작성한다.
 - Next.js API, 라우팅, proxy/middleware, metadata, caching 관련 코드를 쓰기 전에는 `node_modules/next/dist/docs/`에서 현재 버전 문서를 확인한다.
 - `app/globals.css`의 "Holographic Midnight" 디자인 시스템과 기존 컴포넌트 패턴을 우선한다.
+- 색·타이포·컴포넌트·표면별 디자인 규율은 루트 `DESIGN.md`(기계 판독용 디자인 스펙)를 따른다. 토큰 진실원은 `app/globals.css`이며, 문서와 코드가 충돌하면 코드가 진실이다.
 - 라우트는 `app/**/page.tsx`에서 screen 컴포넌트로 연결하는 현 구조를 존중한다.
 - 프로토타입 라우트 id와 실제 경로 매핑은 `lib/routes.ts`를 기준으로 한다.
 
