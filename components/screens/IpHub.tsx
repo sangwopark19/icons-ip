@@ -48,7 +48,7 @@ export function IpHub({ catalog }: IpHubProps) {
   const list = v === 'all' ? catalog.ips : catalog.ips.filter((i) => i.v.key === v);
   const emptyText = v === 'all' ? '등록된 IP가 아직 없습니다' : '해당 버티컬의 IP가 아직 없습니다';
   const emptySub = v === 'all'
-    ? 'Supabase 카탈로그 seed 또는 admin 등록 후 IP 허브에 공개됩니다.'
+    ? '곧 새로운 IP가 공개될 예정이에요.'
     : '다른 버티컬을 선택하거나 IP 카탈로그 등록 후 다시 확인하세요.';
 
   return (
