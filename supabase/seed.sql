@@ -197,10 +197,10 @@ on conflict (id) do update set
 
 insert into public.events (id, ip_id, title, mode, status, starts_at, ends_at, location, accent, bg) values
   ('e1', null, '귀멸의칼날 × ICONS 팝업스토어', '오프라인', '진행중', '2026-06-18 00:00:00+09', '2026-07-05 23:59:00+09', '성수 갤러리아 포레', '#FF4D9D', 'linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #FFB23D)'),
-  ('e2', 'hoshina', '호시나 미오 1주년 온라인 팬미팅', '온라인', '예매중', '2026-06-27 20:00:00+09', null, 'ICONS Live', '#38F0C0', 'linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
-  ('e3', 'hwasan', '화산강림 매화 특별전', '오프라인', '예정', '2026-07-10 00:00:00+09', '2026-07-24 23:59:00+09', '강남 ICONS 플래그십', '#8B5CFF', 'linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
-  ('e4', 'lumen', 'LUMEN 시즌2 글로벌 카운트다운', '온라인', '예정', '2026-06-20 21:00:00+09', null, 'ICONS Live', '#2DE2FF', 'linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)'),
-  ('e5', 'nocturne', '녹턴 클럽 단독 쇼케이스', '오프라인', '예매중', '2026-06-28 18:00:00+09', null, '홍대 무브홀', '#FF4D9D', 'linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)')
+  ('e2', 'hoshina', '호시나 미오 1주년 온라인 팝업', '온라인', '예매중', '2026-06-27 20:00:00+09', null, 'ICONS Live', '#38F0C0', 'linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
+  ('e3', 'hwasan', '화산강림 매화 팝업스토어', '오프라인', '예정', '2026-07-10 00:00:00+09', '2026-07-24 23:59:00+09', '강남 ICONS 플래그십', '#8B5CFF', 'linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
+  ('e4', 'lumen', 'LUMEN 시즌2 온라인 팝업', '온라인', '예정', '2026-06-20 21:00:00+09', null, 'ICONS Live', '#2DE2FF', 'linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)'),
+  ('e5', 'nocturne', '녹턴 클럽 팝업스토어', '오프라인', '예매중', '2026-06-28 18:00:00+09', null, '홍대 무브홀', '#FF4D9D', 'linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)')
 on conflict (id) do update set
   ip_id = excluded.ip_id,
   title = excluded.title,

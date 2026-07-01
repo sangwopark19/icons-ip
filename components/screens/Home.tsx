@@ -303,7 +303,7 @@ function CardTile({ card, ip }: { card: Card | null; ip: Ip }) {
 function EventTile({ ip, event }: { ip: Ip; event: FandomEvent | null }) {
   return (
     <ActionTile
-      eyebrow="만나요 · 팝업·팬미팅"
+      eyebrow="만나요 · 팝업"
       title="대표 이벤트"
       color="var(--mint)"
       cta={
