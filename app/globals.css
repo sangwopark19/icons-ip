@@ -755,18 +755,28 @@
   }
   .home-hero-art-layer {
     width: 100%;
-    opacity: .48;
+    opacity: 1;
+  }
+  .home-hero-art-fade {
+    opacity: .92;
   }
   .home-hero-art-side-shade {
-    background: linear-gradient(90deg, rgba(8,6,15,.94), rgba(8,6,15,.62) 58%, rgba(8,6,15,.14));
+    background: linear-gradient(180deg, rgba(8,6,15,.5) 0%, rgba(8,6,15,0) 16%);
   }
   .home-hero-art-bottom-shade {
-    background: linear-gradient(0deg, #08060F 2%, rgba(8,6,15,.55) 42%, rgba(8,6,15,0) 80%);
+    background: linear-gradient(0deg, #08060F 0%, rgba(8,6,15,.9) 32%, rgba(8,6,15,.42) 56%, rgba(8,6,15,0) 80%);
   }
   .home-hero-selected-label {
-    right: 24px;
-    bottom: 24px;
-    opacity: .72;
+    top: 20px;
+    right: 20px;
+    bottom: auto;
+    left: auto;
+    text-align: right;
+    opacity: .9;
+  }
+  .home-hero-copy h1,
+  .home-hero-copy .muted {
+    text-shadow: 0 2px 20px rgba(8,6,15,.9), 0 1px 3px rgba(8,6,15,.8);
   }
   .home-picker {
     flex-wrap: nowrap;
@@ -859,10 +869,12 @@
     max-width: 100%;
   }
   .home-hero-art-layer {
-    opacity: .36;
+    opacity: 1;
   }
   .home-hero-selected-label {
-    display: none;
+    top: 16px;
+    right: 16px;
+    opacity: .85;
   }
   .home-kicker {
     width: 100%;
