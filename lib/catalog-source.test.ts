@@ -22,6 +22,14 @@ describe('resolveCatalogSource', () => {
     })).toBe('mock');
   });
 
+  it('allows callers to keep Supabase as the preview default when no override is set', () => {
+    expect(resolveCatalogSource({
+      env: { VERCEL_ENV: 'preview' },
+      isSupabaseConfigured: true,
+      previewDefaultSource: 'supabase',
+    })).toBe('supabase');
+  });
+
   it('falls back to mock data when Supabase is not configured', () => {
     expect(resolveCatalogSource({
       env: {},
