@@ -8,6 +8,7 @@ import { Poster } from '@/components/ui/Poster';
 export function Market() {
   const [typeF, setTypeF] = useState('전체');
   const [sort, setSort] = useState('최신순');
+  const typeOptions = Array.from(new Set(DATA.MARKET.map((item) => item.type)));
   let list = DATA.MARKET.filter((m) => typeF === '전체' || m.type === typeF);
   if (sort === '낮은 가격순') list = [...list].sort((a, b) => a.price - b.price);
   if (sort === '높은 가격순') list = [...list].sort((a, b) => b.price - a.price);
@@ -29,7 +30,7 @@ export function Market() {
         <div className="between" style={{ marginTop: 26, flexWrap: 'wrap', gap: 14 }}>
           <div className="wrapgap">
             <button className={'chip btn-sm' + (typeF === '전체' ? ' on' : '')} onClick={() => setTypeF('전체')}>전체 유형</button>
-            {['피규어', '포토카드', '키링', '한정 세트', '음원·앨범'].map((t) => (
+            {typeOptions.map((t) => (
               <button key={t} className={'chip btn-sm' + (typeF === t ? ' on' : '')} onClick={() => setTypeF(t)}>{t}</button>
             ))}
           </div>

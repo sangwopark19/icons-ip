@@ -57,7 +57,7 @@ export function IpHub({ catalog }: IpHubProps) {
         <div className="eyebrow" style={{ marginBottom: 14 }}>IP Hub</div>
         <h1 className="h-xl">좋아하는 작품의 모든 것을, 한 곳에서</h1>
         <p className="muted" style={{ marginTop: 12, maxWidth: 560 }}>
-          리디 · 카카오웹툰 · 네이버웹툰의 인기 IP부터 글로벌 앵커까지. 취향에 맞는 버티컬로 필터링해 나만의 컬렉션을 시작하세요.
+          리락쿠마, 메이플스토리, 담곰이, 카카오프렌즈, 리바이 에디션까지. 취향에 맞는 분류로 필터링해 나만의 컬렉션을 시작하세요.
         </p>
         <div className="wrapgap" style={{ margin: '28px 0 8px' }}>
           {verts.map((t) => {

@@ -96,11 +96,9 @@ export interface MarketItem {
 
 /* vertical accent map */
 const V: Record<string, Vertical> = {
-  blgl: { key: 'blgl', label: 'BL/GL', color: '#FF4D9D' },
-  rofan: { key: 'rofan', label: '로맨스판타지', color: '#8B5CFF' },
-  global: { key: 'global', label: '글로벌 IP', color: '#2DE2FF' },
-  vtuber: { key: 'vtuber', label: '버튜버', color: '#38F0C0' },
-  streamer: { key: 'streamer', label: '스트리머', color: '#FFB23D' },
+  character: { key: 'character', label: '캐릭터 IP', color: '#FFD84D' },
+  game: { key: 'game', label: '게임', color: '#38F0C0' },
+  anime: { key: 'anime', label: '애니메이션', color: '#A981FF' },
 };
 
 /* poster gradient by 3 spectrum stops */
@@ -111,98 +109,92 @@ const imageBg = (src: string, fallback: string) =>
   `url("${src}") center / cover no-repeat, ${fallback}`;
 
 const IPS: Ip[] = [
-  { id: 'hwasan', title: '화산강림', sub: '리디 · 로판', v: V.rofan, glyph: '화산\n강림', bg: imageBg('/generated/ip/hwasan.png', grad('#3a1d6e', '#8B5CFF', '#FF4D9D')), fans: 42130, goods: 38, cards: 24, featured: true,
-    tagline: '백번 죽어도 화산의 검을 든다', synopsis: '정파의 자존심 화산파, 그 부활을 그린 무협 판타지. 공식 라이선스 굿즈와 한정 카드가 ICONS에서 처음 공개됩니다.' },
-  { id: 'cheong', title: '청명', sub: '카카오웹툰 · 로판', v: V.rofan, glyph: '청명', bg: imageBg('/generated/ip/cheong.png', grad('#1d2f6e', '#2D6FDB', '#8B5CFF')), fans: 31980, goods: 22, cards: 18, featured: true,
-    tagline: '매화는 다시 핀다', synopsis: '청명 매화 시리즈 공식 굿즈 라인. 향수 한정판부터 아크릴까지.' },
-  { id: 'lumen', title: 'LUMEN', sub: 'Global Anime', v: V.global, glyph: 'LU\nMEN', bg: imageBg('/generated/ip/lumen.png', grad('#0c4a5e', '#2DE2FF', '#38F0C0')), fans: 89020, goods: 54, cards: 40, featured: true,
-    tagline: 'The light never sleeps', synopsis: '글로벌 흥행 애니메이션 LUMEN의 한국 공식 파트너. 시즌 한정 컬렉션 진행 중.' },
-  { id: 'nocturne', title: '녹턴 클럽', sub: 'BL · 오리지널', v: V.blgl, glyph: '녹턴\n클럽', bg: imageBg('/generated/ip/nocturne.png', grad('#5e0c3a', '#FF4D9D', '#8B5CFF')), fans: 28470, goods: 30, cards: 21, featured: false,
-    tagline: '밤은 우리 편', synopsis: '밴드 BL 「녹턴 클럽」 공식 머천다이즈.' },
-  { id: 'lilac', title: '라일락 노트', sub: 'GL · 학원', v: V.blgl, glyph: '라일락', bg: imageBg('/generated/ip/lilac.png', grad('#3a0c5e', '#A981FF', '#FF4D9D')), fans: 19340, goods: 16, cards: 14, featured: false,
-    tagline: '다정도 병이라면', synopsis: 'GL 감성 학원물 공식 컬렉션.' },
-  { id: 'hoshina', title: '호시나 미오', sub: 'VTuber', v: V.vtuber, glyph: '호시나\n미오', bg: imageBg('/generated/ip/hoshina.png', grad('#0c5e4a', '#38F0C0', '#2DE2FF')), fans: 35180, goods: 44, cards: 33, featured: true,
-    tagline: '오늘도 별을 줍는 중', synopsis: '버튜버 호시나 미오 1주년 기념 한정 굿즈 & 생일 카드 드롭.' },
-  { id: 'rune', title: 'RUNE Live', sub: 'Streamer', v: V.streamer, glyph: 'RUNE', bg: imageBg('/generated/ip/rune.png', grad('#5e3a0c', '#FFB23D', '#FF4D9D')), fans: 24760, goods: 19, cards: 16, featured: false,
-    tagline: '클립 장인', synopsis: '스트리머 RUNE 공식 채널 굿즈.' },
-  { id: 'aster', title: 'ASTER', sub: 'Global · Game', v: V.global, glyph: 'AS\nTER', bg: imageBg('/generated/ip/aster.png', grad('#1d1d6e', '#5B7BFF', '#2DE2FF')), fans: 51200, goods: 48, cards: 36, featured: false,
-    tagline: 'Reach the stars', synopsis: '글로벌 모바일 게임 ASTER 공식 굿즈 스토어.' },
+  { id: 'rilakkuma', title: '리락쿠마', sub: 'San-X · 캐릭터 IP', v: V.character, glyph: '리락\n쿠마', bg: imageBg('/generated/ip/rilakkuma.png', grad('#5a3517', '#D68A2D', '#FFD84D')), fans: 124500, goods: 2, cards: 2, featured: true,
+    tagline: '느긋한 하루를 수집하는 시간', synopsis: '리락쿠마의 포근한 방을 ICONS 굿즈, 카드, 팝업으로 재구성한 라이선스 mock 컬렉션입니다.' },
+  { id: 'maplestory', title: '메이플스토리', sub: 'NEXON · 게임', v: V.game, glyph: 'MAPLE', bg: imageBg('/generated/ip/maplestory.png', grad('#0d5e66', '#38F0C0', '#FFD84D')), fans: 198000, goods: 3, cards: 3, featured: true,
+    tagline: '몬스터즈가 굿즈로 튀어나오는 순간', synopsis: '주황버섯, 슬라임, 핑크빈을 중심으로 한 메이플스토리 몬스터 굿즈와 카드 라인업입니다.' },
+  { id: 'nongdamgom', title: '담곰이', sub: '캐릭터 IP', v: V.character, glyph: '담곰이', bg: imageBg('/generated/ip/nongdamgom.png', grad('#70485a', '#F7A8C7', '#FFF3D6')), fans: 52300, goods: 2, cards: 2, featured: true,
+    tagline: '말랑한 농담처럼 가벼운 굿즈', synopsis: '담곰이와 오리친구의 단순하고 귀여운 결을 데스크 굿즈, 쿠션, 카드로 풀어낸 컬렉션입니다.' },
+  { id: 'kakao-friends', title: '카카오프렌즈', sub: 'Kakao · 캐릭터 IP', v: V.character, glyph: 'KAKAO', bg: imageBg('/generated/ip/kakao-friends.png', grad('#66421d', '#FFD84D', '#FF9AAF')), fans: 214000, goods: 3, cards: 3, featured: true,
+    tagline: '친구들과 떠나는 피크닉 컬렉션', synopsis: '라이언, 춘식이, 어피치 등 카카오프렌즈 감성의 피크닉 굿즈와 미니 피규어 mock 라인입니다.' },
+  { id: 'attack-on-titan', title: '진격의 거인', sub: '리바이 에디션 · 애니메이션', v: V.anime, glyph: 'LEVI', bg: imageBg('/generated/ip/attack-on-titan.png', grad('#2b251f', '#6B705C', '#A981FF')), fans: 176400, goods: 2, cards: 2, featured: true,
+    tagline: '리바이 에디션으로 완성하는 전시형 컬렉션', synopsis: '진격의 거인 리바이의 차분한 전투 전야 무드를 피규어, 아크릴, 카드로 구성한 mock 컬렉션입니다.' },
 ];
 
 const ipById = (id: string | null | undefined) => IPS.find((i) => i.id === id);
 
-const GOODS_TYPES = ['아크릴 스탠드', '포토카드', '키링', '피규어', '음원·앨범', '의류', '문구', '한정 세트'];
+const GOODS_TYPES = ['봉제인형', '쿠션', '키링', '아크릴 스탠드', '피규어', '문구', '파우치', '한정 세트'];
 
 const GOODS: Good[] = [
-  { id: 'g1', name: '청명 매화 향수 한정판', ip: 'cheong', type: '음원·앨범', price: 38000, badge: '한정', stock: 'low', img: imageBg('/generated/goods/g1.png', grad('#1d2f6e', '#2D6FDB', '#8B5CFF')) },
-  { id: 'g2', name: '화산강림 청명 아크릴 스탠드', ip: 'hwasan', type: '아크릴 스탠드', price: 22000, badge: '신상', stock: 'ok', img: imageBg('/generated/goods/g2.png', grad('#3a1d6e', '#8B5CFF', '#FF4D9D')) },
-  { id: 'g3', name: '호시나 미오 1st 포토카드 세트', ip: 'hoshina', type: '포토카드', price: 15000, badge: '한정', stock: 'low', img: imageBg('/generated/goods/g3.png', grad('#0c5e4a', '#38F0C0', '#2DE2FF')) },
-  { id: 'g4', name: 'LUMEN 시즌2 피규어', ip: 'lumen', type: '피규어', price: 89000, badge: '예약', stock: 'ok', img: imageBg('/generated/goods/g4.png', grad('#0c4a5e', '#2DE2FF', '#38F0C0')) },
-  { id: 'g5', name: '녹턴 클럽 멤버 키링 6종', ip: 'nocturne', type: '키링', price: 12000, badge: null, stock: 'ok', img: imageBg('/generated/goods/g5.png', grad('#5e0c3a', '#FF4D9D', '#8B5CFF')) },
-  { id: 'g6', name: 'ASTER 콜렉터 박스 세트', ip: 'aster', type: '한정 세트', price: 74000, badge: '한정', stock: 'soldout', img: imageBg('/generated/goods/g6.png', grad('#1d1d6e', '#5B7BFF', '#2DE2FF')) },
-  { id: 'g7', name: '라일락 노트 엽서북', ip: 'lilac', type: '문구', price: 9000, badge: null, stock: 'ok', img: imageBg('/generated/goods/g7.png', grad('#3a0c5e', '#A981FF', '#FF4D9D')) },
-  { id: 'g8', name: 'RUNE 오버사이즈 후드', ip: 'rune', type: '의류', price: 54000, badge: '신상', stock: 'ok', img: imageBg('/generated/goods/g8.png', grad('#5e3a0c', '#FFB23D', '#FF4D9D')) },
-  { id: 'g9', name: '화산강림 매화검 레플리카', ip: 'hwasan', type: '한정 세트', price: 128000, badge: '한정', stock: 'low', img: imageBg('/generated/goods/g9.png', grad('#2a1550', '#8B5CFF', '#2DE2FF')) },
-  { id: 'g10', name: '호시나 미오 아크릴 디오라마', ip: 'hoshina', type: '아크릴 스탠드', price: 34000, badge: null, stock: 'ok', img: imageBg('/generated/goods/g10.png', grad('#0c5e5e', '#38F0C0', '#8B5CFF')) },
-  { id: 'g11', name: 'LUMEN 홀로그램 포토카드 12종', ip: 'lumen', type: '포토카드', price: 18000, badge: '한정', stock: 'low', img: imageBg('/generated/goods/g11.png', grad('#0c3a5e', '#2DE2FF', '#A981FF')) },
-  { id: 'g12', name: '청명 자수 패치 키링', ip: 'cheong', type: '키링', price: 11000, badge: '신상', stock: 'ok', img: imageBg('/generated/goods/g12.png', grad('#1d2f6e', '#5B7BFF', '#FF4D9D')) },
+  { id: 'g1', name: '리락쿠마 낮잠 쿠션', ip: 'rilakkuma', type: '쿠션', price: 42000, badge: '한정', stock: 'low', img: imageBg('/generated/goods/g1.png', grad('#5a3517', '#D68A2D', '#FFD84D')) },
+  { id: 'g2', name: '코리락쿠마 미니 키링', ip: 'rilakkuma', type: '키링', price: 15000, badge: '신상', stock: 'ok', img: imageBg('/generated/goods/g2.png', grad('#7d4a2a', '#F3B6C8', '#FFF3D6')) },
+  { id: 'g3', name: '주황버섯 봉제인형', ip: 'maplestory', type: '봉제인형', price: 28000, badge: '신상', stock: 'ok', img: imageBg('/generated/goods/g3.png', grad('#98440f', '#FF8C32', '#FFD84D')) },
+  { id: 'g4', name: '메이플 몬스터 키링 4종', ip: 'maplestory', type: '키링', price: 18000, badge: '한정', stock: 'low', img: imageBg('/generated/goods/g4.png', grad('#0d5e66', '#38F0C0', '#8B5CFF')) },
+  { id: 'g5', name: '핑크빈 아크릴 디오라마', ip: 'maplestory', type: '아크릴 스탠드', price: 33000, badge: '예약', stock: 'ok', img: imageBg('/generated/goods/g5.png', grad('#6b2a5b', '#F7A8C7', '#A981FF')) },
+  { id: 'g6', name: '담곰이 오리친구 데스크 매트', ip: 'nongdamgom', type: '문구', price: 22000, badge: '신상', stock: 'ok', img: imageBg('/generated/goods/g6.png', grad('#70485a', '#F7A8C7', '#FFF3D6')) },
+  { id: 'g7', name: '담곰이 말랑 쿠션', ip: 'nongdamgom', type: '쿠션', price: 36000, badge: null, stock: 'ok', img: imageBg('/generated/goods/g7.png', grad('#51343f', '#F7A8C7', '#FFD84D')) },
+  { id: 'g8', name: '춘식이 수면 파우치', ip: 'kakao-friends', type: '파우치', price: 24000, badge: '신상', stock: 'ok', img: imageBg('/generated/goods/g8.png', grad('#66421d', '#FFD84D', '#FFF3D6')) },
+  { id: 'g9', name: '라이언&어피치 피크닉 세트', ip: 'kakao-friends', type: '한정 세트', price: 59000, badge: '한정', stock: 'low', img: imageBg('/generated/goods/g9.png', grad('#724a1f', '#FFD84D', '#FF9AAF')) },
+  { id: 'g10', name: '카카오프렌즈 미니 피규어팩', ip: 'kakao-friends', type: '피규어', price: 32000, badge: null, stock: 'ok', img: imageBg('/generated/goods/g10.png', grad('#3d5b7d', '#FFD84D', '#FF9AAF')) },
+  { id: 'g11', name: '리바이 아크릴 스탠드', ip: 'attack-on-titan', type: '아크릴 스탠드', price: 26000, badge: '예약', stock: 'ok', img: imageBg('/generated/goods/g11.png', grad('#2b251f', '#6B705C', '#A981FF')) },
+  { id: 'g12', name: '조사병단 리바이 피규어', ip: 'attack-on-titan', type: '피규어', price: 89000, badge: '한정', stock: 'soldout', img: imageBg('/generated/goods/g12.png', grad('#201c18', '#4C5A3F', '#A981FF')) },
 ];
 
 const RARITY = RARITY_META;
 
 const CARDS: Card[] = [
-  { id: 'c1', ip: 'hwasan', name: '청명 · 매화 일섬', no: '001/120', rarity: 'HOLO', owned: true, bg: imageBg('/generated/cards/c1.png', grad('#3a1d6e', '#8B5CFF', '#FF4D9D')) },
-  { id: 'c2', ip: 'hwasan', name: '화산의 검', no: '014/120', rarity: 'SSR', owned: true, bg: imageBg('/generated/cards/c2.png', grad('#2a1550', '#8B5CFF', '#2DE2FF')) },
-  { id: 'c3', ip: 'hoshina', name: '호시나 · 1주년', no: '003/088', rarity: 'SSR', owned: true, bg: imageBg('/generated/cards/c3.png', grad('#0c5e4a', '#38F0C0', '#2DE2FF')) },
-  { id: 'c4', ip: 'lumen', name: 'LUMEN · Dawn', no: '027/200', rarity: 'SR', owned: true, bg: imageBg('/generated/cards/c4.png', grad('#0c4a5e', '#2DE2FF', '#38F0C0')) },
-  { id: 'c5', ip: 'cheong', name: '청명 · 봄밤', no: '041/090', rarity: 'R', owned: true, bg: imageBg('/generated/cards/c5.png', grad('#1d2f6e', '#2D6FDB', '#8B5CFF')) },
-  { id: 'c6', ip: 'nocturne', name: '녹턴 · 무대', no: '009/070', rarity: 'SR', owned: true, bg: imageBg('/generated/cards/c6.png', grad('#5e0c3a', '#FF4D9D', '#8B5CFF')) },
-  { id: 'c7', ip: 'hwasan', name: '청명 · 입문', no: '072/120', rarity: 'N', owned: true, bg: imageBg('/generated/cards/c7.png', grad('#241640', '#5a4a8a', '#8B5CFF')) },
-  { id: 'c8', ip: 'lumen', name: 'LUMEN · Eclipse', no: '112/200', rarity: 'SSR', owned: false, bg: imageBg('/generated/cards/c8.png', grad('#0c3a5e', '#2DE2FF', '#A981FF')) },
-  { id: 'c9', ip: 'hoshina', name: '호시나 · 스타라이트', no: '055/088', rarity: 'HOLO', owned: false, bg: imageBg('/generated/cards/c9.png', grad('#0c5e5e', '#38F0C0', '#8B5CFF')) },
-  { id: 'c10', ip: 'aster', name: 'ASTER · Nova', no: '088/150', rarity: 'SR', owned: false, bg: imageBg('/generated/cards/c10.png', grad('#1d1d6e', '#5B7BFF', '#2DE2FF')) },
-  { id: 'c11', ip: 'lilac', name: '라일락 · 방과후', no: '033/060', rarity: 'R', owned: false, bg: imageBg('/generated/cards/c11.png', grad('#3a0c5e', '#A981FF', '#FF4D9D')) },
-  { id: 'c12', ip: 'rune', name: 'RUNE · 클러치', no: '019/070', rarity: 'SR', owned: false, bg: imageBg('/generated/cards/c12.png', grad('#5e3a0c', '#FFB23D', '#FF4D9D')) },
+  { id: 'c1', ip: 'rilakkuma', name: '리락쿠마 · 낮잠 시간', no: '001/080', rarity: 'HOLO', owned: true, bg: imageBg('/generated/cards/c1.png', grad('#5a3517', '#D68A2D', '#FFD84D')) },
+  { id: 'c2', ip: 'rilakkuma', name: '코리락쿠마 · 딸기 우유', no: '014/080', rarity: 'SR', owned: true, bg: imageBg('/generated/cards/c2.png', grad('#7d4a2a', '#F3B6C8', '#FFF3D6')) },
+  { id: 'c3', ip: 'maplestory', name: '주황버섯 · 점프!', no: '003/120', rarity: 'SSR', owned: true, bg: imageBg('/generated/cards/c3.png', grad('#98440f', '#FF8C32', '#FFD84D')) },
+  { id: 'c4', ip: 'maplestory', name: '슬라임 · 말랑 에너지', no: '018/120', rarity: 'R', owned: true, bg: imageBg('/generated/cards/c4.png', grad('#0d5e66', '#38F0C0', '#2DE2FF')) },
+  { id: 'c5', ip: 'maplestory', name: '핑크빈 · 스테이지', no: '041/120', rarity: 'HOLO', owned: false, bg: imageBg('/generated/cards/c5.png', grad('#6b2a5b', '#F7A8C7', '#A981FF')) },
+  { id: 'c6', ip: 'nongdamgom', name: '담곰이 · 오리친구', no: '009/060', rarity: 'SSR', owned: true, bg: imageBg('/generated/cards/c6.png', grad('#70485a', '#F7A8C7', '#FFF3D6')) },
+  { id: 'c7', ip: 'nongdamgom', name: '담곰이 · 산책', no: '027/060', rarity: 'R', owned: true, bg: imageBg('/generated/cards/c7.png', grad('#51343f', '#F7A8C7', '#FFD84D')) },
+  { id: 'c8', ip: 'kakao-friends', name: '라이언 · 피크닉', no: '012/100', rarity: 'SSR', owned: false, bg: imageBg('/generated/cards/c8.png', grad('#66421d', '#FFD84D', '#FFF3D6')) },
+  { id: 'c9', ip: 'kakao-friends', name: '춘식이 · 낮잠', no: '033/100', rarity: 'HOLO', owned: false, bg: imageBg('/generated/cards/c9.png', grad('#724a1f', '#FFD84D', '#FF9AAF')) },
+  { id: 'c10', ip: 'kakao-friends', name: '어피치 · 스윗팝', no: '054/100', rarity: 'SR', owned: false, bg: imageBg('/generated/cards/c10.png', grad('#7d344d', '#FF9AAF', '#FFD84D')) },
+  { id: 'c11', ip: 'attack-on-titan', name: '리바이 · 결전 전야', no: '001/070', rarity: 'HOLO', owned: true, bg: imageBg('/generated/cards/c11.png', grad('#2b251f', '#6B705C', '#A981FF')) },
+  { id: 'c12', ip: 'attack-on-titan', name: '리바이 · 조사병단', no: '017/070', rarity: 'SSR', owned: false, bg: imageBg('/generated/cards/c12.png', grad('#201c18', '#4C5A3F', '#A981FF')) },
 ];
 
 const EVENTS: FandomEvent[] = [
-  { id: 'e1', title: '귀멸의칼날 × ICONS 팝업스토어', ip: null, mode: '오프라인', status: '진행중', date: '5.10 – 5.28', loc: '성수 갤러리아 포레', accent: '#FF4D9D', img: grad('#5e0c3a', '#FF4D9D', '#FFB23D') },
-  { id: 'e2', title: '호시나 미오 1주년 온라인 팝업', ip: 'hoshina', mode: '온라인', status: '예매중', date: '5.17 20:00', loc: 'ICONS Live', accent: '#38F0C0', img: grad('#0c5e4a', '#38F0C0', '#2DE2FF') },
-  { id: 'e3', title: '화산강림 매화 팝업스토어', ip: 'hwasan', mode: '오프라인', status: '예정', date: '6.02 – 6.16', loc: '강남 ICONS 플래그십', accent: '#8B5CFF', img: grad('#3a1d6e', '#8B5CFF', '#FF4D9D') },
-  { id: 'e4', title: 'LUMEN 시즌2 온라인 팝업', ip: 'lumen', mode: '온라인', status: '예정', date: '6.20 21:00', loc: 'ICONS Live', accent: '#2DE2FF', img: grad('#0c4a5e', '#2DE2FF', '#38F0C0') },
-  { id: 'e5', title: '녹턴 클럽 팝업스토어', ip: 'nocturne', mode: '오프라인', status: '예매중', date: '6.28 18:00', loc: '홍대 무브홀', accent: '#FF4D9D', img: grad('#5e0c3a', '#FF4D9D', '#8B5CFF') },
+  { id: 'e1', title: '리락쿠마 포근한 방 팝업스토어', ip: 'rilakkuma', mode: '오프라인', status: '진행중', date: '7.01 - 7.21', loc: '성수 ICONS 스튜디오', accent: '#FFD84D', img: imageBg('/generated/events/e1.png', grad('#5a3517', '#D68A2D', '#FFD84D')) },
+  { id: 'e2', title: '메이플스토리 몬스터즈 온라인 팝업', ip: 'maplestory', mode: '온라인', status: '예매중', date: '7.12 20:00', loc: 'ICONS Live', accent: '#38F0C0', img: imageBg('/generated/events/e2.png', grad('#0d5e66', '#38F0C0', '#FFD84D')) },
+  { id: 'e3', title: '담곰이 드로잉 굿즈 팝업', ip: 'nongdamgom', mode: '오프라인', status: '예정', date: '7.19 - 8.02', loc: '홍대 ICONS 팝업', accent: '#F7A8C7', img: imageBg('/generated/events/e3.png', grad('#70485a', '#F7A8C7', '#FFF3D6')) },
+  { id: 'e4', title: '카카오프렌즈 피크닉 팝업', ip: 'kakao-friends', mode: '오프라인', status: '예매중', date: '7.26 - 8.11', loc: '여의도 ICONS 팝업', accent: '#FFD84D', img: imageBg('/generated/events/e4.png', grad('#66421d', '#FFD84D', '#FF9AAF')) },
+  { id: 'e5', title: '진격의 거인 리바이 에디션 온라인 팝업', ip: 'attack-on-titan', mode: '온라인', status: '예정', date: '8.08 21:00', loc: 'ICONS Live', accent: '#A981FF', img: imageBg('/generated/events/e5.png', grad('#2b251f', '#6B705C', '#A981FF')) },
 ];
 
 const POSTS: Post[] = [
-  { id: 'p1', user: 'tanjiro_fan_', ipName: '귀멸의칼날', avatar: '#FF4D9D', text: '성수 팝업 현장 다녀왔어요 🔥 굿즈 라인업 미쳤다... 매화검 레플리카 실물 보고 바로 결제함', likes: 342, comments: 48, time: '12분 전', tag: '팝업인증', img: grad('#5e0c3a', '#FF4D9D', '#FFB23D') },
-  { id: 'p2', user: 'semail_love', ipName: '녹턴 클럽', avatar: '#8B5CFF', text: '녹턴 클럽 키링 6종 다 모았다!! 무대 카드 SSR 떴는데 교환 원하시는 분 댓글 주세요', likes: 218, comments: 33, time: '41분 전', tag: '카드교환', img: null },
-  { id: 'p3', user: 'hoshi_kr_fan', ipName: '호시나 미오', avatar: '#38F0C0', text: '미오 1주년 생일 카드 HOLO 떴습니다... 손떨려요 인생 가챠 ✨ 다들 봐주세요', likes: 503, comments: 91, time: '1시간 전', tag: '가챠', img: grad('#0c5e4a', '#38F0C0', '#2DE2FF') },
-  { id: 'p4', user: 'naruto_otaku', ipName: 'LUMEN', avatar: '#2DE2FF', text: 'LUMEN 시즌2 피규어 예약 오픈했네요. 디테일 실화? 프리뷰 사진 첨부합니다', likes: 189, comments: 27, time: '2시간 전', tag: '한정굿즈', img: grad('#0c4a5e', '#2DE2FF', '#38F0C0') },
-  { id: 'p5', user: 'maehwa_geom', ipName: '화산강림', avatar: '#8B5CFF', text: '화산강림 매화검 레플리카 드디어 입수… 검신 각인 디테일 실화냐 ㅠㅠ 공식 정품 퀄 인정합니다', likes: 421, comments: 57, time: '34분 전', tag: '굿즈인증', img: grad('#3a1d6e', '#8B5CFF', '#FF4D9D') },
-  { id: 'p6', user: 'cheong_spring', ipName: '청명', avatar: '#2D6FDB', text: '청명 봄밤 카드 떴어요!! R인데도 일러 너무 고와서 대만족… 매화 향수 한정판이랑 같이 질렀습니다', likes: 287, comments: 39, time: '1시간 전', tag: '카드자랑', img: null },
+  { id: 'p1', user: 'relax_room', ipName: '리락쿠마', avatar: '#FFD84D', text: '리락쿠마 낮잠 쿠션 실물감 너무 좋아요. 포근한 방 팝업에서 바로 안고 나왔습니다', likes: 342, comments: 48, time: '12분 전', tag: '팝업인증', img: imageBg('/generated/events/e1.png', grad('#5a3517', '#D68A2D', '#FFD84D')) },
+  { id: 'p2', user: 'mushroom_jump', ipName: '메이플스토리', avatar: '#38F0C0', text: '주황버섯 봉제인형이랑 몬스터 키링 4종 같이 샀습니다. 핑크빈 디오라마 예약도 열렸네요', likes: 218, comments: 33, time: '41분 전', tag: '한정굿즈', img: null },
+  { id: 'p3', user: 'gom_duck', ipName: '담곰이', avatar: '#F7A8C7', text: '담곰이 오리친구 카드 SSR 떴어요. 데스크 매트랑 같이 놓으니까 귀여움이 딱 맞습니다', likes: 503, comments: 91, time: '1시간 전', tag: '카드자랑', img: imageBg('/generated/cards/c6.png', grad('#70485a', '#F7A8C7', '#FFF3D6')) },
+  { id: 'p4', user: 'picnic_friends', ipName: '카카오프렌즈', avatar: '#FFD84D', text: '피크닉 세트 구성 좋네요. 미니 피규어팩은 라이언이랑 춘식이 같이 진열하기 좋습니다', likes: 189, comments: 27, time: '2시간 전', tag: '굿즈인증', img: imageBg('/generated/goods/g9.png', grad('#66421d', '#FFD84D', '#FF9AAF')) },
+  { id: 'p5', user: 'levi_display', ipName: '진격의 거인', avatar: '#A981FF', text: '리바이 아크릴 스탠드 예약했습니다. 카드 배경이 차분해서 피규어랑 같이 세우기 좋겠어요', likes: 421, comments: 57, time: '34분 전', tag: '예약인증', img: imageBg('/generated/goods/g11.png', grad('#2b251f', '#6B705C', '#A981FF')) },
+  { id: 'p6', user: 'pinkbean_stage', ipName: '메이플스토리', avatar: '#38F0C0', text: '핑크빈 스테이지 HOLO 아직 못 뽑았습니다. 주황버섯 점프 카드랑 교환 가능하신 분 찾습니다', likes: 287, comments: 39, time: '1시간 전', tag: '카드교환', img: null },
 ];
 
 const EXCHANGES: Exchange[] = [
-  { id: 'x1', kind: '직거래', card: '호시나 · 스타라이트', rarity: 'HOLO', want: '미오 1주년 SSR', user: 'star_collector', bg: grad('#0c5e5e', '#38F0C0', '#8B5CFF'), fee: 50 },
-  { id: 'x2', kind: '경매', card: 'LUMEN · Eclipse', rarity: 'SSR', bid: 1200, bids: 14, endsIn: '03:21:40', user: 'eclipse_', bg: grad('#0c3a5e', '#2DE2FF', '#A981FF'), fee: 50 },
-  { id: 'x3', kind: '직거래', card: '청명 · 매화 일섬', rarity: 'HOLO', want: '화산 SSR 또는 제안', user: 'maehwa_', bg: grad('#3a1d6e', '#8B5CFF', '#FF4D9D'), fee: 50 },
-  { id: 'x4', kind: '경매', card: 'ASTER · Nova', rarity: 'SR', bid: 430, bids: 6, endsIn: '11:48:02', user: 'nova_pull', bg: grad('#1d1d6e', '#5B7BFF', '#2DE2FF'), fee: 50 },
-  { id: 'x5', kind: '직거래', card: '라일락 · 방과후', rarity: 'R', want: 'GL 카드 아무거나', user: 'lilac_note', bg: grad('#3a0c5e', '#A981FF', '#FF4D9D'), fee: 50 },
-  { id: 'x6', kind: '경매', card: '녹턴 · 무대', rarity: 'SR', bid: 680, bids: 9, endsIn: '06:02:55', user: 'nocturne_live', bg: grad('#5e0c3a', '#FF4D9D', '#8B5CFF'), fee: 50 },
+  { id: 'x1', kind: '직거래', card: '핑크빈 · 스테이지', rarity: 'HOLO', want: '주황버섯 SSR 또는 제안', user: 'pinkbean_stage', bg: imageBg('/generated/cards/c5.png', grad('#6b2a5b', '#F7A8C7', '#A981FF')), fee: 50 },
+  { id: 'x2', kind: '경매', card: '리바이 · 조사병단', rarity: 'SSR', bid: 1200, bids: 14, endsIn: '03:21:40', user: 'survey_buyer', bg: imageBg('/generated/cards/c12.png', grad('#201c18', '#4C5A3F', '#A981FF')), fee: 50 },
+  { id: 'x3', kind: '직거래', card: '리락쿠마 · 낮잠 시간', rarity: 'HOLO', want: '코리락쿠마 SR', user: 'relax_trade', bg: imageBg('/generated/cards/c1.png', grad('#5a3517', '#D68A2D', '#FFD84D')), fee: 50 },
+  { id: 'x4', kind: '경매', card: '라이언 · 피크닉', rarity: 'SSR', bid: 430, bids: 6, endsIn: '11:48:02', user: 'picnic_pull', bg: imageBg('/generated/cards/c8.png', grad('#66421d', '#FFD84D', '#FFF3D6')), fee: 50 },
+  { id: 'x5', kind: '직거래', card: '담곰이 · 산책', rarity: 'R', want: '담곰이 오리친구 또는 제안', user: 'gom_walk', bg: imageBg('/generated/cards/c7.png', grad('#51343f', '#F7A8C7', '#FFD84D')), fee: 50 },
+  { id: 'x6', kind: '경매', card: '슬라임 · 말랑 에너지', rarity: 'R', bid: 260, bids: 9, endsIn: '06:02:55', user: 'slime_energy', bg: imageBg('/generated/cards/c4.png', grad('#0d5e66', '#38F0C0', '#2DE2FF')), fee: 50 },
 ];
 
 const MARKET: MarketItem[] = [
-  { id: 'm1', name: '화산강림 매화검 레플리카 (미개봉)', ip: 'hwasan', type: '피규어', price: 115000, cond: '미개봉', seller: 'mhk_seller', verified: true, bg: grad('#2a1550', '#8B5CFF', '#2DE2FF') },
-  { id: 'm2', name: '호시나 미오 1st 포토카드 풀세트', ip: 'hoshina', type: '포토카드', price: 24000, cond: 'A급', seller: 'mio_shop', verified: true, bg: grad('#0c5e4a', '#38F0C0', '#2DE2FF') },
-  { id: 'm3', name: 'LUMEN 시즌1 피규어', ip: 'lumen', type: '피규어', price: 62000, cond: '개봉/전시', seller: 'lumen_kr', verified: true, bg: grad('#0c4a5e', '#2DE2FF', '#38F0C0') },
-  { id: 'm4', name: '녹턴 클럽 키링 (단품)', ip: 'nocturne', type: '키링', price: 8000, cond: '미사용', seller: 'noc_fan', verified: false, bg: grad('#5e0c3a', '#FF4D9D', '#8B5CFF') },
-  { id: 'm5', name: 'ASTER 콜렉터 박스 (구성품 일부)', ip: 'aster', type: '한정 세트', price: 48000, cond: 'B급', seller: 'aster_g', verified: true, bg: grad('#1d1d6e', '#5B7BFF', '#2DE2FF') },
-  { id: 'm6', name: '청명 향수 한정판 (새상품)', ip: 'cheong', type: '음원·앨범', price: 42000, cond: '미개봉', seller: 'cheong_', verified: true, bg: grad('#1d2f6e', '#2D6FDB', '#8B5CFF') },
+  { id: 'm1', name: '리락쿠마 낮잠 쿠션 (미개봉)', ip: 'rilakkuma', type: '쿠션', price: 39000, cond: '미개봉', seller: 'relax_seller', verified: true, bg: imageBg('/generated/goods/g1.png', grad('#5a3517', '#D68A2D', '#FFD84D')) },
+  { id: 'm2', name: '메이플 몬스터 키링 4종 풀세트', ip: 'maplestory', type: '키링', price: 24000, cond: 'A급', seller: 'maple_shop', verified: true, bg: imageBg('/generated/goods/g4.png', grad('#0d5e66', '#38F0C0', '#8B5CFF')) },
+  { id: 'm3', name: '담곰이 말랑 쿠션', ip: 'nongdamgom', type: '쿠션', price: 30000, cond: '개봉/전시', seller: 'gom_store', verified: true, bg: imageBg('/generated/goods/g7.png', grad('#51343f', '#F7A8C7', '#FFD84D')) },
+  { id: 'm4', name: '춘식이 수면 파우치', ip: 'kakao-friends', type: '파우치', price: 18000, cond: '미사용', seller: 'choonsik_fan', verified: false, bg: imageBg('/generated/goods/g8.png', grad('#66421d', '#FFD84D', '#FFF3D6')) },
+  { id: 'm5', name: '리바이 아크릴 스탠드 예약권', ip: 'attack-on-titan', type: '아크릴 스탠드', price: 31000, cond: '예약권', seller: 'levi_case', verified: true, bg: imageBg('/generated/goods/g11.png', grad('#2b251f', '#6B705C', '#A981FF')) },
+  { id: 'm6', name: '카카오프렌즈 피크닉 세트 일부 구성', ip: 'kakao-friends', type: '한정 세트', price: 48000, cond: 'B급', seller: 'picnic_box', verified: true, bg: imageBg('/generated/goods/g9.png', grad('#66421d', '#FFD84D', '#FF9AAF')) },
 ];
 
-const TRENDING = ['#화산강림', '#매화검존', '#팝업인증', '#호시나1주년', '#한정굿즈', '#버튜버', '#로판추천', '#LUMEN시즌2', '#카드교환', '#홀로떴다'];
+const TRENDING = ['#리락쿠마', '#메이플스토리', '#담곰이', '#카카오프렌즈', '#리바이', '#팝업인증', '#한정굿즈', '#카드교환', '#피크닉세트', '#낮잠쿠션'];
 
-const STATS = { fans: '12.4K', ips: 89, goods: '1,240', events: 48 };
+const STATS = { fans: '76.5만', ips: 5, goods: '12', events: 5 };
 
 export const krw = (n: number) => '₩' + n.toLocaleString('ko-KR');
 

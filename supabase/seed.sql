@@ -1,12 +1,10 @@
 -- ICONS local seed for P0 public catalog browsing.
--- Scope: verticals, IP Hub, goods, cards, and events for public catalog browsing.
+-- Scope: licensed mock IP Hub, goods, cards, and events for public catalog browsing.
 
 insert into public.verticals (key, label, color) values
-  ('blgl', 'BL/GL', '#FF4D9D'),
-  ('rofan', '로맨스판타지', '#8B5CFF'),
-  ('global', '글로벌 IP', '#2DE2FF'),
-  ('vtuber', '버튜버', '#38F0C0'),
-  ('streamer', '스트리머', '#FFB23D')
+  ('character', '캐릭터 IP', '#FFD84D'),
+  ('game', '게임', '#38F0C0'),
+  ('anime', '애니메이션', '#A981FF')
 on conflict (key) do update set
   label = excluded.label,
   color = excluded.color;
@@ -26,116 +24,74 @@ insert into public.ips (
   cards_count
 ) values
   (
-    'hwasan',
-    '화산강림',
-    '리디 · 로판',
-    'rofan',
-    E'화산\n강림',
-    'url("/generated/ip/hwasan.png") center / cover no-repeat, linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)',
-    '백번 죽어도 화산의 검을 든다',
-    '정파의 자존심 화산파, 그 부활을 그린 무협 판타지. 공식 라이선스 굿즈와 한정 카드가 ICONS에서 처음 공개됩니다.',
+    'rilakkuma',
+    '리락쿠마',
+    'San-X · 캐릭터 IP',
+    'character',
+    E'리락\n쿠마',
+    'url("/generated/ip/rilakkuma.png") center / cover no-repeat, linear-gradient(150deg, #5a3517, #D68A2D 55%, #FFD84D)',
+    '느긋한 하루를 수집하는 시간',
+    '리락쿠마의 포근한 방을 ICONS 굿즈, 카드, 팝업으로 재구성한 라이선스 mock 컬렉션입니다.',
     true,
-    42130,
-    38,
-    24
+    124500,
+    2,
+    2
   ),
   (
-    'cheong',
-    '청명',
-    '카카오웹툰 · 로판',
-    'rofan',
-    '청명',
-    'url("/generated/ip/cheong.png") center / cover no-repeat, linear-gradient(150deg, #1d2f6e, #2D6FDB 55%, #8B5CFF)',
-    '매화는 다시 핀다',
-    '청명 매화 시리즈 공식 굿즈 라인. 향수 한정판부터 아크릴까지.',
+    'maplestory',
+    '메이플스토리',
+    'NEXON · 게임',
+    'game',
+    'MAPLE',
+    'url("/generated/ip/maplestory.png") center / cover no-repeat, linear-gradient(150deg, #0d5e66, #38F0C0 55%, #FFD84D)',
+    '몬스터즈가 굿즈로 튀어나오는 순간',
+    '주황버섯, 슬라임, 핑크빈을 중심으로 한 메이플스토리 몬스터 굿즈와 카드 라인업입니다.',
     true,
-    31980,
-    22,
-    18
+    198000,
+    3,
+    3
   ),
   (
-    'lumen',
-    'LUMEN',
-    'Global Anime',
-    'global',
-    E'LU\nMEN',
-    'url("/generated/ip/lumen.png") center / cover no-repeat, linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)',
-    'The light never sleeps',
-    '글로벌 흥행 애니메이션 LUMEN의 한국 공식 파트너. 시즌 한정 컬렉션 진행 중.',
+    'nongdamgom',
+    '담곰이',
+    '캐릭터 IP',
+    'character',
+    '담곰이',
+    'url("/generated/ip/nongdamgom.png") center / cover no-repeat, linear-gradient(150deg, #70485a, #F7A8C7 55%, #FFF3D6)',
+    '말랑한 농담처럼 가벼운 굿즈',
+    '담곰이와 오리친구의 단순하고 귀여운 결을 데스크 굿즈, 쿠션, 카드로 풀어낸 컬렉션입니다.',
     true,
-    89020,
-    54,
-    40
+    52300,
+    2,
+    2
   ),
   (
-    'nocturne',
-    '녹턴 클럽',
-    'BL · 오리지널',
-    'blgl',
-    E'녹턴\n클럽',
-    'url("/generated/ip/nocturne.png") center / cover no-repeat, linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)',
-    '밤은 우리 편',
-    '밴드 BL 「녹턴 클럽」 공식 머천다이즈.',
-    false,
-    28470,
-    30,
-    21
-  ),
-  (
-    'lilac',
-    '라일락 노트',
-    'GL · 학원',
-    'blgl',
-    '라일락',
-    'url("/generated/ip/lilac.png") center / cover no-repeat, linear-gradient(150deg, #3a0c5e, #A981FF 55%, #FF4D9D)',
-    '다정도 병이라면',
-    'GL 감성 학원물 공식 컬렉션.',
-    false,
-    19340,
-    16,
-    14
-  ),
-  (
-    'hoshina',
-    '호시나 미오',
-    'VTuber',
-    'vtuber',
-    E'호시나\n미오',
-    'url("/generated/ip/hoshina.png") center / cover no-repeat, linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)',
-    '오늘도 별을 줍는 중',
-    '버튜버 호시나 미오 1주년 기념 한정 굿즈 & 생일 카드 드롭.',
+    'kakao-friends',
+    '카카오프렌즈',
+    'Kakao · 캐릭터 IP',
+    'character',
+    'KAKAO',
+    'url("/generated/ip/kakao-friends.png") center / cover no-repeat, linear-gradient(150deg, #66421d, #FFD84D 55%, #FF9AAF)',
+    '친구들과 떠나는 피크닉 컬렉션',
+    '라이언, 춘식이, 어피치 등 카카오프렌즈 감성의 피크닉 굿즈와 미니 피규어 mock 라인입니다.',
     true,
-    35180,
-    44,
-    33
+    214000,
+    3,
+    3
   ),
   (
-    'rune',
-    'RUNE Live',
-    'Streamer',
-    'streamer',
-    'RUNE',
-    'url("/generated/ip/rune.png") center / cover no-repeat, linear-gradient(150deg, #5e3a0c, #FFB23D 55%, #FF4D9D)',
-    '클립 장인',
-    '스트리머 RUNE 공식 채널 굿즈.',
-    false,
-    24760,
-    19,
-    16
-  ),
-  (
-    'aster',
-    'ASTER',
-    'Global · Game',
-    'global',
-    E'AS\nTER',
-    'url("/generated/ip/aster.png") center / cover no-repeat, linear-gradient(150deg, #1d1d6e, #5B7BFF 55%, #2DE2FF)',
-    'Reach the stars',
-    '글로벌 모바일 게임 ASTER 공식 굿즈 스토어.',
-    false,
-    51200,
-    48,
-    36
+    'attack-on-titan',
+    '진격의 거인',
+    '리바이 에디션 · 애니메이션',
+    'anime',
+    'LEVI',
+    'url("/generated/ip/attack-on-titan.png") center / cover no-repeat, linear-gradient(150deg, #2b251f, #6B705C 55%, #A981FF)',
+    '리바이 에디션으로 완성하는 전시형 컬렉션',
+    '진격의 거인 리바이의 차분한 전투 전야 무드를 피규어, 아크릴, 카드로 구성한 mock 컬렉션입니다.',
+    true,
+    176400,
+    2,
+    2
   )
 -- fans_count는 최초 seed 값만 넣고, 이후 팔로우 RPC가 유지하는 공개 카운트를 덮어쓰지 않는다.
 on conflict (id) do update set
@@ -152,18 +108,18 @@ on conflict (id) do update set
   updated_at = now();
 
 insert into public.goods (id, ip_id, name, type, price, badge, stock, stock_qty, bg) values
-  ('g1', 'cheong', '청명 매화 향수 한정판', '음원·앨범', 38000, '한정', 'low', 7, 'url("/generated/goods/g1.png") center / cover no-repeat, linear-gradient(150deg, #1d2f6e, #2D6FDB 55%, #8B5CFF)'),
-  ('g2', 'hwasan', '화산강림 청명 아크릴 스탠드', '아크릴 스탠드', 22000, '신상', 'ok', 120, 'url("/generated/goods/g2.png") center / cover no-repeat, linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
-  ('g3', 'hoshina', '호시나 미오 1st 포토카드 세트', '포토카드', 15000, '한정', 'low', 9, 'url("/generated/goods/g3.png") center / cover no-repeat, linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
-  ('g4', 'lumen', 'LUMEN 시즌2 피규어', '피규어', 89000, '예약', 'ok', 80, 'url("/generated/goods/g4.png") center / cover no-repeat, linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)'),
-  ('g5', 'nocturne', '녹턴 클럽 멤버 키링 6종', '키링', 12000, null, 'ok', 150, 'url("/generated/goods/g5.png") center / cover no-repeat, linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)'),
-  ('g6', 'aster', 'ASTER 콜렉터 박스 세트', '한정 세트', 74000, '한정', 'soldout', 0, 'url("/generated/goods/g6.png") center / cover no-repeat, linear-gradient(150deg, #1d1d6e, #5B7BFF 55%, #2DE2FF)'),
-  ('g7', 'lilac', '라일락 노트 엽서북', '문구', 9000, null, 'ok', 200, 'url("/generated/goods/g7.png") center / cover no-repeat, linear-gradient(150deg, #3a0c5e, #A981FF 55%, #FF4D9D)'),
-  ('g8', 'rune', 'RUNE 오버사이즈 후드', '의류', 54000, '신상', 'ok', 90, 'url("/generated/goods/g8.png") center / cover no-repeat, linear-gradient(150deg, #5e3a0c, #FFB23D 55%, #FF4D9D)'),
-  ('g9', 'hwasan', '화산강림 매화검 레플리카', '한정 세트', 128000, '한정', 'low', 5, 'url("/generated/goods/g9.png") center / cover no-repeat, linear-gradient(150deg, #2a1550, #8B5CFF 55%, #2DE2FF)'),
-  ('g10', 'hoshina', '호시나 미오 아크릴 디오라마', '아크릴 스탠드', 34000, null, 'ok', 110, 'url("/generated/goods/g10.png") center / cover no-repeat, linear-gradient(150deg, #0c5e5e, #38F0C0 55%, #8B5CFF)'),
-  ('g11', 'lumen', 'LUMEN 홀로그램 포토카드 12종', '포토카드', 18000, '한정', 'low', 10, 'url("/generated/goods/g11.png") center / cover no-repeat, linear-gradient(150deg, #0c3a5e, #2DE2FF 55%, #A981FF)'),
-  ('g12', 'cheong', '청명 자수 패치 키링', '키링', 11000, '신상', 'ok', 140, 'url("/generated/goods/g12.png") center / cover no-repeat, linear-gradient(150deg, #1d2f6e, #5B7BFF 55%, #FF4D9D)')
+  ('g1', 'rilakkuma', '리락쿠마 낮잠 쿠션', '쿠션', 42000, '한정', 'low', 7, 'url("/generated/goods/g1.png") center / cover no-repeat, linear-gradient(150deg, #5a3517, #D68A2D 55%, #FFD84D)'),
+  ('g2', 'rilakkuma', '코리락쿠마 미니 키링', '키링', 15000, '신상', 'ok', 120, 'url("/generated/goods/g2.png") center / cover no-repeat, linear-gradient(150deg, #7d4a2a, #F3B6C8 55%, #FFF3D6)'),
+  ('g3', 'maplestory', '주황버섯 봉제인형', '봉제인형', 28000, '신상', 'ok', 90, 'url("/generated/goods/g3.png") center / cover no-repeat, linear-gradient(150deg, #98440f, #FF8C32 55%, #FFD84D)'),
+  ('g4', 'maplestory', '메이플 몬스터 키링 4종', '키링', 18000, '한정', 'low', 12, 'url("/generated/goods/g4.png") center / cover no-repeat, linear-gradient(150deg, #0d5e66, #38F0C0 55%, #8B5CFF)'),
+  ('g5', 'maplestory', '핑크빈 아크릴 디오라마', '아크릴 스탠드', 33000, '예약', 'ok', 80, 'url("/generated/goods/g5.png") center / cover no-repeat, linear-gradient(150deg, #6b2a5b, #F7A8C7 55%, #A981FF)'),
+  ('g6', 'nongdamgom', '담곰이 오리친구 데스크 매트', '문구', 22000, '신상', 'ok', 110, 'url("/generated/goods/g6.png") center / cover no-repeat, linear-gradient(150deg, #70485a, #F7A8C7 55%, #FFF3D6)'),
+  ('g7', 'nongdamgom', '담곰이 말랑 쿠션', '쿠션', 36000, null, 'ok', 60, 'url("/generated/goods/g7.png") center / cover no-repeat, linear-gradient(150deg, #51343f, #F7A8C7 55%, #FFD84D)'),
+  ('g8', 'kakao-friends', '춘식이 수면 파우치', '파우치', 24000, '신상', 'ok', 100, 'url("/generated/goods/g8.png") center / cover no-repeat, linear-gradient(150deg, #66421d, #FFD84D 55%, #FFF3D6)'),
+  ('g9', 'kakao-friends', '라이언&어피치 피크닉 세트', '한정 세트', 59000, '한정', 'low', 8, 'url("/generated/goods/g9.png") center / cover no-repeat, linear-gradient(150deg, #724a1f, #FFD84D 55%, #FF9AAF)'),
+  ('g10', 'kakao-friends', '카카오프렌즈 미니 피규어팩', '피규어', 32000, null, 'ok', 140, 'url("/generated/goods/g10.png") center / cover no-repeat, linear-gradient(150deg, #3d5b7d, #FFD84D 55%, #FF9AAF)'),
+  ('g11', 'attack-on-titan', '리바이 아크릴 스탠드', '아크릴 스탠드', 26000, '예약', 'ok', 70, 'url("/generated/goods/g11.png") center / cover no-repeat, linear-gradient(150deg, #2b251f, #6B705C 55%, #A981FF)'),
+  ('g12', 'attack-on-titan', '조사병단 리바이 피규어', '피규어', 89000, '한정', 'soldout', 0, 'url("/generated/goods/g12.png") center / cover no-repeat, linear-gradient(150deg, #201c18, #4C5A3F 55%, #A981FF)')
 on conflict (id) do update set
   ip_id = excluded.ip_id,
   name = excluded.name,
@@ -176,18 +132,18 @@ on conflict (id) do update set
   updated_at = now();
 
 insert into public.cards (id, ip_id, name, no, rarity, bg) values
-  ('c1', 'hwasan', '청명 · 매화 일섬', '001/120', 'HOLO', 'url("/generated/cards/c1.png") center / cover no-repeat, linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
-  ('c2', 'hwasan', '화산의 검', '014/120', 'SSR', 'url("/generated/cards/c2.png") center / cover no-repeat, linear-gradient(150deg, #2a1550, #8B5CFF 55%, #2DE2FF)'),
-  ('c3', 'hoshina', '호시나 · 1주년', '003/088', 'SSR', 'url("/generated/cards/c3.png") center / cover no-repeat, linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
-  ('c4', 'lumen', 'LUMEN · Dawn', '027/200', 'SR', 'url("/generated/cards/c4.png") center / cover no-repeat, linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)'),
-  ('c5', 'cheong', '청명 · 봄밤', '041/090', 'R', 'url("/generated/cards/c5.png") center / cover no-repeat, linear-gradient(150deg, #1d2f6e, #2D6FDB 55%, #8B5CFF)'),
-  ('c6', 'nocturne', '녹턴 · 무대', '009/070', 'SR', 'url("/generated/cards/c6.png") center / cover no-repeat, linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)'),
-  ('c7', 'hwasan', '청명 · 입문', '072/120', 'N', 'url("/generated/cards/c7.png") center / cover no-repeat, linear-gradient(150deg, #241640, #5a4a8a 55%, #8B5CFF)'),
-  ('c8', 'lumen', 'LUMEN · Eclipse', '112/200', 'SSR', 'url("/generated/cards/c8.png") center / cover no-repeat, linear-gradient(150deg, #0c3a5e, #2DE2FF 55%, #A981FF)'),
-  ('c9', 'hoshina', '호시나 · 스타라이트', '055/088', 'HOLO', 'url("/generated/cards/c9.png") center / cover no-repeat, linear-gradient(150deg, #0c5e5e, #38F0C0 55%, #8B5CFF)'),
-  ('c10', 'aster', 'ASTER · Nova', '088/150', 'SR', 'url("/generated/cards/c10.png") center / cover no-repeat, linear-gradient(150deg, #1d1d6e, #5B7BFF 55%, #2DE2FF)'),
-  ('c11', 'lilac', '라일락 · 방과후', '033/060', 'R', 'url("/generated/cards/c11.png") center / cover no-repeat, linear-gradient(150deg, #3a0c5e, #A981FF 55%, #FF4D9D)'),
-  ('c12', 'rune', 'RUNE · 클러치', '019/070', 'SR', 'url("/generated/cards/c12.png") center / cover no-repeat, linear-gradient(150deg, #5e3a0c, #FFB23D 55%, #FF4D9D)')
+  ('c1', 'rilakkuma', '리락쿠마 · 낮잠 시간', '001/080', 'HOLO', 'url("/generated/cards/c1.png") center / cover no-repeat, linear-gradient(150deg, #5a3517, #D68A2D 55%, #FFD84D)'),
+  ('c2', 'rilakkuma', '코리락쿠마 · 딸기 우유', '014/080', 'SR', 'url("/generated/cards/c2.png") center / cover no-repeat, linear-gradient(150deg, #7d4a2a, #F3B6C8 55%, #FFF3D6)'),
+  ('c3', 'maplestory', '주황버섯 · 점프!', '003/120', 'SSR', 'url("/generated/cards/c3.png") center / cover no-repeat, linear-gradient(150deg, #98440f, #FF8C32 55%, #FFD84D)'),
+  ('c4', 'maplestory', '슬라임 · 말랑 에너지', '018/120', 'R', 'url("/generated/cards/c4.png") center / cover no-repeat, linear-gradient(150deg, #0d5e66, #38F0C0 55%, #2DE2FF)'),
+  ('c5', 'maplestory', '핑크빈 · 스테이지', '041/120', 'HOLO', 'url("/generated/cards/c5.png") center / cover no-repeat, linear-gradient(150deg, #6b2a5b, #F7A8C7 55%, #A981FF)'),
+  ('c6', 'nongdamgom', '담곰이 · 오리친구', '009/060', 'SSR', 'url("/generated/cards/c6.png") center / cover no-repeat, linear-gradient(150deg, #70485a, #F7A8C7 55%, #FFF3D6)'),
+  ('c7', 'nongdamgom', '담곰이 · 산책', '027/060', 'R', 'url("/generated/cards/c7.png") center / cover no-repeat, linear-gradient(150deg, #51343f, #F7A8C7 55%, #FFD84D)'),
+  ('c8', 'kakao-friends', '라이언 · 피크닉', '012/100', 'SSR', 'url("/generated/cards/c8.png") center / cover no-repeat, linear-gradient(150deg, #66421d, #FFD84D 55%, #FFF3D6)'),
+  ('c9', 'kakao-friends', '춘식이 · 낮잠', '033/100', 'HOLO', 'url("/generated/cards/c9.png") center / cover no-repeat, linear-gradient(150deg, #724a1f, #FFD84D 55%, #FF9AAF)'),
+  ('c10', 'kakao-friends', '어피치 · 스윗팝', '054/100', 'SR', 'url("/generated/cards/c10.png") center / cover no-repeat, linear-gradient(150deg, #7d344d, #FF9AAF 55%, #FFD84D)'),
+  ('c11', 'attack-on-titan', '리바이 · 결전 전야', '001/070', 'HOLO', 'url("/generated/cards/c11.png") center / cover no-repeat, linear-gradient(150deg, #2b251f, #6B705C 55%, #A981FF)'),
+  ('c12', 'attack-on-titan', '리바이 · 조사병단', '017/070', 'SSR', 'url("/generated/cards/c12.png") center / cover no-repeat, linear-gradient(150deg, #201c18, #4C5A3F 55%, #A981FF)')
 on conflict (id) do update set
   ip_id = excluded.ip_id,
   name = excluded.name,
@@ -196,11 +152,11 @@ on conflict (id) do update set
   bg = excluded.bg;
 
 insert into public.events (id, ip_id, title, mode, status, starts_at, ends_at, location, accent, bg) values
-  ('e1', null, '귀멸의칼날 × ICONS 팝업스토어', '오프라인', '진행중', '2026-06-18 00:00:00+09', '2026-07-05 23:59:00+09', '성수 갤러리아 포레', '#FF4D9D', 'linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #FFB23D)'),
-  ('e2', 'hoshina', '호시나 미오 1주년 온라인 팝업', '온라인', '예매중', '2026-06-27 20:00:00+09', null, 'ICONS Live', '#38F0C0', 'linear-gradient(150deg, #0c5e4a, #38F0C0 55%, #2DE2FF)'),
-  ('e3', 'hwasan', '화산강림 매화 팝업스토어', '오프라인', '예정', '2026-07-10 00:00:00+09', '2026-07-24 23:59:00+09', '강남 ICONS 플래그십', '#8B5CFF', 'linear-gradient(150deg, #3a1d6e, #8B5CFF 55%, #FF4D9D)'),
-  ('e4', 'lumen', 'LUMEN 시즌2 온라인 팝업', '온라인', '예정', '2026-06-20 21:00:00+09', null, 'ICONS Live', '#2DE2FF', 'linear-gradient(150deg, #0c4a5e, #2DE2FF 55%, #38F0C0)'),
-  ('e5', 'nocturne', '녹턴 클럽 팝업스토어', '오프라인', '예매중', '2026-06-28 18:00:00+09', null, '홍대 무브홀', '#FF4D9D', 'linear-gradient(150deg, #5e0c3a, #FF4D9D 55%, #8B5CFF)')
+  ('e1', 'rilakkuma', '리락쿠마 포근한 방 팝업스토어', '오프라인', '진행중', '2026-07-01 00:00:00+09', '2026-07-21 23:59:00+09', '성수 ICONS 스튜디오', '#FFD84D', 'url("/generated/events/e1.png") center / cover no-repeat, linear-gradient(150deg, #5a3517, #D68A2D 55%, #FFD84D)'),
+  ('e2', 'maplestory', '메이플스토리 몬스터즈 온라인 팝업', '온라인', '예매중', '2026-07-12 20:00:00+09', null, 'ICONS Live', '#38F0C0', 'url("/generated/events/e2.png") center / cover no-repeat, linear-gradient(150deg, #0d5e66, #38F0C0 55%, #FFD84D)'),
+  ('e3', 'nongdamgom', '담곰이 드로잉 굿즈 팝업', '오프라인', '예정', '2026-07-19 00:00:00+09', '2026-08-02 23:59:00+09', '홍대 ICONS 팝업', '#F7A8C7', 'url("/generated/events/e3.png") center / cover no-repeat, linear-gradient(150deg, #70485a, #F7A8C7 55%, #FFF3D6)'),
+  ('e4', 'kakao-friends', '카카오프렌즈 피크닉 팝업', '오프라인', '예매중', '2026-07-26 00:00:00+09', '2026-08-11 23:59:00+09', '여의도 ICONS 팝업', '#FFD84D', 'url("/generated/events/e4.png") center / cover no-repeat, linear-gradient(150deg, #66421d, #FFD84D 55%, #FF9AAF)'),
+  ('e5', 'attack-on-titan', '진격의 거인 리바이 에디션 온라인 팝업', '온라인', '예정', '2026-08-08 21:00:00+09', null, 'ICONS Live', '#A981FF', 'url("/generated/events/e5.png") center / cover no-repeat, linear-gradient(150deg, #2b251f, #6B705C 55%, #A981FF)')
 on conflict (id) do update set
   ip_id = excluded.ip_id,
   title = excluded.title,

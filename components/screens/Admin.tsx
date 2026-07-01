@@ -441,9 +441,9 @@ export function Admin({ admin, catalog, moderation, records }: AdminProps) {
               />
               <form action={ipAction} className="card col" key={selectedIp?.id ?? 'new-ip'} style={{ borderRadius: 10, gap: 14, padding: 18 }}>
                 <div className="grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                  <Field defaultValue={selectedIp?.id} error={ipState.errors?.id} label="ID" name="id" placeholder="hwasan" />
-                  <Field defaultValue={selectedIp?.title} error={ipState.errors?.title} label="IP 이름" name="title" placeholder="화산강림" />
-                  <Field defaultValue={selectedIp?.sub} label="보조 설명" name="sub" placeholder="리디 · 로판" />
+                  <Field defaultValue={selectedIp?.id} error={ipState.errors?.id} label="ID" name="id" placeholder="rilakkuma" />
+                  <Field defaultValue={selectedIp?.title} error={ipState.errors?.title} label="IP 이름" name="title" placeholder="리락쿠마" />
+                  <Field defaultValue={selectedIp?.sub} label="보조 설명" name="sub" placeholder="San-X · 캐릭터 IP" />
                   <SelectField defaultValue={selectedIp?.verticalKey} error={ipState.errors?.verticalKey} label="버티컬" name="verticalKey">
                     <option value="">선택</option>
                     {catalog.verticals.map((vertical) => (

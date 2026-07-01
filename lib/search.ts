@@ -3,6 +3,7 @@ import 'server-only';
 import { DATA } from '@/lib/data';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+import { resolveCatalogSource } from './catalog-source';
 
 export type SearchResultKind = 'ip' | 'good' | 'card' | 'post' | 'tag';
 
@@ -220,7 +221,7 @@ function getMockSearchSnapshot(query: string): SearchSnapshot {
 
 export async function getSearchSnapshot(rawQuery: string | string[] | null | undefined): Promise<SearchSnapshot> {
   const query = normalizeSearchQuery(rawQuery);
-  const source = getSupabaseConfig().isConfigured ? 'supabase' : 'mock';
+  const source = resolveCatalogSource({ isSupabaseConfigured: getSupabaseConfig().isConfigured });
 
   if (!query) return emptySnapshot(source, query);
   if (source === 'mock') return getMockSearchSnapshot(query);

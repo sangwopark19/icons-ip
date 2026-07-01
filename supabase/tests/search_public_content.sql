@@ -67,7 +67,7 @@ values (
   'search-smoke-ip',
   '검색스모크IP',
   '검색 smoke vertical',
-  'rofan',
+  'character',
   '검색 smoke tagline',
   '검색 smoke synopsis',
   '검색',
