@@ -186,6 +186,12 @@
     border: 1px solid var(--line-2); color: var(--dim);
   }
 
+  /* regulatory / financial disclosure caption — 가챠 확률 공시, 충전금·환불 규정 (진실원은 DB/ADR) */
+  .money-caption {
+    font-family: var(--ff-mono); font-size: 10.5px; letter-spacing: .04em;
+    line-height: 1.5; color: var(--faint);
+  }
+
   /* card surface */
   .card {
     background: linear-gradient(180deg, var(--surface), var(--bg-2));
@@ -586,6 +592,25 @@
   .rise { opacity: 1; }
 
   /* ip detail — favorite-world hub */
+  /* cinematic IP hero — 풀블리드 키아트 위 텍스트 (Runway 도너) */
+  .hero-cinematic {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: min(64vh, 560px);
+  }
+  .hero-cinematic-art { position: absolute; inset: 0; z-index: 0; }
+  .hero-cinematic-shade {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      linear-gradient(0deg, var(--bg) 3%, rgba(8,6,15,.55) 42%, rgba(8,6,15,.05) 80%),
+      linear-gradient(90deg, rgba(8,6,15,.82) 0%, rgba(8,6,15,.32) 44%, rgba(8,6,15,0) 74%);
+  }
+  .hero-cinematic-content { position: relative; z-index: 2; width: 100%; padding: 40px 0 34px; }
+
   .ip-anchor-nav {
     position: sticky;
     top: var(--nav-h);

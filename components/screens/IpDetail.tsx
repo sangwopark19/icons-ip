@@ -111,42 +111,44 @@ export function IpDetail({
 
   return (
     <div className="screen">
-      {/* banner */}
-      <div style={{ position: 'relative', height: 340, overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: ip.bg }} />
+      {/* cinematic hero — 풀블리드 키아트 위에 IP 정보 (Runway 도너) */}
+      <header className="hero-cinematic">
+        <div className="hero-cinematic-art" style={{ background: ip.bg }} />
         <div className="sheen" />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 30%, var(--bg) 96%)' }} />
-      </div>
-      <div className="wrap" style={{ marginTop: -110, position: 'relative', zIndex: 3, paddingBottom: 36 }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => go('iphub')} style={{ marginBottom: 20 }}>
-          <Icon name="arrow" size={14} style={{ transform: 'rotate(180deg)' }} /> IP 허브
-        </button>
-        <div className="between" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
-          <div>
-            <span className="tag" style={{ borderColor: ip.v.color, color: '#fff' }}>{ip.v.label} · {ip.sub}</span>
-            <h1 className="h-xl" style={{ marginTop: 14 }}>{ip.title}</h1>
-            <p style={{ fontSize: 17, fontWeight: 600, marginTop: 8 }}>{ip.tagline}</p>
-            <p className="muted" style={{ marginTop: 10, maxWidth: 560 }}>{ip.synopsis}</p>
-          </div>
-          <div className="row" style={{ gap: 10 }}>
-            <FollowForm followState={followState} ipId={ip.id} />
-            <button className="btn btn-ghost">알림 받기</button>
-          </div>
-        </div>
-        {followError && (
-          <div className="card" role="alert" style={{ marginTop: 18, padding: 12, borderRadius: 12, color: 'var(--pink)', fontSize: 13.5, fontWeight: 700 }}>
-            팔로우 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.
-          </div>
-        )}
-        <div className="row" style={{ gap: 'clamp(20px,4vw,40px)', marginTop: 28, flexWrap: 'wrap' }}>
-          {([[(ip.fans / 1000).toFixed(1) + 'K', '팬'], [ip.goods, '굿즈'], [ip.cards, '카드'], [events.length, '이벤트']] as const).map(([n, l]) => (
-            <div key={l} className="col">
-              <span className="h-lg" style={{ fontFamily: 'var(--ff-display)', color: ip.v.color }}>{n}</span>
-              <span className="faint mono" style={{ fontSize: 11 }}>{l}</span>
+        <div className="hero-cinematic-shade" />
+        <div className="hero-cinematic-content">
+          <div className="wrap">
+            <button className="btn btn-ghost btn-sm" onClick={() => go('iphub')} style={{ marginBottom: 20 }}>
+              <Icon name="arrow" size={14} style={{ transform: 'rotate(180deg)' }} /> IP 허브
+            </button>
+            <div className="between" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
+              <div>
+                <span className="tag" style={{ borderColor: ip.v.color, color: '#fff' }}>{ip.v.label} · {ip.sub}</span>
+                <h1 className="h-xl" style={{ marginTop: 14 }}>{ip.title}</h1>
+                <p style={{ fontSize: 17, fontWeight: 600, marginTop: 8 }}>{ip.tagline}</p>
+                <p className="muted" style={{ marginTop: 10, maxWidth: 560 }}>{ip.synopsis}</p>
+              </div>
+              <div className="row" style={{ gap: 10 }}>
+                <FollowForm followState={followState} ipId={ip.id} />
+                <button className="btn btn-ghost">알림 받기</button>
+              </div>
             </div>
-          ))}
+            {followError && (
+              <div className="card" role="alert" style={{ marginTop: 18, padding: 12, borderRadius: 12, color: 'var(--pink)', fontSize: 13.5, fontWeight: 700 }}>
+                팔로우 상태를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.
+              </div>
+            )}
+            <div className="row" style={{ gap: 'clamp(20px,4vw,40px)', marginTop: 28, flexWrap: 'wrap' }}>
+              {([[(ip.fans / 1000).toFixed(1) + 'K', '팬'], [ip.goods, '굿즈'], [ip.cards, '카드'], [events.length, '이벤트']] as const).map(([n, l]) => (
+                <div key={l} className="col">
+                  <span className="h-lg" style={{ fontFamily: 'var(--ff-display)', color: ip.v.color }}>{n}</span>
+                  <span className="faint mono" style={{ fontSize: 11 }}>{l}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* world navigation — jump to each section */}
       <nav className="ip-anchor-nav" aria-label="IP 세계관 섹션">
