@@ -474,6 +474,10 @@
   .search-pill:hover, .search-row:hover { transform: translateY(-2px); border-color: var(--line-3); }
   .search-card:hover { transform: translateY(-3px); border-color: rgba(255,178,61,.4); }
   .search-tile:hover { transform: translateY(-4px) rotate(-1deg); }
+
+  /* 로그인 — 스플릿 레이아웃 (claude-design v2) */
+  .login-split { display: grid; grid-template-columns: 1.05fr .95fr; }
+  .login-mobile-brand { display: none; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -597,6 +601,9 @@
   .binder-detail { grid-template-columns: 1fr; }
   .search-goods-grid { grid-template-columns: repeat(2, 1fr); }
   .search-cards-grid { grid-template-columns: repeat(3, 1fr); }
+  .login-split { grid-template-columns: 1fr; }
+  .login-panel { display: none; }
+  .login-mobile-brand { display: block; }
 
   .community-main { grid-template-columns: 1fr; }
   .community-channels {

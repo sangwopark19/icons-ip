@@ -13,6 +13,8 @@ export function Nav() {
   const go = useGo();
   const { count } = useCart();
 
+  if (pathname === '/login') return null;
+
   return (
     <nav className="nav">
       <div className="wrap">
