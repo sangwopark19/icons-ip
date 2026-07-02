@@ -444,51 +444,28 @@
   /* entrance — never animate opacity (capture envs can freeze the clock at frame 0) */
   .rise { opacity: 1; }
 
-  /* ip detail — favorite-world hub */
-  /* cinematic IP hero — 풀블리드 키아트 위 텍스트 (Runway 도너) */
-  .hero-cinematic {
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    min-height: min(64vh, 560px);
+  /* IP 허브 — 스위처 레일 + bento 그리드 (claude-design v2) */
+  .ipworld-switcher {
+    display: flex; align-items: center; gap: 10px;
+    padding-top: 14px; padding-bottom: 14px;
+    overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
   }
-  .hero-cinematic-art { position: absolute; inset: 0; z-index: 0; }
-  .hero-cinematic-shade {
-    position: absolute; inset: 0; z-index: 1; pointer-events: none;
-    background:
-      linear-gradient(0deg, var(--bg) 3%, rgba(8,6,15,.55) 42%, rgba(8,6,15,.05) 80%),
-      linear-gradient(90deg, rgba(8,6,15,.82) 0%, rgba(8,6,15,.32) 44%, rgba(8,6,15,0) 74%);
+  .ipworld-switcher::-webkit-scrollbar { display: none; }
+  .ipworld-bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; margin-top: 30px; }
+  .ipworld-cell {
+    --cell-accent: var(--line-3);
+    border-radius: 26px; border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--surface), var(--bg-2));
+    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
   }
-  .hero-cinematic-content { position: relative; z-index: 2; width: 100%; padding: 40px 0 34px; }
-
-  .ip-anchor-nav {
-    position: sticky;
-    top: var(--nav-h);
-    z-index: 30;
-    background: rgba(8,6,15,.72);
-    backdrop-filter: blur(18px) saturate(1.4);
-    border-bottom: 1px solid var(--line);
-  }
-  .ip-anchor-nav-inner {
-    display: flex;
-    gap: 10px;
-    padding-top: 12px;
-    padding-bottom: 12px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-  .ip-anchor-nav-inner::-webkit-scrollbar { display: none; }
-  .ip-anchor-nav .chip { flex: 0 0 auto; }
-  .ip-world-section {
-    padding: 40px 0;
-    scroll-margin-top: calc(var(--nav-h) + 72px);
-    border-top: 1px solid var(--line);
-  }
-  .ip-world-section:first-of-type { border-top: 0; }
+  .ipworld-cell:hover { transform: translateY(-4px); border-color: var(--cell-accent); box-shadow: var(--shadow); }
+  .ipw-goods { grid-column: span 7; }
+  .ipw-gacha { grid-column: span 5; grid-row: span 2; }
+  .ipw-event { grid-column: span 4; }
+  .ipw-comm { grid-column: span 3; }
+  .ipw-cards { grid-column: span 4; }
+  .ipw-fans { grid-column: span 3; }
+  .ipw-more { grid-column: span 5; }
 
   /* shop — 사요 · 공식 굿즈 월드 */
   .shop-toolbar {
@@ -643,6 +620,9 @@
   .home-breadth-head {
     align-items: flex-start;
   }
+
+  .ipworld-bento { grid-template-columns: 1fr; }
+  .ipworld-bento > * { grid-column: auto; grid-row: auto; }
 
   .community-layout {
     grid-template-columns: 1fr !important;

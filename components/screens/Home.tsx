@@ -9,12 +9,10 @@ import { ipAccent, ipEn } from '@/lib/ip-display';
 import { RARITY_META, type RarityKey } from '@/lib/rarity';
 import { hrefFor } from '@/lib/routes';
 import { Empty } from '@/components/ui/Empty';
+import { useHeroParallax, useTilt } from '@/components/ui/motion';
 
 const compactNumber = (n: number) =>
   new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
-
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function CrossfadeArt({ bg, className, baseOpacity = 1 }: { bg: string; className: string; baseOpacity?: number }) {
   const [layers, setLayers] = useState<{ id: number; bg: string }[]>(() => [{ id: 0, bg }]);
@@ -57,23 +55,13 @@ function Hero({
   selectedIp: Ip;
   onSelect: (ipId: string) => void;
 }) {
-  const artRef = useRef<HTMLDivElement>(null);
+  const { artRef, onMouseMove, onMouseLeave } = useHeroParallax();
   const accent = ipAccent(selectedIp);
-
-  const heroMove = (e: React.MouseEvent) => {
-    if (!artRef.current || prefersReducedMotion()) return;
-    const x = e.clientX / window.innerWidth - 0.5;
-    const y = e.clientY / window.innerHeight - 0.5;
-    artRef.current.style.transform = `translate3d(${x * -20}px, ${y * -14}px, 0) scale(1.08)`;
-  };
-  const heroLeave = () => {
-    if (artRef.current) artRef.current.style.transform = 'scale(1.04)';
-  };
 
   return (
     <header
-      onMouseMove={heroMove}
-      onMouseLeave={heroLeave}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
       style={{ position: 'relative', minHeight: '100svh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden', isolation: 'isolate' }}
     >
       <div
@@ -172,30 +160,10 @@ function Ticker({ items }: { items: { c: string; t: string }[] }) {
 }
 
 function TiltCard({ card, ip }: { card: Card; ip: Ip | null }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const glareRef = useRef<HTMLDivElement>(null);
-
-  const tiltMove = (e: React.MouseEvent) => {
-    if (!cardRef.current || prefersReducedMotion()) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width - 0.5;
-    const py = (e.clientY - r.top) / r.height - 0.5;
-    cardRef.current.style.transform = `rotateX(${py * -16}deg) rotateY(${px * 18}deg) scale(1.03)`;
-    if (glareRef.current) {
-      glareRef.current.style.backgroundPosition = `${(px + 0.5) * 100}% ${(py + 0.5) * 100}%`;
-      glareRef.current.style.opacity = '0.8';
-    }
-  };
-  const tiltLeave = () => {
-    if (cardRef.current) cardRef.current.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)';
-    if (glareRef.current) {
-      glareRef.current.style.backgroundPosition = '20% 20%';
-      glareRef.current.style.opacity = '0.55';
-    }
-  };
+  const { cardRef, glareRef, onMouseMove, onMouseLeave } = useTilt();
 
   return (
-    <div onMouseMove={tiltMove} onMouseLeave={tiltLeave} className="home-float" style={{ perspective: 1000 }}>
+    <div onMouseMove={onMouseMove} onMouseLeave={onMouseLeave} className="home-float" style={{ perspective: 1000 }}>
       <div
         ref={cardRef}
         style={{
