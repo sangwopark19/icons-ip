@@ -497,6 +497,20 @@
   .shop-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
   .shop-card { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
   .shop-card:hover { transform: translateY(-4px); border-color: var(--cell-accent); box-shadow: var(--shadow); }
+
+  /* 뽑기 — 히어로 2열 · 결과 · 라인업 (claude-design v2) */
+  .gacha-hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: clamp(28px, 4vw, 56px); align-items: center; }
+  .gacha-results { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .gacha-result-card { transition: transform .25s ease; }
+  .gacha-result-card:hover { transform: translateY(-5px) rotate(-1.5deg); }
+  .gacha-lineup { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .gacha-lineup-card {
+    border-radius: 18px; border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--surface), var(--bg-2));
+    padding: 14px; display: flex; flex-direction: column; gap: 10px;
+    transition: transform .25s ease, border-color .25s ease;
+  }
+  .gacha-lineup-card:hover { transform: translateY(-4px); border-color: rgba(169,129,255,.4); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -518,6 +532,7 @@
 @keyframes holoShift { 0%,100%{ background-position: 0% 50%; } 50%{ background-position: 100% 50%; } }
 @keyframes shake { 0%,100%{ transform: rotate(-2deg); } 50%{ transform: rotate(2deg); } }
 @keyframes tickerMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes popIn { from { transform: translateY(14px) scale(.92); } to { transform: none; } }
 @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 /* 진행중(LIVE) 상태 dot 펄스 — 디자인 핸드오프 pulseDot */
 @keyframes pulseDot {
@@ -608,6 +623,9 @@
   .ipworld-bento { grid-template-columns: 1fr; }
   .ipworld-bento > * { grid-column: auto; grid-row: auto; }
   .shop-grid { grid-template-columns: repeat(2, 1fr); }
+  .gacha-hero { grid-template-columns: 1fr; }
+  .gacha-results { grid-template-columns: repeat(3, 1fr); }
+  .gacha-lineup { grid-template-columns: repeat(2, 1fr); }
 
   .community-layout {
     grid-template-columns: 1fr !important;
