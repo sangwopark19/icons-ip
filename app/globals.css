@@ -306,17 +306,7 @@
 
   .mobnav { display: none; }
 
-  /* ---------- poster (IP key-art placeholder) ---------- */
-  .poster {
-    position: relative; overflow: hidden; border-radius: var(--r);
-    background: var(--surface-2); isolation: isolate;
-  }
-  .poster .glyph {
-    position: absolute; inset: 0; display: grid; place-items: center;
-    font-family: var(--ff-display); font-weight: 700; color: rgba(255,255,255,.92);
-    letter-spacing: -.04em; text-align: center; line-height: .92; z-index: 2;
-    padding: 14px; text-shadow: 0 4px 24px rgba(0,0,0,.4);
-  }
+  /* ---------- key-art sheen / collectible foil ---------- */
   .sheen {
     position:absolute; inset:0; z-index:1; mix-blend-mode: overlay; opacity:.5;
     background: linear-gradient(125deg, transparent 30%, rgba(255,255,255,.5) 48%, transparent 62%);

@@ -115,19 +115,22 @@ export function Login({ initialError, initialMode, isConfigured, next, panelCard
               <div
                 key={i}
                 className="home-float"
-                style={{
-                  position: 'absolute', left: pos.left, top: pos.top, width: pos.width, aspectRatio: '5 / 7',
-                  borderRadius: 16, overflow: 'hidden', background: bg, backgroundSize: 'cover', backgroundPosition: 'center',
-                  transform: `rotate(${pos.rot})`, zIndex: pos.z,
-                  animationDuration: pos.dur, animationDelay: pos.delay,
-                  boxShadow: i === 1
-                    ? '0 34px 80px -26px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.16), 0 0 50px -14px rgba(139,92,255,.6)'
-                    : '0 30px 70px -24px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.14)',
-                }}
+                style={{ position: 'absolute', left: pos.left, top: pos.top, width: pos.width, zIndex: pos.z, animationDuration: pos.dur, animationDelay: pos.delay }}
               >
-                {i === 1 && (
-                  <span className="mono" style={{ position: 'absolute', top: 10, left: 10, fontSize: 10, letterSpacing: '.06em', padding: '4px 8px', borderRadius: 5, fontWeight: 700, color: '#0A0813', background: 'var(--holo)', backgroundSize: '200% 200%', animation: 'holoShift 5s ease infinite' }}>HOLO</span>
-                )}
+                <div
+                  style={{
+                    aspectRatio: '5 / 7', borderRadius: 16, overflow: 'hidden', position: 'relative',
+                    background: bg, backgroundSize: 'cover', backgroundPosition: 'center',
+                    transform: `rotate(${pos.rot})`,
+                    boxShadow: i === 1
+                      ? '0 34px 80px -26px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.16), 0 0 50px -14px rgba(139,92,255,.6)'
+                      : '0 30px 70px -24px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.14)',
+                  }}
+                >
+                  {i === 1 && (
+                    <span className="mono" style={{ position: 'absolute', top: 10, left: 10, fontSize: 10, letterSpacing: '.06em', padding: '4px 8px', borderRadius: 5, fontWeight: 700, color: '#0A0813', background: 'var(--holo)', backgroundSize: '200% 200%', animation: 'holoShift 5s ease infinite' }}>HOLO</span>
+                  )}
+                </div>
               </div>
             );
           })}
