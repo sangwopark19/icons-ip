@@ -466,6 +466,14 @@
   .binder-card:hover { transform: translateY(-4px); border-color: rgba(169,129,255,.4); }
   .binder-cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .binder-detail { grid-template-columns: auto 1fr; }
+
+  /* 검색 — 결과 그리드 (claude-design v2) */
+  .search-goods-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .search-cards-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .search-pill, .search-card, .search-row, .search-tile { transition: transform .2s ease, border-color .2s ease; }
+  .search-pill:hover, .search-row:hover { transform: translateY(-2px); border-color: var(--line-3); }
+  .search-card:hover { transform: translateY(-3px); border-color: rgba(255,178,61,.4); }
+  .search-tile:hover { transform: translateY(-4px) rotate(-1deg); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -587,6 +595,8 @@
   .binder-grid { grid-template-columns: repeat(2, 1fr); }
   .binder-cta-row { grid-template-columns: 1fr; }
   .binder-detail { grid-template-columns: 1fr; }
+  .search-goods-grid { grid-template-columns: repeat(2, 1fr); }
+  .search-cards-grid { grid-template-columns: repeat(3, 1fr); }
 
   .community-main { grid-template-columns: 1fr; }
   .community-channels {
