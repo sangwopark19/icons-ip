@@ -494,25 +494,9 @@
   }
   .shop-toolbar-row::-webkit-scrollbar { display: none; }
   .shop-toolbar-row > * { flex: 0 0 auto; }
-  .shop-rail {
-    display: flex;
-    gap: 16px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    scroll-snap-type: x proximity;
-    padding-bottom: 4px;
-  }
-  .shop-rail::-webkit-scrollbar { display: none; }
-  .shop-rail > * {
-    flex: 0 0 clamp(208px, 62vw, 248px);
-    scroll-snap-align: start;
-  }
-  .shop-section {
-    padding: 34px 0;
-    border-top: 1px solid var(--line);
-  }
-  .shop-section:first-of-type { border-top: 0; }
+  .shop-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .shop-card { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+  .shop-card:hover { transform: translateY(-4px); border-color: var(--cell-accent); box-shadow: var(--shadow); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -623,6 +607,7 @@
 
   .ipworld-bento { grid-template-columns: 1fr; }
   .ipworld-bento > * { grid-column: auto; grid-row: auto; }
+  .shop-grid { grid-template-columns: repeat(2, 1fr); }
 
   .community-layout {
     grid-template-columns: 1fr !important;
