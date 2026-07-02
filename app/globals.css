@@ -478,6 +478,14 @@
   /* 로그인 — 스플릿 레이아웃 (claude-design v2) */
   .login-split { display: grid; grid-template-columns: 1.05fr .95fr; }
   .login-mobile-brand { display: none; }
+
+  /* 마켓·교환 (v2 플레이스홀더, claude-design v2) */
+  .market-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .market-card { transition: transform .25s ease, border-color .25s ease; }
+  .market-card:hover { transform: translateY(-4px); border-color: rgba(255,178,61,.35); }
+  .exchange-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .exchange-card { transition: transform .25s ease, border-color .25s ease; }
+  .exchange-card:hover { transform: translateY(-3px); border-color: var(--line-3); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -604,6 +612,8 @@
   .login-split { grid-template-columns: 1fr; }
   .login-panel { display: none; }
   .login-mobile-brand { display: block; }
+  .market-grid { grid-template-columns: 1fr; }
+  .exchange-grid { grid-template-columns: 1fr; }
 
   .community-main { grid-template-columns: 1fr; }
   .community-channels {
