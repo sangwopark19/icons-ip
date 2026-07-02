@@ -367,79 +367,19 @@
   .ip-pick:hover .ip-pick-art { transform: translateY(-4px); }
   .home-float { animation: floatY 7s ease-in-out infinite; }
 
-  /* community — fandom channel */
-  .community-rail-label {
-    font-size: 11px;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: var(--faint);
-    margin-bottom: 12px;
+  /* 커뮤니티 — 채널 레일 + 피드 + 사이드 레일 (claude-design v2) */
+  .community-main {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr) 280px;
+    gap: 20px;
+    align-items: start;
   }
-  .community-channel {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    width: 100%;
-    padding: 10px 13px;
-    border-radius: 14px;
-    text-align: left;
-    border: 1px solid transparent;
-    color: var(--dim);
-    transition: background .16s ease, border-color .16s ease, color .16s ease;
+  .community-channels {
+    display: flex; flex-direction: column; gap: 6px;
+    position: sticky; top: 88px;
   }
-  .community-channel:hover { color: var(--text); background: rgba(255,255,255,.03); }
-  .community-channel.is-active {
-    background: var(--surface-2);
-    border-color: var(--line-2);
-    color: var(--text);
-  }
-  .community-channel-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 99px;
-    flex: 0 0 auto;
-    box-shadow: 0 0 12px -2px currentColor;
-  }
-  .community-channel-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-  .community-channel-title { font-size: 14px; font-weight: 600; line-height: 1.2; }
-  .community-channel-sub {
-    font-size: 11.5px;
-    color: var(--faint);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .community-hero {
-    position: relative;
-    overflow: hidden;
-    padding: 26px 24px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-lg);
-    background: linear-gradient(180deg, var(--surface), var(--bg-2));
-    isolation: isolate;
-  }
-  .community-hero-glow {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    opacity: .55;
-  }
-  .community-hero > :not(.community-hero-glow) { position: relative; z-index: 1; }
-  .community-hero-kicker { color: var(--pink); }
-  .community-hero-title { margin-top: 14px; }
-  .community-hero-sub { margin-top: 10px; max-width: 540px; font-size: 14.5px; }
-  .community-hero-meta {
-    margin-top: 16px;
-    font-size: 12px;
-    letter-spacing: .08em;
-    color: var(--faint);
-  }
+  .community-post { transition: border-color .25s ease; }
+  .community-post:hover { border-color: rgba(255,255,255,.16); }
 
   /* entrance — never animate opacity (capture envs can freeze the clock at frame 0) */
   .rise { opacity: 1; }
@@ -638,12 +578,14 @@
   .event-grid { grid-template-columns: 1fr; }
   .event-guide-grid { grid-template-columns: 1fr; }
 
-  .community-layout {
-    grid-template-columns: 1fr !important;
-    gap: 18px !important;
+  .community-main { grid-template-columns: 1fr; }
+  .community-channels {
+    position: static; flex-direction: row;
+    overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+    padding-bottom: 4px;
   }
-  .community-layout main { min-width: 0; }
-  .community-hero { padding: 22px 18px; }
+  .community-channels::-webkit-scrollbar { display: none; }
+  .community-rail { display: none !important; }
 
   .mobile-footer-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -661,11 +603,6 @@
 @media (max-width: 620px) {
   .wrap { padding-left: 24px; padding-right: 24px; }
 
-  .community-composer {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-  .community-composer-avatar { display: none; }
-  .community-composer > .btn { width: 100%; }
   .cd-grid,
   .mobile-stack {
     grid-template-columns: 1fr !important;
